@@ -13,4 +13,3 @@ tree-sitter-python
 httpx
 portalocker
 pandas
-fastembed
