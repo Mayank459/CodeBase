@@ -3,7 +3,8 @@ from fastembed import TextEmbedding
 class EmbeddingService:
     def __init__(self):
         # BAAI/bge-small-en-v1.5 is standard, produces 384d vectors
-        self.model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+        # Set threads=1 to prevent ONNX from spawning multiple threads and spiking memory on Render free tier
+        self.model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5", threads=1)
 
     def _entity_to_text(self, entity) -> str:
         """Convert a CodeEntity to the text string that will be embedded."""
@@ -15,7 +16,7 @@ class EmbeddingService:
 
     def embed_text(self, text: str) -> list:
         # fastembed returns a generator of numpy arrays
-        generator = self.model.embed([text])
+        generator = self.model.embed([text], batch_size=1)
         return next(generator).tolist()
 
     def embed_entity(self, entity) -> list:
@@ -31,8 +32,8 @@ class EmbeddingService:
         # Build all texts at once
         texts = [self._entity_to_text(e) for e in entities]
 
-        # embed() yields numpy arrays. We convert them to lists.
-        vectors = [vec.tolist() for vec in self.model.embed(texts, batch_size=100)]
+        # Use an ultra-small batch size (8) to prevent OOM memory spikes during ONNX processing
+        vectors = [vec.tolist() for vec in self.model.embed(texts, batch_size=8)]
 
         return [
             EmbeddedEntity(entity_id=entity.id, vector=vec)

@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy the requirements file into the container
 COPY requirements.txt .
 
+# Prevent memory fragmentation bloat in glibc (keeps RAM under 512MB)
+ENV MALLOC_ARENA_MAX=2
+
 # Install dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
