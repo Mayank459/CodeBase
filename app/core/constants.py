@@ -1,0 +1,6 @@
+"""Core constants."""
+
+MAX_RETRIEVED_CHUNKS = 10
+DEFAULT_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+DEFAULT_LLM_MODEL = "gemini-1.5-pro-latest"
+SUPPORTED_FILE_EXTENSIONS = {".py"}

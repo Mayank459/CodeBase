@@ -1,0 +1,818 @@
+# Codebase RAG Assistant
+
+## AI-Powered Repository Understanding & Developer Intelligence Platform
+
+---
+
+# 1. Project Overview
+
+## Project Name
+
+Codebase RAG Assistant
+
+## Domain
+
+* Generative AI
+* Retrieval-Augmented Generation (RAG)
+* Software Engineering
+* Developer Productivity
+* Code Intelligence
+
+## Project Goal
+
+Build an open-source AI-powered system capable of understanding large software repositories and allowing developers to interact with codebases using natural language.
+
+The project aims to help developers:
+
+* Understand unfamiliar repositories
+* Explore architecture
+* Trace execution flows
+* Localize bugs
+* Generate documentation
+* Accelerate onboarding
+
+This project is designed primarily as a recruiter-attracting open-source GitHub project with strong industry relevance.
+
+---
+
+# 2. Problem Statement
+
+Modern repositories often contain:
+
+* Thousands of files
+* Hundreds of modules
+* Complex dependencies
+* Limited documentation
+
+Developers spend significant time trying to answer questions such as:
+
+* Where is authentication implemented?
+* How does payment processing work?
+* Which files handle user registration?
+* What happens during login?
+* Which modules depend on this service?
+
+Traditional code search tools only perform keyword matching and fail to understand code relationships and architecture.
+
+---
+
+# 3. Proposed Solution
+
+The system combines:
+
+### Code Parsing
+
+Using Tree-sitter to understand source code structure.
+
+### Semantic Retrieval
+
+Using vector embeddings and similarity search.
+
+### Dependency Graph Analysis
+
+Understanding relationships between:
+
+* Files
+* Classes
+* Functions
+* Modules
+
+### LLM-Based Reasoning
+
+Generating contextual explanations and insights.
+
+### Conversational Repository Memory
+
+Maintaining session-level understanding of repository discussions.
+
+---
+
+# 4. Target Repository Support
+
+The system should support multiple languages:
+
+* Python
+* JavaScript
+* TypeScript
+* Java
+* C++
+* Go
+* Rust
+* C#
+* PHP
+
+Tree-sitter will be used for language-independent parsing.
+
+---
+
+# 5. Core Features
+
+---
+
+## Feature 1: Repository Indexing
+
+### Input Sources
+
+* GitHub Repository URL
+* ZIP Upload
+* Local Folder
+
+### Process
+
+* Clone/Load Repository
+* Parse Files
+* Extract Metadata
+* Generate Embeddings
+* Build Dependency Graph
+
+### Output
+
+Indexed repository knowledge base.
+
+---
+
+## Feature 2: Code Parsing
+
+Extract:
+
+* Classes
+* Functions
+* Methods
+* Imports
+* Variables
+* Dependencies
+
+Example:
+
+```python
+def login():
+```
+
+Extracted Metadata:
+
+```json
+{
+  "type": "function",
+  "name": "login",
+  "file": "auth.py"
+}
+```
+
+---
+
+## Feature 3: Semantic Code Search
+
+### Example Queries
+
+```text
+Where is authentication implemented?
+```
+
+```text
+How does payment processing work?
+```
+
+```text
+Show me JWT-related code.
+```
+
+### Benefits
+
+* No need to know file names
+* Understands intent
+* Cross-file retrieval
+
+---
+
+## Feature 4: Repository Chat
+
+Natural language interaction with repositories.
+
+Examples:
+
+```text
+Explain login_service.py
+```
+
+```text
+Which files handle registration?
+```
+
+```text
+Where are environment variables loaded?
+```
+
+---
+
+## Feature 5: Dependency Graph Construction
+
+Build relationships among:
+
+* Files
+* Classes
+* Functions
+* Modules
+
+Example:
+
+```text
+routes.py
+     ↓
+auth_service.py
+     ↓
+jwt_manager.py
+     ↓
+database.py
+```
+
+### Benefits
+
+* Understand architecture
+* Trace dependencies
+* Analyze impact
+
+---
+
+## Feature 6: Architecture Understanding
+
+### Query
+
+```text
+Explain project architecture.
+```
+
+### Output
+
+```text
+Frontend
+    ↓
+API Layer
+    ↓
+Authentication Layer
+    ↓
+Database Layer
+```
+
+---
+
+## Feature 7: Call Flow Tracing
+
+### Query
+
+```text
+What happens when a user logs in?
+```
+
+### Output
+
+```text
+Login Route
+    ↓
+Authentication Service
+    ↓
+JWT Generation
+    ↓
+Database Validation
+```
+
+---
+
+## Feature 8: AI Developer Onboarding
+
+### Query
+
+```text
+I am new to this repository.
+Guide me.
+```
+
+### Output
+
+* Recommended files
+* Learning path
+* Important modules
+* Architecture overview
+
+---
+
+## Feature 9: Bug Localization
+
+### Query
+
+```text
+Why is JWT validation failing?
+```
+
+### Output
+
+* Possible causes
+* Related functions
+* Relevant files
+* Dependency path
+
+---
+
+## Feature 10: Documentation Generation
+
+Generate:
+
+### Module Documentation
+
+```markdown
+# Authentication Module
+```
+
+### API Documentation
+
+```markdown
+# Login Endpoint
+```
+
+### Class Documentation
+
+```markdown
+# UserService
+```
+
+### README Sections
+
+Automatically generated summaries.
+
+---
+
+# 6. Session Memory System
+
+The project will implement session-based memory.
+
+### Workflow
+
+```text
+Repository Upload
+        ↓
+Repository Indexed
+        ↓
+Session Created
+        ↓
+Chat History Stored
+        ↓
+Repository Removed
+        ↓
+Session Deleted
+```
+
+### Benefits
+
+Allows conversations such as:
+
+```text
+User:
+Where is authentication implemented?
+
+Assistant:
+auth/service.py
+
+User:
+Explain it further.
+```
+
+without requiring authentication systems.
+
+---
+
+# 7. Advanced Features (Version 2)
+
+## Security Audit Assistant
+
+Detect:
+
+* Hardcoded secrets
+* Weak authentication
+* Unsafe SQL queries
+* Exposed API keys
+
+---
+
+## Dead Code Detection
+
+Find:
+
+* Unused functions
+* Unused classes
+* Unused imports
+
+---
+
+## Duplicate Code Detection
+
+Identify repeated implementations.
+
+---
+
+## Repository Change Analyzer
+
+### Query
+
+```text
+What changed between commit A and commit B?
+```
+
+---
+
+## UML Diagram Generation
+
+Generate:
+
+* Class diagrams
+* Dependency diagrams
+* Module diagrams
+
+---
+
+## Multi-Repository Analysis
+
+### Query
+
+```text
+Compare authentication implementations in Repository A and Repository B.
+```
+
+---
+
+# 8. Functional Requirements
+
+### FR-1
+
+System shall accept GitHub repositories.
+
+### FR-2
+
+System shall parse source code using Tree-sitter.
+
+### FR-3
+
+System shall generate embeddings.
+
+### FR-4
+
+System shall store vectors in Qdrant.
+
+### FR-5
+
+System shall build dependency graphs.
+
+### FR-6
+
+System shall answer natural language queries.
+
+### FR-7
+
+System shall maintain repository sessions.
+
+### FR-8
+
+System shall explain architecture.
+
+### FR-9
+
+System shall localize bugs.
+
+### FR-10
+
+System shall generate documentation.
+
+---
+
+# 9. Non-Functional Requirements
+
+## Performance
+
+Repository indexing:
+
+```text
+< 5 minutes
+```
+
+for medium repositories.
+
+---
+
+## Scalability
+
+Support repositories up to:
+
+```text
+1,000,000+ LOC
+```
+
+---
+
+## Availability
+
+```text
+99% uptime
+```
+
+---
+
+## Security
+
+* Secure repository processing
+* File validation
+* API protection
+
+---
+
+## Usability
+
+Simple developer-friendly interface.
+
+---
+
+# 10. Recommended Technology Stack
+
+## Frontend
+
+Streamlit
+
+Reason:
+
+* Python-based
+* Easy development
+* No React knowledge required
+
+---
+
+## Backend
+
+FastAPI
+
+Reason:
+
+* Industry standard
+* Async support
+* Easy API integration
+
+---
+
+## Agent Framework
+
+LangGraph
+
+Reason:
+
+* Multi-agent workflows
+* State management
+* Better than simple chains
+
+---
+
+## Code Parsing
+
+Tree-sitter
+
+Reason:
+
+* Multi-language support
+* Production-grade parsing
+
+---
+
+## Vector Database
+
+Qdrant
+
+Reason:
+
+* Open source
+* Docker support
+* Scalable
+
+---
+
+## Dependency Graph
+
+NetworkX
+
+Reason:
+
+* Lightweight
+* Easy integration
+* No Neo4j complexity
+
+---
+
+## Embedding Models
+
+* BGE Large
+* Qwen Embeddings
+
+Reason:
+
+* Free
+* Local inference
+* Strong retrieval quality
+
+---
+
+## LLM Providers
+
+* Gemini
+* DeepSeek
+* Qwen
+* Llama
+
+Reason:
+
+* Free access tiers
+* Multi-model support
+
+---
+
+## Storage
+
+SQLite
+
+Stores:
+
+* Repository metadata
+* Sessions
+* Chat history
+
+---
+
+## Containerization
+
+Docker
+
+Reason:
+
+* Industry standard
+* Easy deployment
+* Recruiter-friendly
+
+Kubernetes intentionally excluded from Version 1.
+
+---
+
+# 11. System Architecture
+
+```text
+                User
+                  │
+                  ▼
+            Streamlit UI
+                  │
+                  ▼
+               FastAPI
+                  │
+                  ▼
+              LangGraph
+                  │
+      ┌───────────┼───────────┐
+      ▼           ▼           ▼
+ Retriever   Graph Agent   Doc Agent
+      │           │           │
+      ▼           ▼           ▼
+   Qdrant     NetworkX     Metadata
+      │
+      ▼
+     LLM
+      │
+      ▼
+   Response
+```
+
+---
+
+# 12. Project Folder Structure
+
+```text
+codebase-rag-assistant/
+
+├── app/
+│   ├── api/
+│   ├── agents/
+│   ├── indexing/
+│   ├── parsers/
+│   ├── retrieval/
+│   ├── graph/
+│   ├── embeddings/
+│   ├── prompts/
+│   └── utils/
+│
+├── streamlit_ui/
+│
+├── tests/
+│
+├── docker/
+│
+├── docs/
+│
+├── data/
+│
+├── qdrant_storage/
+│
+├── requirements.txt
+│
+├── docker-compose.yml
+│
+└── README.md
+```
+
+---
+
+# 13. Development Roadmap
+
+## Phase 1
+
+* Repository indexing
+* Tree-sitter parsing
+* Embeddings
+* Qdrant integration
+* Semantic search
+
+---
+
+## Phase 2
+
+* Dependency graph construction
+* Call flow tracing
+* Architecture generation
+
+---
+
+## Phase 3
+
+* Repository chat
+* Session memory
+* Onboarding assistant
+
+---
+
+## Phase 4
+
+* Bug localization
+* Documentation generation
+* Performance improvements
+
+---
+
+## Phase 5
+
+* Security analysis
+* UML generation
+* Multi-repository support
+
+---
+
+# 14. Advantages
+
+* Faster repository understanding
+* Natural language interface
+* Improved onboarding
+* Better debugging
+* Documentation automation
+* Supports large repositories
+* Open-source friendly
+* High recruiter appeal
+
+---
+
+# 15. Limitations
+
+* Initial indexing cost
+* Large embedding storage requirements
+* LLM hallucination risk
+* Language-specific parsing edge cases
+
+Mitigation:
+
+* Retrieval grounding
+* Source citations
+* Hybrid search
+
+---
+
+# 16. Resume Description
+
+Built an AI-powered Codebase RAG Assistant using FastAPI, LangGraph, Tree-sitter, Qdrant, NetworkX, and open-source LLMs. Implemented repository indexing, semantic code retrieval, dependency graph analysis, architecture generation, call-flow tracing, session-based repository chat, bug localization, and automated documentation generation for large-scale multi-language software repositories.
+
+---
+
+# Project Assessment
+
+Difficulty: 8.5/10
+
+Learning Value: 10/10
+
+Resume Impact: 10/10
+
+Recruiter Appeal: Very High
+
+Industry Relevance (2026): Extremely High
+
+Open-Source Potential: High
+
+Estimated Development Time:
+
+8–12 weeks for a polished Version 1.
