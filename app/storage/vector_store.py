@@ -7,7 +7,7 @@ from app.storage.qdrant_client import get_client
 from app.embeddings.models.embedded_entity import EmbeddedEntity
 
 
-COLLECTION_NAME = "codebase_entities_hf"
+COLLECTION_NAME = "codebase_entities_cohere"
 
 
 def create_collection():
