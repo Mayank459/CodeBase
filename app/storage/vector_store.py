@@ -7,7 +7,7 @@ from app.storage.qdrant_client import get_client
 from app.embeddings.models.embedded_entity import EmbeddedEntity
 
 
-COLLECTION_NAME = "codebase_entities_siliconflow"
+COLLECTION_NAME = "codebase_entities_hf"
 
 
 def create_collection():
@@ -18,7 +18,7 @@ def create_collection():
         client.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=models.VectorParams(
-                size=1024,
+                size=384,
                 distance=models.Distance.COSINE
             )
         )
