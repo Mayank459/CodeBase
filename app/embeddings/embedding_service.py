@@ -15,7 +15,7 @@ class EmbeddingService:
 
     def embed_text(self, text: str) -> list:
         response = self.client.models.embed_content(
-            model="text-embedding-004",
+            model="gemini-embedding-2",
             contents=text
         )
         return response.embeddings[0].values
@@ -38,7 +38,7 @@ class EmbeddingService:
         for i in range(0, len(texts), batch_size):
             batch_texts = texts[i:i+batch_size]
             response = self.client.models.embed_content(
-                model="text-embedding-004",
+                model="gemini-embedding-2",
                 contents=batch_texts
             )
             for emb in response.embeddings:
