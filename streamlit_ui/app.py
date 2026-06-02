@@ -18,7 +18,14 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 # API base URL
 # ---------------------------------------------------------------------------
-API_BASE = "http://localhost:8000"
+import os
+
+# Try to get API_BASE from Streamlit secrets (if deployed on Streamlit Cloud),
+# fall back to an environment variable, and finally fall back to localhost.
+try:
+    API_BASE = st.secrets["API_BASE"]
+except (FileNotFoundError, KeyError):
+    API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 
 # ---------------------------------------------------------------------------
 # Custom CSS
