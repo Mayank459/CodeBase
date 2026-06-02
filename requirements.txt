@@ -4,7 +4,6 @@ streamlit
 qdrant-client
 pydantic
 python-dotenv
-sentence-transformers
 networkx
 google-genai
 langchain
