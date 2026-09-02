@@ -13,3 +13,4 @@ tree-sitter-python
 httpx
 portalocker
 pandas
+gitpython
