@@ -12,7 +12,7 @@ class LLMProvider:
 
     def generate(self, prompt):
         response = self.client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.5-flash-latest',
             contents=prompt,
             config=types.GenerateContentConfig(
                 max_output_tokens=8192,
@@ -22,7 +22,7 @@ class LLMProvider:
 
     def generate_stream(self, prompt):
         for chunk in self.client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.5-flash-latest',
             contents=prompt,
             config=types.GenerateContentConfig(
                 max_output_tokens=8192,
