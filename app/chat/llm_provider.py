@@ -28,14 +28,22 @@ class LLMProvider:
     def generate(self, prompt):
         """Generate text using configured LLM (Grok or Gemini)."""
         if self.use_grok:
-            return self._generate_grok(prompt)
+            try:
+                return self._generate_grok(prompt)
+            except Exception as e:
+                print(f"[LLM] Grok failed: {e}. Falling back to Gemini...")
+                return self._generate_gemini(prompt)
         else:
             return self._generate_gemini(prompt)
 
     def generate_stream(self, prompt):
         """Generate text using configured LLM with streaming."""
         if self.use_grok:
-            return self._generate_grok_stream(prompt)
+            try:
+                return self._generate_grok_stream(prompt)
+            except Exception as e:
+                print(f"[LLM] Grok streaming failed: {e}. Falling back to Gemini...")
+                return self._generate_gemini_stream(prompt)
         else:
             return self._generate_gemini_stream(prompt)
 
