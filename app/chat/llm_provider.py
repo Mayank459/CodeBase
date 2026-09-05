@@ -6,14 +6,18 @@ load_dotenv()
 
 class LLMProvider:
     def __init__(self):
-        # For now, use Gemini as primary LLM
-        # Grok support ready when API key is validated
         self.grok_api_key = os.getenv("GROK_API_KEY")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
 
-        # Temporarily disable Grok due to API validation issues
-        # Set use_grok = True only after verifying Grok API key format
-        self.use_grok = False  # Disabled for now
+        # Always initialize Gemini client for fallback support
+        from google import genai
+        from google.genai import types
+        self.genai = genai
+        self.types = types
+        self.client = genai.Client(api_key=self.gemini_api_key)
+
+        # Use Grok if API key available, fall back to Gemini
+        self.use_grok = bool(self.grok_api_key)
 
         if self.use_grok and self.grok_api_key:
             self.model_type = "grok"
@@ -22,11 +26,6 @@ class LLMProvider:
             self.model = "grok-3"
         else:
             self.model_type = "gemini"
-            from google import genai
-            from google.genai import types
-            self.genai = genai
-            self.types = types
-            self.client = genai.Client(api_key=self.gemini_api_key)
 
     def generate(self, prompt):
         """Generate text using configured LLM (Grok or Gemini)."""
@@ -126,7 +125,7 @@ class LLMProvider:
     def _generate_gemini(self, prompt):
         """Generate using Google Gemini API."""
         response = self.client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-3.6-flash',
             contents=prompt,
             config=self.types.GenerateContentConfig(
                 max_output_tokens=8192,
@@ -137,7 +136,7 @@ class LLMProvider:
     def _generate_gemini_stream(self, prompt):
         """Generate using Google Gemini API with streaming."""
         for chunk in self.client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-3.6-flash',
             contents=prompt,
             config=self.types.GenerateContentConfig(
                 max_output_tokens=8192,
