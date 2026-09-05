@@ -1,4 +1,8 @@
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Base directory is 3 levels up from app/core/config.py (CodeBase directory)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

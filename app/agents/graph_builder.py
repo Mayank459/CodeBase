@@ -1,5 +1,6 @@
 """Agent graph builder module."""
 from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver
 
 from app.agents.state import AgentState
 from app.agents.router import router_node
@@ -73,7 +74,11 @@ def build_agent_graph():
     builder.add_edge("await_approval", END)
     builder.add_edge("pr", END)
 
-    return builder.compile()
+    return builder.compile(checkpointer=checkpointer)
+
+# In-memory checkpointer enables Human-in-the-Loop resumes (PR approval).
+# Note: data is lost on restart; swap for a SQLite/Postgres saver for persistence.
+checkpointer = MemorySaver()
 
 # Provide a pre-compiled graph object
 graph = build_agent_graph()

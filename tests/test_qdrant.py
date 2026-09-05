@@ -29,6 +29,6 @@ print(f"Embedded {len(embedded_entities)} entities.")
 
 print("Connecting to Qdrant and storing entities...")
 create_collection()
-store_entities(entities, embedded_entities)
+store_entities("test_qdrant", entities, embedded_entities)
 
 print("Successfully stored entities in Qdrant!")

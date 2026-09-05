@@ -23,7 +23,7 @@ entities = extractor.extract_entities([parsed])
 service = EmbeddingService()
 embedded_entities = service.embed_entities(entities)
 create_collection()
-store_entities(entities, embedded_entities)
+store_entities("auth", entities, embedded_entities)
 
 print("Running search for: 'authentication service'...")
 results = search("authentication service")

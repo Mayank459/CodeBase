@@ -34,7 +34,7 @@ An open-source system that lets developers interact with large software reposito
 | **Code Parsing** | Tree-sitter |
 | **Vector Store** | Qdrant |
 | **Dependency Graph** | NetworkX |
-| **Embeddings** | BAAI/bge-small-en-v1.5 (via sentence-transformers) |
+| **Embeddings** | Cohere embed-english-light-v3.0 (384-dim) |
 | **LLM** | Google Gemini 2.5 Flash |
 | **Containerization** | Docker + Docker Compose |
 
@@ -47,6 +47,7 @@ An open-source system that lets developers interact with large software reposito
 - Python 3.11+
 - Docker (for Qdrant)
 - A **Gemini API key** from [Google AI Studio](https://aistudio.google.com/)
+- A **Cohere API key** (for embeddings) from [Cohere](https://dashboard.cohere.com/)
 
 ### 1. Clone & install
 
@@ -61,6 +62,7 @@ pip install -r requirements.txt
 ```bash
 # .env
 GEMINI_API_KEY=your_key_here
+COHERE_API_KEY=your_key_here
 ```
 
 ### 3. Start Qdrant
@@ -117,7 +119,7 @@ codebase-rag-assistant/
 │   ├── core/                   # Config, constants, logging
 │   ├── dead_code/              # Dead code static analyzer
 │   ├── documentation/          # Doc generators for classes, functions, repos
-│   ├── embeddings/             # Sentence-transformer embedding service
+│   ├── embeddings/             # Cohere embedding service
 │   ├── evolution/              # Repo diff & changelog generation
 │   ├── graph/                  # NetworkX graph builder, resolver, visualizer
 │   ├── hitl/                   # Human-in-the-Loop: checkpoint store & resume handler
@@ -150,6 +152,7 @@ codebase-rag-assistant/
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/repository/parse` | Index a repository (clone → parse → embed → store) |
+| `POST` | `/repository/index-stream` | Index with SSE progress streaming (used by UI) |
 | `POST` | `/repository/chat` | Direct chat (bypasses agent graph) |
 | `POST` | `/repository/architecture` | Raw architecture analysis JSON |
 | `POST` | `/repository/debug-search` | Debug semantic search results |
@@ -158,11 +161,11 @@ codebase-rag-assistant/
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/agent/chat` | Full LangGraph agent (auto-routes by intent) |
+| `POST` | `/agent/chat` | Full LangGraph agent (auto-routes by intent). Accepts `history` (list of `{role, content}`) for conversational context and `thread_id` for HITL resume |
 | `POST` | `/agent/chat-stream` | Streaming SSE version of chat |
 | `POST` | `/agent/compare` | Compare multiple repositories |
 | `POST` | `/agent/evolution` | Analyze changes between two repo versions |
-| `POST` | `/agent/approve` | Approve/reject a pending HITL action |
+| `POST` | `/agent/approve` | Approve/reject a pending HITL action (resumes the paused graph via thread_id) |
 
 ---
 
@@ -201,8 +204,20 @@ User Question
 
 ## 🧪 Running Tests
 
+The `tests/` directory contains quick smoke/probe scripts (not a full pytest suite).
+
 ```bash
-pytest tests/ -v
+# Offline smoke scripts (parser, graph, entities, security, index builder)
+python tests/test_parser.py
+python tests/test_graph.py
+python tests/test_entities.py
+python tests/test_security.py
+python tests/test_index_builder.py
+
+# These require a live Cohere API key + running Qdrant
+python tests/test_embeddings.py
+python tests/test_qdrant.py
+python tests/test_search.py
 ```
 
 ---
@@ -223,7 +238,10 @@ open http://localhost:6333/dashboard
 
 | Variable | Required | Description |
 |---|---|---|
-| `GEMINI_API_KEY` | ✅ | Google Gemini API key |
+| `GEMINI_API_KEY` | ✅ | Google Gemini API key (LLM) |
+| `COHERE_API_KEY` | ✅ | Cohere API key (embeddings) |
+| `API_BASE` | ⬜ | Override backend URL (default `http://localhost:8000`) |
+| `QDRANT_URL` / `QDRANT_API_KEY` | ⬜ | Remote Qdrant (falls back to local in-memory + disk) |
 
 ---
 

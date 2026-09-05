@@ -7,7 +7,12 @@ def router_node(state):
 
     question = state.get("question", "").lower()
 
-    if "architecture diagram" in question or "dependency diagram" in question or "visualize repository" in question:
+    # PR is checked before security_fix because queries like
+    # "create a pull request to fix security vulnerabilities" contain
+    # both "pull request" and "fix security" — the PR intent must win.
+    if "pull request" in question or "create pr" in question or "generate pr" in question:
+        state["route"] = "pr"
+    elif "architecture diagram" in question or "dependency diagram" in question or "visualize repository" in question:
         state["route"] = "architecture_diagram"
     elif "architecture" in question:
         state["route"] = "architecture"
@@ -27,8 +32,6 @@ def router_node(state):
         state["route"] = "comparison"
     elif "evolution" in question:
         state["route"] = "evolution"
-    elif "pull request" in question or "create pr" in question or "generate pr" in question:
-        state["route"] = "pr"
     else:
         state["route"] = "chat"
 

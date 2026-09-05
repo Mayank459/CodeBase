@@ -12,8 +12,15 @@ def chat_node(state):
         state["answer"] = "Repository not indexed. Please index it first using POST /repository/parse."
         return state
 
-    chat = RepositoryChat(repository.graph)
-    answer = chat.ask(question)
+    # Build a compact conversation history string for context
+    history = state.get("history") or []
+    history_str = "\n".join(
+        f"{'User' if m.get('role') == 'user' else 'Assistant'}: {m.get('content', '')}"
+        for m in history[-6:]  # keep the last few turns to bound context
+    )
+
+    chat = RepositoryChat(repository.graph, repository_name=repository_name)
+    answer = chat.ask(question, history=history_str)
 
     state["answer"] = answer
     return state

@@ -11,3 +11,4 @@ class AgentState(TypedDict):
     new_repository: str
     approval_needed: bool
     approval_request: dict
+    history: list

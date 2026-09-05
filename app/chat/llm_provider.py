@@ -6,7 +6,7 @@ load_dotenv()
 
 class LLMProvider:
     def __init__(self):
-        self.grok_api_key = os.getenv("GROK_API_KEY")
+        self.groq_api_key = (os.getenv("GROQ_API_KEY") or os.getenv("GROK_API_KEY") or "").strip()
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
 
         # Always initialize Gemini client for fallback support
@@ -16,42 +16,48 @@ class LLMProvider:
         self.types = types
         self.client = genai.Client(api_key=self.gemini_api_key)
 
-        # Grok disabled due to 400 Bad Request errors
-        # When fixed, set: self.use_grok = bool(self.grok_api_key)
-        self.use_grok = False
+        # Use Groq if API key is provided, with automatic Gemini fallback
+        self.use_groq = bool(self.groq_api_key)
+        self.use_grok = self.use_groq  # Backward-compatible alias
 
-        if self.use_grok and self.grok_api_key:
-            self.model_type = "grok"
-            self.api_key = self.grok_api_key
-            self.base_url = "https://api.x.ai/v1"
-            self.model = "grok-3"
+        if self.use_groq:
+            self.model_type = "groq"
+            self.api_key = self.groq_api_key
+            self.base_url = "https://api.groq.com/openai/v1"
+            self.model = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
         else:
             self.model_type = "gemini"
 
     def generate(self, prompt):
-        """Generate text using configured LLM (Grok or Gemini)."""
-        if self.use_grok:
+        """Generate text using configured LLM (Groq or Gemini)."""
+        if self.use_groq:
             try:
-                return self._generate_grok(prompt)
+                return self._generate_groq(prompt)
             except Exception as e:
-                print(f"[LLM] Grok failed: {e}. Falling back to Gemini...")
+                print(f"[LLM] Groq failed: {e}. Falling back to Gemini...")
                 return self._generate_gemini(prompt)
         else:
             return self._generate_gemini(prompt)
 
     def generate_stream(self, prompt):
-        """Generate text using configured LLM with streaming."""
-        if self.use_grok:
+        """Generate text using configured LLM with streaming and automatic fallback."""
+        if self.use_groq:
             try:
-                return self._generate_grok_stream(prompt)
+                stream = self._generate_groq_stream(prompt)
+                first_chunk = next(stream, None)
+                if first_chunk is not None:
+                    yield first_chunk
+                    yield from stream
+                    return
             except Exception as e:
-                print(f"[LLM] Grok streaming failed: {e}. Falling back to Gemini...")
-                return self._generate_gemini_stream(prompt)
-        else:
-            return self._generate_gemini_stream(prompt)
+                print(f"[LLM] Groq streaming failed: {e}. Falling back to Gemini...")
 
-    def _generate_grok(self, prompt):
-        """Generate using Grok API."""
+            yield from self._generate_gemini_stream(prompt)
+        else:
+            yield from self._generate_gemini_stream(prompt)
+
+    def _generate_groq(self, prompt):
+        """Generate using Groq API."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -78,10 +84,10 @@ class LLMProvider:
                 data = response.json()
                 return data["choices"][0]["message"]["content"]
         except httpx.HTTPError as e:
-            raise RuntimeError(f"Grok API error: {e}")
+            raise RuntimeError(f"Groq API error: {e}")
 
-    def _generate_grok_stream(self, prompt):
-        """Generate using Grok API with streaming."""
+    def _generate_groq_stream(self, prompt):
+        """Generate using Groq API with streaming."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -121,7 +127,11 @@ class LLMProvider:
                             except:
                                 pass
         except httpx.HTTPError as e:
-            raise RuntimeError(f"Grok API streaming error: {e}")
+            raise RuntimeError(f"Groq API streaming error: {e}")
+
+    # Aliases for backward compatibility
+    _generate_grok = _generate_groq
+    _generate_grok_stream = _generate_groq_stream
 
     def _generate_gemini(self, prompt):
         """Generate using Google Gemini API."""

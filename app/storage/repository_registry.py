@@ -41,23 +41,17 @@ class RepositoryRegistry:
         record = self.repositories.get(name)
         if not record:
             return None
-            
+
         # Backward compatibility for old cache format
         if not isinstance(record, dict):
             return record
-        
-        # Check TTL
+
+        # TTL: treat stale registrations as not-indexed, but DO NOT delete the
+        # embeddings — silently destroying data on access is destructive. The
+        # user re-indexes to refresh the timestamp, which upserts the same IDs.
         if time.time() - record.get("timestamp", 0) > self.cache_ttl_seconds:
-            try:
-                from app.storage.vector_store import delete_repository
-                delete_repository(name)
-            except Exception as e:
-                print(f"[registry] Failed to delete expired embeddings for {name}: {e}")
-                
-            del self.repositories[name]
-            self._save()
             return None
-            
+
         return record["index"]
 
     def contains(self, name) -> bool:

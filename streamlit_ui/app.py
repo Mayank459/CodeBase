@@ -4,6 +4,11 @@ Codebase RAG Assistant — Streamlit Frontend
 import streamlit as st
 import requests
 import json
+import os
+from dotenv import load_dotenv
+
+# Force load the .env file so Streamlit actually sees API_BASE
+load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -18,8 +23,6 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 # API base URL
 # ---------------------------------------------------------------------------
-import os
-
 # Try to get API_BASE from Streamlit secrets (if deployed on Streamlit Cloud),
 # fall back to an environment variable, and finally fall back to localhost.
 try:
@@ -199,6 +202,8 @@ if "indexed_repo" not in st.session_state:
     st.session_state.indexed_repo = None
 if "index_stats" not in st.session_state:
     st.session_state.index_stats = {}
+if "thread_id" not in st.session_state:
+    st.session_state.thread_id = "default"
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +263,20 @@ def render_chat_bubble(role: str, content: str):
 with st.sidebar:
     st.markdown("## 🧠 Codebase RAG")
     st.markdown("---")
+
+    # API connection status
+    try:
+        _health = requests.get(f"{API_BASE}/", timeout=5)
+        _connected = _health.status_code == 200
+    except Exception:
+        _connected = False
+    if _connected:
+        st.markdown('<span class="status-badge badge-success">🟢 API connected</span>',
+                    unsafe_allow_html=True)
+    else:
+        st.markdown(f'<span class="status-badge badge-error">🔴 API offline — is `uvicorn` running at {API_BASE}?</span>',
+                    unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown("### 📦 Index Repository")
 
@@ -379,7 +398,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
-tab_chat, tab_architecture, tab_security, tab_dead_code, tab_docs, tab_uml, tab_compare = st.tabs([
+tab_chat, tab_architecture, tab_security, tab_dead_code, tab_docs, tab_uml, tab_compare, tab_evolution, tab_pr = st.tabs([
     "💬 Chat",
     "🏗️ Architecture",
     "🔒 Security",
@@ -387,6 +406,8 @@ tab_chat, tab_architecture, tab_security, tab_dead_code, tab_docs, tab_uml, tab_
     "📄 Documentation",
     "📐 UML",
     "🔁 Compare",
+    "📈 Evolution",
+    "🚀 PR Creation",
 ])
 
 
@@ -419,7 +440,8 @@ with tab_chat:
             with st.spinner("Thinking…"):
                 result = api_post("/agent/chat", {
                     "repository_name": st.session_state.indexed_repo,
-                    "question": user_input
+                    "question": user_input,
+                    "history": st.session_state.chat_history[:-1]  # prior turns (exclude current)
                 })
 
             answer = result.get("answer") or result.get("error", "No response.")
@@ -462,7 +484,7 @@ with tab_architecture:
                 
                 st.markdown("#### 📂 File Complexity Overview")
                 st.caption("Files with the most classes, functions, and variables.")
-                
+
                 import pandas as pd
                 if modules:
                     # Convert to dataframe
@@ -472,15 +494,19 @@ with tab_architecture:
                     df_modules["Total Complexity"] = df_modules["classes"] + df_modules["functions"] + df_modules["variables"]
                     df_modules = df_modules.sort_values("Total Complexity", ascending=False).head(20)
                     st.dataframe(df_modules, use_container_width=True)
-                
+                else:
+                    st.info("No module data returned. The repository may have no Python source files.")
+
                 st.markdown("#### 🕸️ Top Connected Components")
                 st.caption("The most depended-on components in the codebase (highest degree centrality).")
-                
+
                 top_nodes = result.get("top_nodes", [])
                 if top_nodes:
                     df_nodes = pd.DataFrame(top_nodes, columns=["Component", "Connections"])
                     df_nodes = df_nodes.set_index("Component")
                     st.bar_chart(df_nodes)
+                else:
+                    st.info("No connected components data available.")
 
 
 # ── Security tab ──────────────────────────────────────────────────────────────
@@ -499,8 +525,10 @@ with tab_security:
                         "repository_name": st.session_state.indexed_repo,
                         "question": "security audit"
                     })
-                answer = result.get("answer") or result.get("error", "No response.")
-                st.markdown(answer)
+                if "error" in result:
+                    st.error(result["error"])
+                else:
+                    st.markdown(result.get("answer") or "No response.")
     with col2:
         if st.button("🛠️ Suggest Security Fixes", use_container_width=True):
             if not st.session_state.indexed_repo:
@@ -511,8 +539,10 @@ with tab_security:
                         "repository_name": st.session_state.indexed_repo,
                         "question": "fix security vulnerabilities and suggest remediation"
                     })
-                answer = result.get("answer") or result.get("error", "No response.")
-                st.markdown(answer)
+                if "error" in result:
+                    st.error(result["error"])
+                else:
+                    st.markdown(result.get("answer") or "No response.")
 
 
 # ── Dead Code tab ─────────────────────────────────────────────────────────────
@@ -529,8 +559,10 @@ with tab_dead_code:
                     "repository_name": st.session_state.indexed_repo,
                     "question": "find dead code and unused functions"
                 })
-            answer = result.get("answer") or result.get("error", "No response.")
-            st.markdown(answer)
+            if "error" in result:
+                st.error(result["error"])
+            else:
+                st.markdown(result.get("answer") or "No response.")
 
 
 # ── Documentation tab ─────────────────────────────────────────────────────────
@@ -547,16 +579,18 @@ with tab_docs:
                     "repository_name": st.session_state.indexed_repo,
                     "question": "generate documentation for this repository"
                 })
-            answer = result.get("answer") or result.get("error", "No response.")
-            st.markdown(answer)
-
-            # Download button
-            st.download_button(
-                label="⬇️ Download as Markdown",
-                data=answer,
-                file_name=f"{st.session_state.indexed_repo}_docs.md",
-                mime="text/markdown"
-            )
+            if "error" in result:
+                st.error(result["error"])
+            else:
+                answer = result.get("answer") or "No response."
+                st.markdown(answer)
+                # Only show download button on successful generation
+                st.download_button(
+                    label="⬇️ Download as Markdown",
+                    data=answer,
+                    file_name=f"{st.session_state.indexed_repo}_docs.md",
+                    mime="text/markdown"
+                )
 
 
 # ── UML tab ───────────────────────────────────────────────────────────────────
@@ -576,8 +610,10 @@ with tab_uml:
                     "repository_name": st.session_state.indexed_repo,
                     "question": query
                 })
-            answer = result.get("answer") or result.get("error", "No response.")
-            st.markdown(answer)
+            if "error" in result:
+                st.error(result["error"])
+            else:
+                st.markdown(result.get("answer") or "No response.")
 
 
 # ── Compare tab ───────────────────────────────────────────────────────────────
@@ -600,5 +636,109 @@ with tab_compare:
         else:
             with st.spinner("Comparing repositories…"):
                 result = api_post("/agent/compare", {"repositories": repos})
-            answer = result.get("answer") or result.get("error", "No response.")
-            st.markdown(answer)
+            if "error" in result:
+                st.error(result["error"])
+            else:
+                st.markdown(result.get("answer") or "No response.")
+
+
+# ── Evolution tab ─────────────────────────────────────────────────────────────
+with tab_evolution:
+    st.markdown("### 📈 Repository Evolution")
+    st.caption("Analyze how a repository changed between two indexed versions.")
+
+    st.info("Both repository versions must be indexed before comparing their evolution.")
+
+    old_repo = st.text_input(
+        "Old version (repository name)",
+        placeholder="my-repo@v1",
+        key="evo_old_repo"
+    )
+    new_repo = st.text_input(
+        "New version (repository name)",
+        placeholder="my-repo@v2",
+        key="evo_new_repo"
+    )
+
+    if st.button("📈 Analyze Evolution", use_container_width=False):
+        if not old_repo.strip() or not new_repo.strip():
+            st.warning("Please enter both the old and new repository names.")
+        else:
+            with st.spinner("Analyzing repository evolution…"):
+                result = api_post("/agent/evolution", {
+                    "old_repository": old_repo.strip(),
+                    "new_repository": new_repo.strip()
+                })
+            if "error" in result:
+                st.error(result["error"])
+            else:
+                st.markdown(result.get("answer") or "No response.")
+
+
+# ── PR Creation tab ───────────────────────────────────────────────────────────
+with tab_pr:
+    st.markdown("### 🚀 Pull Request Creation")
+    st.caption("Detect security issues and generate a pull request with fixes.")
+
+    # Track the pending approval across reruns
+    if "pr_pending" not in st.session_state:
+        st.session_state.pr_pending = None
+
+    if st.button("🚀 Generate Pull Request", use_container_width=False):
+        if not st.session_state.indexed_repo:
+            st.warning("Index a repository first.")
+        else:
+            st.session_state.pr_pending = None
+            with st.spinner("Detecting issues and preparing PR…"):
+                result = api_post("/agent/chat", {
+                    "repository_name": st.session_state.indexed_repo,
+                    "question": "create a pull request to fix security vulnerabilities",
+                    "thread_id": st.session_state.thread_id,
+                })
+            if "error" in result:
+                st.error(result["error"])
+            elif result.get("approval_needed"):
+                st.session_state.pr_pending = result
+                st.rerun()
+            else:
+                st.markdown(result.get("answer") or "No response.")
+
+    # Surface a pending Human-in-the-Loop approval request
+    if st.session_state.pr_pending:
+        pending = st.session_state.pr_pending
+        approval = pending.get("approval_request", {})
+        findings = approval.get("findings", [])
+
+        st.warning("🛑 **Approval required** — found security issues to fix in the PR.")
+        if findings:
+            st.markdown("**Issues detected:**")
+            for f in findings:
+                st.markdown(f"- 🟡 `{f.get('file', '?')}` — {f.get('type', '')}")
+        else:
+            st.markdown("No specific findings listed.")
+
+        col_yes, col_no = st.columns(2)
+        with col_yes:
+            if st.button("✅ Approve & Generate PR", use_container_width=True):
+                with st.spinner("Generating pull request…"):
+                    result = api_post("/agent/approve", {
+                        "request_id": pending.get("request_id"),
+                        "approved": True,
+                    })
+                st.session_state.pr_pending = None
+                if "error" in result:
+                    st.error(result["error"])
+                else:
+                    st.markdown(result.get("answer") or "No response.")
+        with col_no:
+            if st.button("❌ Reject", use_container_width=True):
+                with st.spinner("Rejecting…"):
+                    result = api_post("/agent/approve", {
+                        "request_id": pending.get("request_id"),
+                        "approved": False,
+                    })
+                st.session_state.pr_pending = None
+                if "error" in result:
+                    st.error(result["error"])
+                else:
+                    st.info(result.get("answer") or "PR generation rejected.")

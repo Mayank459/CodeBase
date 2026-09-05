@@ -5,6 +5,7 @@ from app.parsers.python.extractor import (
 from app.graph.builder import (
     RepositoryGraphBuilder
 )
+from app.graph.resolver import SymbolResolver
 
 code = """
 import jwt
@@ -25,7 +26,11 @@ parsed = extract_python_file(
     code
 )
 
-builder = RepositoryGraphBuilder()
+# RepositoryGraphBuilder now requires a resolved symbol table
+resolver = SymbolResolver()
+symbol_table = resolver.build([parsed])
+
+builder = RepositoryGraphBuilder(symbol_table)
 
 builder.add_parsed_file(
     parsed

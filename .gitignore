@@ -1,4 +1,5 @@
 .env
+start-claude.ps1
 codebase/
 data/
 __pycache__/

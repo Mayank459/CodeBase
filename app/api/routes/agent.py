@@ -8,6 +8,8 @@ router = APIRouter()
 class AgentChatRequest(BaseModel):
     repository_name: str
     question: str
+    history: list[dict] = []
+    thread_id: str = ""  # stable ID so interrupted (HITL) runs can be resumed
 
 class ComparisonRequest(BaseModel):
     repositories: list[str]
@@ -18,12 +20,27 @@ from app.agents.comparison_agent import comparison_node
 async def chat_with_agent(
     request: AgentChatRequest
 ):
+    config = {"configurable": {"thread_id": request.thread_id or "default"}}
     result = graph.invoke(
         {
             "repository_name": request.repository_name,
-            "question": request.question
-        }
+            "question": request.question,
+            "history": request.history
+        },
+        config=config,
     )
+
+    # Surface Human-in-the-Loop approval requests (e.g. PR creation)
+    interrupts = result.get("__interrupt__")
+    if interrupts:
+        payload = interrupts[0].value
+        return {
+            "approval_needed": True,
+            "request_id": request.thread_id or "default",
+            "approval_request": payload,
+            "answer": "",
+        }
+
     return result
 
 from fastapi.responses import (
@@ -40,9 +57,15 @@ async def chat_with_agent_stream(
             "repository_name": request.repository_name,
             "question": request.question
         }
-        
+        config = {"configurable": {"thread_id": request.thread_id or "default"}}
+
+        # Clear any leftover events from previous requests to avoid stale data
+        # leaking into this stream (the StreamManager is a shared singleton).
+        stream.clear()
+
         for event in graph.stream(
-            state
+            state,
+            config=config,
         ):
             for ev in stream.get_events():
                 yield (
@@ -118,8 +141,26 @@ async def approve_action(request: ApproveRequest):
     Resume a paused Human-in-the-Loop workflow after the user
     reviews and approves (or rejects) the pending action.
     """
-    from app.hitl.resume_handler import resume_handler
-    return resume_handler.resume(
-        request_id=request.request_id,
-        approved=request.approved
-    )
+    from langgraph.types import Command
+    from app.agents.graph_builder import graph
+
+    config = {"configurable": {"thread_id": request.request_id}}
+    try:
+        result = graph.invoke(
+            Command(resume={"approved": request.approved}),
+            config=config,
+        )
+    except Exception as exc:
+        return {"error": f"Failed to resume workflow: {exc}"}
+
+    # A nested interrupt (shouldn't normally happen) — surface it again
+    interrupts = result.get("__interrupt__")
+    if interrupts:
+        return {
+            "approval_needed": True,
+            "request_id": request.request_id,
+            "approval_request": interrupts[0].value,
+            "answer": "",
+        }
+
+    return result

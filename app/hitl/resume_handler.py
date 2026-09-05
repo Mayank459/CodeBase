@@ -38,7 +38,8 @@ class ResumeHandler:
 
         # Resume the graph — LangGraph will continue from the interrupt() call
         try:
-            result = graph.invoke(state)
+            config = {"configurable": {"thread_id": request_id}}
+            result = graph.invoke(state, config=config)
         except Exception as exc:
             checkpoint_store.remove(request_id)
             return {"error": str(exc)}

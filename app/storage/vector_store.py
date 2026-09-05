@@ -2,6 +2,7 @@
 from typing import List
 
 from qdrant_client.http import models
+from qdrant_client.models import (PointStruct, Filter, FieldCondition, MatchValue)
 
 from app.storage.qdrant_client import get_client
 from app.embeddings.models.embedded_entity import EmbeddedEntity
@@ -11,7 +12,7 @@ COLLECTION_NAME = "codebase_entities_cohere"
 
 
 def create_collection():
-    """Create the Qdrant collection if it doesn't exist."""
+    """Create the Qdrant collection and payload indexes if they don't exist."""
     client = get_client()
     collections = client.get_collections().collections
     if not any(c.name == COLLECTION_NAME for c in collections):
@@ -23,24 +24,34 @@ def create_collection():
             )
         )
 
-# pyrefly: ignore [missing-import]
-from qdrant_client.models import (PointStruct, Filter, FieldCondition, MatchValue)
+    # Ensure payload index on repository_name exists for filtering/deleting
+    try:
+        client.create_payload_index(
+            collection_name=COLLECTION_NAME,
+            field_name="repository_name",
+            field_schema=models.PayloadSchemaType.KEYWORD
+        )
+    except Exception:
+        # Index already exists or cannot be created
+        pass
+
+
 def store_entities(repository_name: str, entities, embedded_entities):
     client = get_client()
     points = []
 
-    for entity,embedded in zip(entities,embedded_entities):
+    for entity, embedded in zip(entities, embedded_entities):
         points.append(
             PointStruct(
-                id = entity.id,
-                vector = embedded.vector,
-                payload = {
+                id=entity.id,
+                vector=embedded.vector,
+                payload={
                     "repository_name": repository_name,
                     "graph_node_id": entity.graph_node_id,
                     "entity_type": entity.entity_type,
-                    "name" : entity.name,
+                    "name": entity.name,
                     "file_path": entity.file_path,
-                    "content" : entity.content
+                    "content": entity.content
                 }
             )
         )
@@ -53,14 +64,18 @@ def store_entities(repository_name: str, entities, embedded_entities):
 def delete_repository(repository_name: str):
     """Deletes all vector embeddings associated with a specific repository."""
     client = get_client()
-    client.delete(
-        collection_name=COLLECTION_NAME,
-        points_selector=Filter(
-            must=[
-                FieldCondition(
-                    key="repository_name",
-                    match=MatchValue(value=repository_name)
-                )
-            ]
+    create_collection()
+    try:
+        client.delete(
+            collection_name=COLLECTION_NAME,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key="repository_name",
+                        match=MatchValue(value=repository_name)
+                    )
+                ]
+            )
         )
-    )
+    except Exception as e:
+        print(f"[vector_store] Warning: delete_repository failed for '{repository_name}': {e}")
