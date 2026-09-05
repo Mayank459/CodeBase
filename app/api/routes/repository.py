@@ -29,7 +29,7 @@ def scan(request: RepositoryRequest):
 def parse_repository(request: RepositoryRequest):
     from app.services.repository_indexer import RepositoryIndexer
     indexer = RepositoryIndexer()
-    result = indexer.index_repository(request.repo_url)
+    result = indexer.index_repository(request.repo_url, force=request.force)
     return result
 
 
@@ -51,7 +51,7 @@ def index_stream(request: RepositoryRequest):
     def run():
         try:
             indexer = RepositoryIndexer()
-            indexer.index_repository(repo_url=request.repo_url, on_progress=q.put)
+            indexer.index_repository(repo_url=request.repo_url, on_progress=q.put, force=request.force)
         except Exception as exc:
             q.put({"step": "error", "message": str(exc)})
         finally:
@@ -152,3 +152,61 @@ def architecture(request: RepositoryNameRequest):
 
     analyzer = ArchitectureAnalyzer(repository)
     return analyzer.analyze()
+
+
+@router.post("/reindex")
+def reindex_repository(request: RepositoryRequest):
+    """
+    Force re-index a repository, bypassing the 24-hour cache.
+    Deletes old embeddings and re-runs the full pipeline.
+    """
+    from app.services.repository_indexer import RepositoryIndexer
+
+    indexer = RepositoryIndexer()
+    try:
+        result = indexer.index_repository(repo_url=request.repo_url, force=True)
+        return result
+    except Exception as exc:
+        return {"error": f"Reindexing failed: {str(exc)}"}
+
+
+@router.post("/reindex-stream")
+def reindex_stream(request: RepositoryRequest):
+    """
+    Force re-index a repository with streaming progress.
+    Returns Server-Sent Events with progress updates.
+    """
+    import queue
+    import threading
+    import json
+    from fastapi.responses import StreamingResponse
+    from app.services.repository_indexer import RepositoryIndexer
+
+    q: queue.Queue = queue.Queue()
+
+    def run():
+        try:
+            indexer = RepositoryIndexer()
+            indexer.index_repository(repo_url=request.repo_url, force=True, on_progress=q.put)
+        except Exception as exc:
+            q.put({"step": "error", "message": str(exc)})
+        finally:
+            q.put(None)  # sentinel — tells generator to stop
+
+    threading.Thread(target=run, daemon=True).start()
+
+    def generate():
+        while True:
+            event = q.get()
+            if event is None:
+                break
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

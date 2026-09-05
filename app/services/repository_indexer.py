@@ -36,6 +36,7 @@ class RepositoryIndexer:
         self,
         repo_url: str,
         on_progress: Optional[Callable[[dict], None]] = None,
+        force: bool = False,
     ) -> dict:
         """
         Index a repository end-to-end.
@@ -58,7 +59,7 @@ class RepositoryIndexer:
 
         # -- 0. Cache Check ---------------------------------------------------
         from app.storage.repository_registry import repository_registry
-        if repository_registry.contains(repo_name):
+        if not force and repository_registry.contains(repo_name):
             emit("cache", f"Cache hit: {repo_name} is already indexed. Loading from disk...")
             repository_index = repository_registry.get(repo_name)
             result = {
@@ -71,6 +72,16 @@ class RepositoryIndexer:
             }
             emit("done", "Loaded from cache successfully!", **result)
             return result
+
+        # If force=True, delete old embeddings first for a clean slate
+        if force and repository_registry.contains(repo_name):
+            emit("cleanup_old", f"Deleting old embeddings for {repo_name} (force re-index)...")
+            from app.storage.vector_store import delete_repository
+            try:
+                delete_repository(repo_name)
+                emit("cleanup_old_done", f"Old embeddings deleted successfully")
+            except Exception as e:
+                emit("cleanup_old_warn", f"Warning: could not delete old embeddings: {e}")
 
         # -- 1. Clone ---------------------------------------------------------
         emit("clone", f"Cloning {repo_url} ...")
