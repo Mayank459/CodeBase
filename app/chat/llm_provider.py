@@ -6,17 +6,20 @@ load_dotenv()
 
 class LLMProvider:
     def __init__(self):
-        # Try Grok first, fall back to Gemini if not configured
+        # For now, use Gemini as primary LLM
+        # Grok support ready when API key is validated
         self.grok_api_key = os.getenv("GROK_API_KEY")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
 
-        self.use_grok = bool(self.grok_api_key)
+        # Temporarily disable Grok due to API validation issues
+        # Set use_grok = True only after verifying Grok API key format
+        self.use_grok = False  # Disabled for now
 
-        if self.use_grok:
+        if self.use_grok and self.grok_api_key:
             self.model_type = "grok"
             self.api_key = self.grok_api_key
             self.base_url = "https://api.x.ai/v1"
-            self.model = "grok-3"  # Will be overridden if available
+            self.model = "grok-3"
         else:
             self.model_type = "gemini"
             from google import genai
