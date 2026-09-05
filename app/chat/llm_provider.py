@@ -6,14 +6,41 @@ load_dotenv()
 
 class LLMProvider:
     def __init__(self):
-        self.api_key = os.getenv("GROK_API_KEY")
-        if not self.api_key:
-            raise ValueError("GROK_API_KEY environment variable not set")
-        self.base_url = "https://api.x.ai/v1"
-        self.model = "grok-2"
+        # Try Grok first, fall back to Gemini if not configured
+        self.grok_api_key = os.getenv("GROK_API_KEY")
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
+
+        self.use_grok = bool(self.grok_api_key)
+
+        if self.use_grok:
+            self.model_type = "grok"
+            self.api_key = self.grok_api_key
+            self.base_url = "https://api.x.ai/v1"
+            self.model = "grok-3"  # Will be overridden if available
+        else:
+            self.model_type = "gemini"
+            from google import genai
+            from google.genai import types
+            self.genai = genai
+            self.types = types
+            self.client = genai.Client(api_key=self.gemini_api_key)
 
     def generate(self, prompt):
-        """Generate text using Grok API."""
+        """Generate text using configured LLM (Grok or Gemini)."""
+        if self.use_grok:
+            return self._generate_grok(prompt)
+        else:
+            return self._generate_gemini(prompt)
+
+    def generate_stream(self, prompt):
+        """Generate text using configured LLM with streaming."""
+        if self.use_grok:
+            return self._generate_grok_stream(prompt)
+        else:
+            return self._generate_gemini_stream(prompt)
+
+    def _generate_grok(self, prompt):
+        """Generate using Grok API."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -42,8 +69,8 @@ class LLMProvider:
         except httpx.HTTPError as e:
             raise RuntimeError(f"Grok API error: {e}")
 
-    def generate_stream(self, prompt):
-        """Generate text using Grok API with streaming."""
+    def _generate_grok_stream(self, prompt):
+        """Generate using Grok API with streaming."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -71,7 +98,7 @@ class LLMProvider:
                     response.raise_for_status()
                     for line in response.iter_lines():
                         if line.startswith("data: "):
-                            data_str = line[6:]  # Remove "data: " prefix
+                            data_str = line[6:]
                             if data_str == "[DONE]":
                                 break
                             try:
@@ -84,3 +111,26 @@ class LLMProvider:
                                 pass
         except httpx.HTTPError as e:
             raise RuntimeError(f"Grok API streaming error: {e}")
+
+    def _generate_gemini(self, prompt):
+        """Generate using Google Gemini API."""
+        response = self.client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt,
+            config=self.types.GenerateContentConfig(
+                max_output_tokens=8192,
+            )
+        )
+        return response.text
+
+    def _generate_gemini_stream(self, prompt):
+        """Generate using Google Gemini API with streaming."""
+        for chunk in self.client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt,
+            config=self.types.GenerateContentConfig(
+                max_output_tokens=8192,
+            ),
+            stream=True
+        ):
+            yield chunk.text
