@@ -16,8 +16,9 @@ class LLMProvider:
         self.types = types
         self.client = genai.Client(api_key=self.gemini_api_key)
 
-        # Use Grok if API key available, fall back to Gemini
-        self.use_grok = bool(self.grok_api_key)
+        # Grok disabled due to 400 Bad Request errors
+        # When fixed, set: self.use_grok = bool(self.grok_api_key)
+        self.use_grok = False
 
         if self.use_grok and self.grok_api_key:
             self.model_type = "grok"
