@@ -319,6 +319,9 @@ open http://localhost:6333/dashboard   # Qdrant dashboard
 
 ## 14. Changelog
 
+### 2026-09-06 — Professional README.md added
+- Created `README.md` at repo root: professional, emoji-free, GitHub-ready. Covers features, tech stack, quick start, project structure, API reference, deployment, env vars, and license.
+
 ### 2026-09-06 — Streamlit UI redesign + keep-alive (v2.0)
 - Professional light theme; removed all emojis; rebranded tabs.
 - Added `keep_alive.py`, `.streamlit/config.toml`, `run.sh`, `run.bat`.
