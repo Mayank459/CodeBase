@@ -322,6 +322,11 @@ open http://localhost:6333/dashboard   # Qdrant dashboard
 ### 2026-09-06 — Professional README.md added
 - Created `README.md` at repo root: professional, emoji-free, GitHub-ready. Covers features, tech stack, quick start, project structure, API reference, deployment, env vars, and license.
 
+### 2026-09-07 — MermaidGenerator syntax fix (mermaid 10.2.4)
+- Fixed `app/uml/mermaid_generator.py`: the class diagram generator emitted `class User\n{` (brace on a new line) which mermaid 10.2.4 rejects with "Lexical error on line 4. Unrecognized text." Changed to `class User {` (brace on the same line), matching the mermaid grammar.
+- Validated against mermaid 10.2.4 `parse()`: old syntax fails (lexical error), new syntax passes (only headless DOM dependency remains).
+- This ensures all UML class diagrams produced by the backend render correctly in the Streamlit UI.
+
 ### 2026-09-06 — GitHub Dark theme + inline Mermaid UML rendering (v2.1)
 - Switched entire Streamlit UI from professional light theme to GitHub Dark palette (`#0d1117` bg, `#161b22` surface, `#58a6ff` primary, `#e6edf3` text). Updated `config.toml` (`base = "dark"`).
 - Added `streamlit-mermaid` package (v0.3.0) for inline diagram rendering in the "UML Diagrams" tab.
