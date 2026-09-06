@@ -322,6 +322,15 @@ open http://localhost:6333/dashboard   # Qdrant dashboard
 ### 2026-09-06 — Professional README.md added
 - Created `README.md` at repo root: professional, emoji-free, GitHub-ready. Covers features, tech stack, quick start, project structure, API reference, deployment, env vars, and license.
 
+### 2026-09-06 — GitHub Dark theme + inline Mermaid UML rendering (v2.1)
+- Switched entire Streamlit UI from professional light theme to GitHub Dark palette (`#0d1117` bg, `#161b22` surface, `#58a6ff` primary, `#e6edf3` text). Updated `config.toml` (`base = "dark"`).
+- Added `streamlit-mermaid` package (v0.3.0) for inline diagram rendering in the "UML Diagrams" tab.
+- Added `extract_mermaid(answer)` helper: defensively strips triple-backtick fences, validates Mermaid keyword (`classDiagram`, `graph`, `flowchart`, etc.), returns clean code or `None`.
+- Added `_render_mermaid(code)`: prepends `%%{init: {"theme": "dark"}}%%` directive to force dark diagrams in the component, then calls `st_mermaid`. Falls back to raw markdown if the package is missing.
+- Rewrote UML tab: diagrams now render inline below the Generate button; if the backend response is not Mermaid, raw text is shown with an info notice.
+- Full CSS rewrite: sidebar, hero banner, cards, chat bubbles, inputs, buttons, badges, code blocks, tabs, and dividers all use dark-mode colors.
+- All AppTest checks pass (24/24); `_render_mermaid` component renders without exception.
+
 ### 2026-09-06 — Streamlit UI redesign + keep-alive (v2.0)
 - Professional light theme; removed all emojis; rebranded tabs.
 - Added `keep_alive.py`, `.streamlit/config.toml`, `run.sh`, `run.bat`.

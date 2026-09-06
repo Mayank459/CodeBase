@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 streamlit
+streamlit-mermaid
 qdrant-client
 pydantic
 python-dotenv

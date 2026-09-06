@@ -45,75 +45,79 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
 
-    /* Dark sidebar */
+    /* Sidebar */
     [data-testid="stSidebar"] {
-        background: #ffffff;
+        background: #161b22;
+        border-right: 1px solid #30363d;
     }
     [data-testid="stSidebar"] * {
-        color: #1a1a1a !important;
+        color: #e6edf3 !important;
     }
 
     /* Main area */
     .stApp {
-        background: #f8f9fa;
-        color: #2c3e50;
+        background: #0d1117;
+        color: #e6edf3;
     }
 
     /* Header banner */
     .hero-banner {
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        background: linear-gradient(135deg, #1f6feb 0%, #161b22 100%);
+        border: 1px solid #30363d;
         border-radius: 12px;
         padding: 2rem 2.5rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
     .hero-banner h1 {
-        color: white !important;
+        color: #ffffff !important;
         font-size: 2rem;
         font-weight: 600;
         margin: 0 0 0.25rem 0;
     }
     .hero-banner p {
-        color: rgba(255,255,255,0.9) !important;
+        color: rgba(255,255,255,0.92) !important;
         margin: 0;
         font-size: 0.95rem;
     }
 
     /* Cards */
     .metric-card {
-        background: #ffffff;
-        border: 1px solid #e0e0e0;
+        background: #161b22;
+        border: 1px solid #30363d;
         border-radius: 10px;
         padding: 1.25rem;
         text-align: center;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
     .metric-card .metric-value {
         font-size: 2rem;
         font-weight: 600;
-        color: #2c3e50;
+        color: #e6edf3;
     }
     .metric-card .metric-label {
         font-size: 0.8rem;
-        color: #7f8c8d;
+        color: #8b949e;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
 
     /* Chat messages */
     .chat-user {
-        background: #e8f0f7;
-        border-left: 3px solid #3498db;
+        background: #1f2937;
+        border-left: 3px solid #58a6ff;
         border-radius: 0 10px 10px 10px;
         padding: 1rem 1.25rem;
         margin: 0.75rem 0;
+        color: #e6edf3;
     }
     .chat-assistant {
-        background: #f5f5f5;
-        border-left: 3px solid #34495e;
+        background: #161b22;
+        border-left: 3px solid #8b949e;
         border-radius: 0 10px 10px 10px;
         padding: 1rem 1.25rem;
         margin: 0.75rem 0;
+        color: #e6edf3;
     }
     .chat-role {
         font-size: 0.75rem;
@@ -135,25 +139,25 @@ st.markdown("""
     /* Input area */
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea {
-        background: #ffffff !important;
-        border: 1px solid #d0d0d0 !important;
+        background: #0d1117 !important;
+        border: 1px solid #30363d !important;
         border-radius: 8px !important;
-        color: #2c3e50 !important;
+        color: #e6edf3 !important;
     }
 
     /* Buttons */
     .stButton > button {
-        background: #2c3e50 !important;
-        color: white !important;
+        background: #238636 !important;
+        color: #ffffff !important;
         border: none !important;
         border-radius: 6px !important;
         font-weight: 600 !important;
         transition: all 0.2s ease !important;
     }
     .stButton > button:hover {
-        background: #34495e !important;
+        background: #2ea043 !important;
         transform: translateY(-1px) !important;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.15) !important;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.35) !important;
     }
 
     /* Success / error badges */
@@ -164,36 +168,37 @@ st.markdown("""
         font-size: 0.8rem;
         font-weight: 600;
     }
-    .badge-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .badge-error   { background: #f8d7da;  color: #721c24; border: 1px solid #f5c6cb; }
-    .badge-info    { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    .badge-success { background: #12261b; color: #3fb950; border: 1px solid #238636; }
+    .badge-error   { background: #311c1a; color: #f85149; border: 1px solid #f85149; }
+    .badge-info    { background: #101d24; color: #58a6ff; border: 1px solid #1f6feb; }
 
     /* Code blocks */
     .stMarkdown pre {
-        background: #f5f5f5 !important;
-        border: 1px solid #e0e0e0 !important;
+        background: #161b22 !important;
+        border: 1px solid #30363d !important;
         border-radius: 8px !important;
+        color: #e6edf3 !important;
     }
 
     /* Divider */
-    hr { border-color: #e0e0e0 !important; }
+    hr { border-color: #30363d !important; }
 
     /* Tab styling */
     .stTabs [data-baseweb="tab-list"] {
-        background: #ffffff;
+        background: #161b22;
         border-radius: 8px;
         padding: 4px;
         gap: 4px;
-        border-bottom: 2px solid #e0e0e0;
+        border-bottom: 2px solid #30363d;
     }
     .stTabs [data-baseweb="tab"] {
         border-radius: 6px;
-        color: #7f8c8d;
+        color: #8b949e;
         font-weight: 500;
     }
     .stTabs [aria-selected="true"] {
-        background: #2c3e50 !important;
-        color: white !important;
+        background: #1f6feb !important;
+        color: #ffffff !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -252,7 +257,7 @@ def api_stream_index(repo_url: str):
 
 def render_chat_bubble(role: str, content: str):
     css_class = "chat-user" if role == "user" else "chat-assistant"
-    role_color = "#3498db" if role == "user" else "#34495e"
+    role_color = "#58a6ff" if role == "user" else "#8b949e"
     st.markdown(
         f"""<div class="{css_class}">
             <div class="chat-role" style="color:{role_color};">{role.upper()}</div>
@@ -260,6 +265,48 @@ def render_chat_bubble(role: str, content: str):
         </div>""",
         unsafe_allow_html=True
     )
+
+
+MERMAID_START_KEYWORDS = (
+    "classDiagram", "classDiagram-v2", "graph ", "flowchart", "sequenceDiagram",
+    "stateDiagram", "stateDiagram-v2", "erDiagram", "journey", "gantt", "pie",
+    "mindmap", "gitGraph", "timeline", "C4Context",
+)
+
+
+def extract_mermaid(answer) -> str | None:
+    """Pull clean Mermaid source out of an agent answer (strip fences, validate).
+
+    The backend returns Mermaid as a bare string in `answer` (e.g. `classDiagram\\n...`
+    from uml_node, or `graph TD\\n...` from architecture_diagram_node), but defensive
+    handling tolerates triple-backtick fences too.
+    """
+    if not answer:
+        return None
+    text = str(answer).strip()
+    if text.startswith("```"):
+        text = text.strip("`").strip()
+        if text.lower().startswith("mermaid"):
+            text = text[len("mermaid"):].strip()
+    first_line = text.splitlines()[0].strip() if text.splitlines() else ""
+    if any(first_line.startswith(k) for k in MERMAID_START_KEYWORDS):
+        return text
+    return None
+
+
+def _render_mermaid(code: str):
+    """Render a Mermaid diagram inline (dark theme), falling back to raw text.
+
+    streamlit-mermaid bundies Mermaid with a hard-coded light theme, so we prepend
+    a standard Mermaid init directive to force the dark theme to match the UI.
+    """
+    # Dark-theme directive: honored per-diagram regardless of the component's theme.
+    themed_code = f'%%{{init: {{"theme": "dark"}}}}%%\n{code}'
+    try:
+        from streamlit_mermaid import st_mermaid
+        st_mermaid(themed_code, height="640px")
+    except ImportError:
+        st.markdown(f"```mermaid\n{code}\n```")
 
 
 # ---------------------------------------------------------------------------
@@ -371,7 +418,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(
-        "<div style='color:#7f8c8d;font-size:0.75rem;'>Codebase RAG Assistant<br/>Powered by Gemini + LangGraph</div>",
+        "<div style='color:#8b949e;font-size:0.75rem;'>Codebase RAG Assistant<br/>Powered by Gemini + LangGraph</div>",
         unsafe_allow_html=True
     )
 
@@ -601,7 +648,7 @@ with tab_docs:
 # ── UML tab ───────────────────────────────────────────────────────────────────
 with tab_uml:
     st.markdown("### UML Diagram Generation")
-    st.caption("Generate Mermaid / PlantUML class and dependency diagrams.")
+    st.caption("Generate Mermaid class, dependency, and architecture diagrams.")
 
     diagram_type = st.radio("Diagram type", ["Class Diagram", "Dependency Diagram", "Architecture Diagram"], horizontal=True)
 
@@ -618,7 +665,13 @@ with tab_uml:
             if "error" in result:
                 st.error(result["error"])
             else:
-                st.markdown(result.get("answer") or "No response.")
+                mermaid = extract_mermaid(result.get("answer") or "")
+                if mermaid:
+                    st.markdown(f"#### {diagram_type}")
+                    _render_mermaid(mermaid)
+                else:
+                    st.markdown(result.get("answer") or "No response.")
+                    st.info("The response did not contain a renderable diagram. Showing raw text above.")
 
 
 # ── Compare tab ───────────────────────────────────────────────────────────────

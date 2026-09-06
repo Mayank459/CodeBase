@@ -25,7 +25,7 @@ AI-powered repository understanding and developer intelligence platform. Index a
 
 | Layer | Technology |
 |---|---|
-| Frontend | Streamlit (professional light theme) |
+| Frontend | Streamlit (GitHub Dark theme, inline Mermaid diagrams) |
 | Backend API | FastAPI |
 | Agent Framework | LangGraph |
 | Code Parsing | Tree-sitter |
