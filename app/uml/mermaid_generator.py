@@ -16,11 +16,11 @@ class MermaidGenerator:
 
         for cls in classes:
 
+            # Mermaid requires the opening brace on the SAME line as `class`.
+            # `class User\n{` is a parse error ("Syntax error in text").
             lines.append(
-                f"class {cls['name']}"
+                f"class {cls['name']} {{"
             )
-
-            lines.append("{")
 
             for method in (
                 cls["methods"]
