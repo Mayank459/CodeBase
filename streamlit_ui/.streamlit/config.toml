@@ -1,0 +1,38 @@
+[theme]
+primaryColor = "#2c3e50"
+backgroundColor = "#f8f9fa"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#2c3e50"
+font = "sans serif"
+
+[server]
+# Increase max upload size (MB)
+maxUploadSize = 100
+# TTL (seconds) for sessions whose websockets have been disconnected.
+# Prevents session cleanup while a user is idle, keeping chat/state intact.
+disconnectedSessionTTL = 86400
+# Headless mode for deployment
+headless = true
+# Enable CORS for API requests
+enableCORS = true
+# Max size (MB) of WebSocket messages
+maxMessageSize = 200
+# Port
+port = 8501
+# Allow running multiple instances
+runOnSave = false
+
+[browser]
+# Server address
+serverAddress = "localhost"
+serverPort = 8501
+
+[client]
+# Show error details
+showErrorDetails = true
+
+[runner]
+# Magic commands enabled
+magicEnabled = true
+# Fast reruns
+fastReruns = true

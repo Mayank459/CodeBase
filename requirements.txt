@@ -4,6 +4,7 @@ streamlit
 qdrant-client
 pydantic
 python-dotenv
+requests
 networkx
 google-genai
 langchain
