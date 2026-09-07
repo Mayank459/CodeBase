@@ -297,16 +297,30 @@ def extract_mermaid(answer) -> str | None:
 def _render_mermaid(code: str):
     """Render a Mermaid diagram inline (dark theme), falling back to raw text.
 
-    streamlit-mermaid bundies Mermaid with a hard-coded light theme, so we prepend
-    a standard Mermaid init directive to force the dark theme to match the UI.
+    streamlit-mermaid bundles Mermaid with a hard-coded light theme, so we
+    prepend a standard Mermaid init directive to force the dark theme to
+    match the UI.  If the component itself renders an error graphic, the
+    raw Mermaid source is shown in an expander so the user can share it for
+    diagnosis — the error SVG has no machine-readable details.
     """
-    # Dark-theme directive: honored per-diagram regardless of the component's theme.
     themed_code = f'%%{{init: {{"theme": "dark"}}}}%%\n{code}'
     try:
         from streamlit_mermaid import st_mermaid
         st_mermaid(themed_code, height="640px")
     except ImportError:
         st.markdown(f"```mermaid\n{code}\n```")
+    except Exception:
+        st.info(
+            "The Mermaid component raised a Python-level exception. "
+            "The raw source is shown below — share it to diagnose the issue."
+        )
+        st.code(code, language="mermaid")
+
+    # Always expose the raw Mermaid source in a collapsed expander so the
+    # user can copy-paste it for diagnosis when the component renders an
+    # error SVG (a browser-level event the Python layer cannot detect).
+    with st.expander("Show Mermaid source (for diagnosis)", expanded=False):
+        st.code(code, language="mermaid")
 
 
 # ---------------------------------------------------------------------------
