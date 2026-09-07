@@ -322,10 +322,13 @@ open http://localhost:6333/dashboard   # Qdrant dashboard
 ### 2026-09-06 — Professional README.md added
 - Created `README.md` at repo root: professional, emoji-free, GitHub-ready. Covers features, tech stack, quick start, project structure, API reference, deployment, env vars, and license.
 
-### 2026-09-07 — MermaidGenerator syntax fix (mermaid 10.2.4)
-- Fixed `app/uml/mermaid_generator.py`: the class diagram generator emitted `class User\n{` (brace on a new line) which mermaid 10.2.4 rejects with "Lexical error on line 4. Unrecognized text." Changed to `class User {` (brace on the same line), matching the mermaid grammar.
-- Validated against mermaid 10.2.4 `parse()`: old syntax fails (lexical error), new syntax passes (only headless DOM dependency remains).
-- This ensures all UML class diagrams produced by the backend render correctly in the Streamlit UI.
+### 2026-09-07 — Reproducible-render UML fixes (mermaid 10.2.4)
+- **Root cause found via real-data reproduction:** built a parser pipeline reproduction (`tmp_repro_*.py`, removed after) that feeds the actual CodeBase repo through the index builder and both diagram generators, then full-renders the output in headless mermaid 10.2.4 (jsdom + DOMPurify, `securityLevel: strict`) — this reproduced the browser's "Syntax error in text" instead of relying on synthetic snippets.
+- **`app/uml/mermaid_generator.py`:**
+  - Previously fixed `class User\n{` → `class User {` (brace on same line).
+  - **New:** classes with **no methods** were emitted as `class X {\n}`, which mermaid 10.2.4 rejects with "Expecting 'MEMBER', got 'STRUCT_STOP'". Now memberless classes are declared as a bare `class X` (no body), which is valid.
+- **`app/uml/architecture_diagram.py`:** the `graph TD` dependency/architecture diagram emitted **bare flowchart node IDs** taken from symbol names, e.g. `chat_node --> "\\n".join` or `results[0].payload.get`. Quotes and brackets are invalid in bare flowchart IDs → parse error. Now every node gets a stable clean alias (`n1`, `n2`, …) with the real text as a quoted, escaped label: `n27["\"\\n\".join"]`.
+- **Validation:** full browser-equivalent render of the REAL diagrams (class diagram, architecture diagram, both with the dark `%%{init}%%` directive) → **4/4 RENDER-PASS**, 0 failures.
 
 ### 2026-09-06 — GitHub Dark theme + inline Mermaid UML rendering (v2.1)
 - Switched entire Streamlit UI from professional light theme to GitHub Dark palette (`#0d1117` bg, `#161b22` surface, `#58a6ff` primary, `#e6edf3` text). Updated `config.toml` (`base = "dark"`).
