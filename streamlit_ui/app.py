@@ -5,6 +5,8 @@ import streamlit as st
 import requests
 import json
 import os
+import zlib
+import base64
 from dotenv import load_dotenv
 from keep_alive import start_keep_alive_daemon
 
@@ -200,6 +202,26 @@ st.markdown("""
         background: #1f6feb !important;
         color: #ffffff !important;
     }
+
+    /* Mermaid Live Editor button */
+    .mermaid-live-btn {
+        display: inline-block !important;
+        padding: 0.7rem 1.4rem !important;
+        background: #1f6feb !important;
+        color: #ffffff !important;
+        border: 1px solid #388bfd !important;
+        border-radius: 8px !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        text-decoration: none !important;
+        transition: all 0.2s ease !important;
+    }
+    .mermaid-live-btn:hover {
+        background: #388bfd !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 3px 10px rgba(31, 111, 235, 0.4) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -294,31 +316,47 @@ def extract_mermaid(answer) -> str | None:
     return None
 
 
-def _render_mermaid(code: str):
-    """Render a Mermaid diagram inline (dark theme), falling back to raw text.
+def mermaid_live_url(code: str, theme: str = "dark") -> str:
+    """Build a Mermaid Live Editor URL pre-loaded with the diagram code.
 
-    streamlit-mermaid bundles Mermaid with a hard-coded light theme, so we
-    prepend a standard Mermaid init directive to force the dark theme to
-    match the UI.  If the component itself renders an error graphic, the
-    raw Mermaid source is shown in an expander so the user can share it for
-    diagnosis — the error SVG has no machine-readable details.
+    mermaid.live accepts a pako-deflated, base64url-encoded JSON payload in the
+    URL fragment: `https://mermaid.live/edit#pako:<payload>`. Opening the link
+    loads the diagram fully rendered (editable, exportable as PNG/SVG) in the
+    official Mermaid editor — the same renderer the user's browser already has,
+    so we never hit the version/theme quirks of the bundled streamlit component.
     """
-    themed_code = f'%%{{init: {{"theme": "dark"}}}}%%\n{code}'
-    try:
-        from streamlit_mermaid import st_mermaid
-        st_mermaid(themed_code, height="640px")
-    except ImportError:
-        st.markdown(f"```mermaid\n{code}\n```")
-    except Exception:
-        st.info(
-            "The Mermaid component raised a Python-level exception. "
-            "The raw source is shown below — share it to diagnose the issue."
-        )
-        st.code(code, language="mermaid")
+    payload = json.dumps({
+        "code": code,
+        "mermaid": json.dumps({"theme": theme}),
+        "autoSync": True,
+        "updateDiagram": True,
+    })
+    # Raw DEFLATE (windowBits=-15) is what pako's deflate() produces; the
+    # default zlib format adds a zlib header mermaid.live does not expect.
+    compressor = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION, zlib.DEFLATED, -15)
+    compressed = compressor.compress(payload.encode("utf-8")) + compressor.flush()
+    encoded = base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
+    return f"https://mermaid.live/edit#pako:{encoded}"
 
-    # Always expose the raw Mermaid source in a collapsed expander so the
-    # user can copy-paste it for diagnosis when the component renders an
-    # error SVG (a browser-level event the Python layer cannot detect).
+
+def _render_mermaid(code: str):
+    """Expose a Mermaid diagram via the Mermaid Live Editor.
+
+    Instead of rendering inline (which hit Mermaid-version/theme-specific parse
+    errors), we hand the diagram off to the official mermaid.live editor: the
+    URL encodes the full diagram, and the button opens it rendered, editable and
+    exportable. The raw source is always shown in an expander as a fallback for
+    anyone who prefers to copy-paste it directly.
+    """
+    url = mermaid_live_url(code)
+    st.markdown(
+        f'<a class="mermaid-live-btn" href="{url}" target="_blank" rel="noopener">'
+        f"Open in Mermaid Live Editor</a>",
+        unsafe_allow_html=True,
+    )
+    st.caption("Opens the diagram fully rendered in the official Mermaid editor — edit, "
+               "export as PNG/SVG, or copy the code there.")
+
     with st.expander("Show Mermaid source (for diagnosis)", expanded=False):
         st.code(code, language="mermaid")
 

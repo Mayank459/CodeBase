@@ -322,6 +322,15 @@ open http://localhost:6333/dashboard   # Qdrant dashboard
 ### 2026-09-06 — Professional README.md added
 - Created `README.md` at repo root: professional, emoji-free, GitHub-ready. Covers features, tech stack, quick start, project structure, API reference, deployment, env vars, and license.
 
+### 2026-09-07 — UML diagrams via Mermaid Live Editor (v2.2)
+- **Replaced inline `streamlit-mermaid` rendering with a redirect to the Mermaid Live Editor** (`mermaid.live`). The bundled streamlit-mermaid (mermaid 10.2.4, hardcoded light theme, `securityLevel: strict`) kept producing "Syntax error in text" for some generated diagrams, and its error SVG carries no machine-readable details. Instead of fighting the component, the UI now hands the diagram to the official Mermaid editor — the same renderer the browser already uses.
+- **`streamlit_ui/app.py`:**
+  - Added `mermaid_live_url(code, theme="dark")`: encodes the diagram into the mermaid.live URL fragment (`https://mermaid.live/edit#pako:<payload>`). The payload is the `{code, mermaid, autoSync, updateDiagram}` JSON compressed with **raw DEFLATE** (`zlib.compressobj(..., -15)` — pako-compatible, no zlib header) and **base64url**-encoded with `=` padding stripped. Verified round-trip decodes to the original code + dark theme.
+  - Rewrote `_render_mermaid(code)`: now shows a styled "Open in Mermaid Live Editor" button (opens in a new tab, fully rendered/editable/exportable) plus the raw source in a collapsed expander as a fallback. Removed the `streamlit_mermaid` import entirely.
+  - Added GitHub-blue button CSS (`.mermaid-live-btn`).
+- **Removed `streamlit-mermaid` from `requirements.txt`** — no longer needed.
+- **Verified:** `mermaid_live_url` round-trips code+theme correctly; AppTest render passes with no exceptions and all 9 tabs present.
+
 ### 2026-09-07 — Reproducible-render UML fixes (mermaid 10.2.4)
 - **Root cause found via real-data reproduction:** built a parser pipeline reproduction (`tmp_repro_*.py`, removed after) that feeds the actual CodeBase repo through the index builder and both diagram generators, then full-renders the output in headless mermaid 10.2.4 (jsdom + DOMPurify, `securityLevel: strict`) — this reproduced the browser's "Syntax error in text" instead of relying on synthetic snippets.
 - **`app/uml/mermaid_generator.py`:**
