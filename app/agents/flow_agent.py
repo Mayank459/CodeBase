@@ -43,7 +43,8 @@ I traced the following execution path through the dependency graph starting from
 
 {flow_text}
 
-Explain this flow in clear, plain English. Describe what each step does and how the components connect. 
+First, generate a clean, valid Mermaid diagram (inside a ```mermaid fenced block, using either `flowchart TD` or `sequenceDiagram`) illustrating the step-by-step caller-to-callee execution path.
+Next, explain this flow in clear, plain English. Describe what each step does and how the components connect. 
 If the trace seems incomplete, note that and explain what you can infer from the available information.
 """
 
