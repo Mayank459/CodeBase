@@ -17,6 +17,7 @@ __pycache__/
 # Vector Storage & Runtime Data
 qdrant_storage/
 *.log
+.python-version
 
 # Frontend & Dependencies
 node_modules/
