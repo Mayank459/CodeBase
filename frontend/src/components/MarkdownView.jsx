@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Copy, Check, Terminal, ExternalLink, Eye, Code } from 'lucide-react';
+import { Copy, Check, Terminal, ExternalLink, Eye, Code, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import mermaid from 'mermaid';
 import { getMermaidLiveUrl } from '../api';
 
@@ -87,8 +87,13 @@ function MermaidSnippet({ code }) {
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState('diagram');
   const [renderError, setRenderError] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const containerRef = useRef(null);
   const liveUrl = getMermaidLiveUrl(code);
+
+  const handleZoomIn = () => setZoom((z) => Math.min(Math.round((z + 0.2) * 10) / 10, 2.5));
+  const handleZoomOut = () => setZoom((z) => Math.max(Math.round((z - 0.2) * 10) / 10, 0.4));
+  const handleResetZoom = () => setZoom(1);
 
   useEffect(() => {
     if (viewMode === 'diagram' && containerRef.current && code) {
@@ -146,12 +151,53 @@ function MermaidSnippet({ code }) {
 
   return (
     <div className="mermaid-block-wrapper my-4 rounded-xl overflow-hidden border border-indigo-500/20 bg-[#080c16] shadow-xl">
-      <div className="flex items-center justify-between px-3.5 py-2 bg-[#0d121f] border-b border-white/[0.08] text-xs font-mono text-slate-300">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-[#0d121f] border-b border-white/[0.08] text-xs font-mono text-slate-300">
         <div className="flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
           <span className="text-indigo-200 font-semibold">Mermaid Visual Diagram</span>
         </div>
+
         <div className="flex items-center gap-1.5">
+          {/* Zoom Controls (only shown in diagram mode) */}
+          {viewMode === 'diagram' && !renderError && (
+            <div className="flex items-center gap-0.5 bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06] mr-1">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={zoom <= 0.4}
+                className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Zoom Out (-20%)"
+              >
+                <ZoomOut size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className="px-1.5 py-0.5 text-[10px] font-mono text-indigo-300 hover:text-white hover:bg-white/[0.06] rounded transition-colors"
+                title="Reset Zoom (100%)"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={zoom >= 2.5}
+                className="p-1 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Zoom In (+20%)"
+              >
+                <ZoomIn size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={handleResetZoom}
+                className="p-1 rounded text-slate-400 hover:text-white transition-colors"
+                title="Reset View"
+              >
+                <RotateCcw size={11} />
+              </button>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => setViewMode(viewMode === 'diagram' ? 'code' : 'diagram')}
@@ -185,8 +231,14 @@ function MermaidSnippet({ code }) {
       </div>
 
       {viewMode === 'diagram' && !renderError ? (
-        <div className="p-4 overflow-x-auto flex items-center justify-center min-h-[220px] bg-gradient-to-b from-[#080c16] to-[#0a0f1d]">
-          <div ref={containerRef} className="w-full flex justify-center" />
+        <div className="p-4 overflow-auto max-h-[640px] flex items-start justify-center min-h-[240px] bg-gradient-to-b from-[#080c16] to-[#0a0f1d]">
+          <div
+            ref={containerRef}
+            className="w-full flex justify-center transition-transform duration-200 ease-out origin-top"
+            style={{
+              transform: `scale(${zoom})`,
+            }}
+          />
         </div>
       ) : (
         <pre className="p-4 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre bg-[#04060a]">
