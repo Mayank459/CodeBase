@@ -59,13 +59,24 @@ def clone_repository(repo_url: str) -> str:
 
     # depth=1 → only the latest snapshot, skip full history
     try:
-        Repo.clone_from(valid_url, destination, depth=1, single_branch=True)
+        Repo.clone_from(
+            valid_url,
+            destination,
+            depth=1,
+            single_branch=True,
+            env={"GIT_TERMINAL_PROMPT": "0"}
+        )
     except GitCommandError as e:
         # If directory was left empty after error, clean it up
         if destination.exists() and not any(destination.iterdir()):
             shutil.rmtree(destination, ignore_errors=True)
+        raw_err = e.stderr.strip() if e.stderr else str(e)
+        if "could not read Username" in raw_err or "Authentication failed" in raw_err or "terminal prompts disabled" in raw_err:
+            hint = " The repository either does not exist on GitHub (404) or is private. Please verify the URL and ensure the repo is public."
+        else:
+            hint = ""
         raise ValueError(
-            f"Failed to clone repository from '{valid_url}'. Please ensure the repository URL is valid and publicly accessible. (Git error: {e.stderr.strip() if e.stderr else str(e)})"
+            f"Failed to clone repository from '{valid_url}'.{hint} (Git: {raw_err})"
         ) from e
 
     return str(destination)
