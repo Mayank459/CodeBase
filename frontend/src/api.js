@@ -190,18 +190,36 @@ export async function streamChatAgent({
       const parts = buffer.split('\n\n');
       buffer = parts.pop() || '';
 
-      for (const part of parts) {
-        const trimmed = part.trim();
-        if (!trimmed) continue;
-        if (trimmed.startsWith('data: ')) {
-          const raw = trimmed.slice(6);
-          // Check for status messages vs token stream
-          if (raw.startsWith('[') && raw.includes(']')) {
-            onStatus && onStatus(raw);
-          } else {
-            accumulatedAnswer += raw;
-            onToken && onToken(raw, accumulatedAnswer);
+      for (const block of parts) {
+        const trimmedBlock = block.trim();
+        if (!trimmedBlock) continue;
+
+        // An SSE event can contain multiple "data: " lines or single "data: " lines
+        const lines = trimmedBlock.split('\n');
+        let blockData = '';
+        let isStatusMessage = false;
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine.startsWith('data:')) {
+            const raw = trimmedLine.replace(/^data:\s?/, '');
+            
+            // Check for explicit pipeline status tags vs markdown/mermaid tokens
+            const isPipelineTag = /^\[(router|retriever|vector|graph|agent|llm|validator|progress|indexer|status)[\w\s:-]*\]/i.test(raw.trim());
+            const isProgressStatus = /^(Scanning repository|Building graph|Architecture analysis|Generating answer|Synthesizing|Indexing)/i.test(raw.trim());
+
+            if (isPipelineTag || isProgressStatus) {
+              isStatusMessage = true;
+              onStatus && onStatus(raw.trim());
+            } else {
+              blockData += (blockData ? '\n' : '') + raw;
+            }
           }
+        }
+
+        if (!isStatusMessage && blockData) {
+          accumulatedAnswer += (accumulatedAnswer && !accumulatedAnswer.endsWith('\n') && blockData.startsWith('\n') ? '' : '') + blockData;
+          onToken && onToken(blockData, accumulatedAnswer);
         }
       }
     }

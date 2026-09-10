@@ -122,9 +122,10 @@ export function ChatTab({ activeRepo }) {
           setMessages((prev) => {
             const copy = [...prev];
             if (copy[assistantMessageIndex]) {
+              const streamedText = copy[assistantMessageIndex].content || '';
               copy[assistantMessageIndex] = {
                 ...copy[assistantMessageIndex],
-                content: finalAnswer || 'Response synthesized.',
+                content: finalAnswer || streamedText || 'Response completed.',
                 evidence: retrievedEvidence,
               };
             }

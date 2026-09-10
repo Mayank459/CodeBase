@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Copy, Check, Terminal, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Copy, Check, Terminal, ExternalLink, Eye, Code } from 'lucide-react';
+import mermaid from 'mermaid';
+import { getMermaidLiveUrl } from '../api';
 
 export function MarkdownView({ content }) {
   if (!content) return null;
@@ -36,6 +38,9 @@ export function MarkdownView({ content }) {
     <div className="markdown-body chat-prose space-y-4 text-slate-100 font-tiempos text-[16px] sm:text-[17px] leading-[1.8] font-normal">
       {parts.map((part, idx) => {
         if (part.type === 'code') {
+          if (part.lang && part.lang.toLowerCase() === 'mermaid') {
+            return <MermaidSnippet key={idx} code={part.code} />;
+          }
           return <CodeSnippet key={idx} lang={part.lang} code={part.code} />;
         }
         return <SimpleMarkdownRenderer key={idx} text={part.text} />;
@@ -74,6 +79,120 @@ function CodeSnippet({ lang, code }) {
       <pre className="code-content p-4 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre">
         <code>{code}</code>
       </pre>
+    </div>
+  );
+}
+
+function MermaidSnippet({ code }) {
+  const [copied, setCopied] = useState(false);
+  const [viewMode, setViewMode] = useState('diagram');
+  const [renderError, setRenderError] = useState(false);
+  const containerRef = useRef(null);
+  const liveUrl = getMermaidLiveUrl(code);
+
+  useEffect(() => {
+    if (viewMode === 'diagram' && containerRef.current && code) {
+      containerRef.current.innerHTML = '';
+      setRenderError(false);
+      const uniqueId = `mermaid-chat-${Math.random().toString(36).substring(2, 9)}`;
+
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        themeVariables: {
+          darkMode: true,
+          background: '#080c16',
+          primaryColor: '#6366f1',
+          primaryTextColor: '#f8fafc',
+          primaryBorderColor: '#818cf8',
+          lineColor: '#94a3b8',
+          secondaryColor: '#1e1b4b',
+          tertiaryColor: '#0f172a',
+        },
+        flowchart: { curve: 'basis', htmlLabels: true },
+        securityLevel: 'loose',
+      });
+
+      mermaid.parse(code, { suppressErrors: true })
+        .then(() => mermaid.render(uniqueId, code))
+        .then(({ svg }) => {
+          if (containerRef.current) {
+            containerRef.current.innerHTML = svg;
+            const svgEl = containerRef.current.querySelector('svg');
+            if (svgEl) {
+              svgEl.removeAttribute('height');
+              svgEl.style.width = '100%';
+              svgEl.style.maxWidth = '100%';
+              svgEl.style.height = 'auto';
+              svgEl.style.minHeight = '220px';
+              svgEl.style.display = 'block';
+              svgEl.style.margin = '0 auto';
+            }
+          }
+        })
+        .catch(() => {
+          setRenderError(true);
+        });
+    }
+  }, [code, viewMode]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (_) {}
+  };
+
+  return (
+    <div className="mermaid-block-wrapper my-4 rounded-xl overflow-hidden border border-indigo-500/20 bg-[#080c16] shadow-xl">
+      <div className="flex items-center justify-between px-3.5 py-2 bg-[#0d121f] border-b border-white/[0.08] text-xs font-mono text-slate-300">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
+          <span className="text-indigo-200 font-semibold">Mermaid Visual Diagram</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setViewMode(viewMode === 'diagram' ? 'code' : 'diagram')}
+            className="px-2 py-1 rounded bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1 text-[11px] transition-colors"
+          >
+            {viewMode === 'diagram' ? <Code size={12} /> : <Eye size={12} />}
+            <span>{viewMode === 'diagram' ? 'Source' : 'Diagram'}</span>
+          </button>
+          {liveUrl && (
+            <a
+              href={liveUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="px-2 py-1 rounded bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1 text-[11px] transition-colors"
+              title="Open in Mermaid Live Editor"
+            >
+              <ExternalLink size={12} />
+              <span>Editor</span>
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="px-2 py-1 rounded bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1 text-[11px] transition-colors"
+            title="Copy Mermaid Code"
+          >
+            {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+            <span>{copied ? 'Copied' : 'Copy'}</span>
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'diagram' && !renderError ? (
+        <div className="p-4 overflow-x-auto flex items-center justify-center min-h-[220px] bg-gradient-to-b from-[#080c16] to-[#0a0f1d]">
+          <div ref={containerRef} className="w-full flex justify-center" />
+        </div>
+      ) : (
+        <pre className="p-4 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre bg-[#04060a]">
+          <code>{code}</code>
+        </pre>
+      )}
     </div>
   );
 }
