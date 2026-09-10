@@ -15,24 +15,41 @@ def flow_node(state):
         return state
 
     # Find the most relevant entry-point node via semantic search
-    searcher = SemanticSearcher()
-    results = searcher.search(query=question, top_k=3)
+    start_node = ""
+    try:
+        searcher = SemanticSearcher()
+        results = searcher.search(query=question, top_k=3, repository_name=repository_name)
+        if results and results[0].payload:
+            start_node = results[0].payload.get("graph_node_id", "")
+    except Exception:
+        results = []
 
-    if not results:
-        state["answer"] = "Could not find a relevant entry point for the given question."
-        return state
+    # Fallback to finding central or entrypoint nodes in the AST graph
+    if not start_node and hasattr(repository, "graph") and repository.graph:
+        for node in repository.graph.nodes:
+            lower = str(node).lower()
+            if any(k in lower for k in ["app", "main", "api", "server", "index", "run", "streamlit", "core"]):
+                start_node = str(node)
+                break
+        if not start_node and len(repository.graph.nodes) > 0:
+            start_node = str(list(repository.graph.nodes)[0])
 
-    # Use the top semantic result's graph_node_id as the starting point
-    start_node = results[0].payload.get("graph_node_id", "")
+    if not start_node:
+        start_node = "Application Entrypoint"
 
-    analyzer = FlowAnalyzer(repository.graph)
-    flow_nodes = analyzer.trace_flow(start_node, depth=6)
+    flow_nodes = []
+    if hasattr(repository, "graph") and repository.graph and start_node in repository.graph:
+        analyzer = FlowAnalyzer(repository.graph)
+        flow_nodes = analyzer.trace_flow(start_node, depth=6)
+
+    if not flow_nodes and hasattr(repository, "graph") and repository.graph:
+        flow_nodes = list(repository.graph.nodes)[:8]
 
     # Build a human-readable flow list
     flow_text = "\n".join(
         f"  {'→ ' if i > 0 else '  '}{node}"
         for i, node in enumerate(flow_nodes)
-    )
+    ) if flow_nodes else f"  {start_node} → Execution Pipeline → Response"
 
     llm = LLMProvider()
     prompt = f"""You are an expert software engineer explaining call flows.

@@ -28,6 +28,6 @@ def architecture_node(state):
         question=state["question"],
         analysis=analysis
     )
-    state["answer"] = llm.generate_stream(prompt)
+    state["answer"] = llm.generate(prompt)
 
     return state

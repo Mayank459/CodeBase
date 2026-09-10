@@ -194,31 +194,32 @@ export async function streamChatAgent({
         const trimmedBlock = block.trim();
         if (!trimmedBlock) continue;
 
-        // An SSE event can contain multiple "data: " lines or single "data: " lines
+        // An SSE event can contain multiple "data: " lines or raw multi-line chunks
         const lines = trimmedBlock.split('\n');
         let blockData = '';
         let isStatusMessage = false;
 
         for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (trimmedLine.startsWith('data:')) {
-            const raw = trimmedLine.replace(/^data:\s?/, '');
-            
-            // Check for explicit pipeline status tags vs markdown/mermaid tokens
-            const isPipelineTag = /^\[(router|retriever|vector|graph|agent|llm|validator|progress|indexer|status)[\w\s:-]*\]/i.test(raw.trim());
-            const isProgressStatus = /^(Scanning repository|Building graph|Architecture analysis|Generating answer|Synthesizing|Indexing)/i.test(raw.trim());
+          let raw = line;
+          if (raw.startsWith('data:')) {
+            raw = raw.replace(/^data:\s?/, '');
+          }
 
-            if (isPipelineTag || isProgressStatus) {
-              isStatusMessage = true;
-              onStatus && onStatus(raw.trim());
-            } else {
-              blockData += (blockData ? '\n' : '') + raw;
-            }
+          const trimmedRaw = raw.trim();
+          // Check for explicit pipeline status tags vs markdown/mermaid tokens
+          const isPipelineTag = /^\[(router|retriever|vector|graph|agent|llm|validator|progress|indexer|status)[\w\s:-]*\]/i.test(trimmedRaw);
+          const isProgressStatus = /^(Scanning repository|Building graph|Architecture analysis|Generating answer|Synthesizing|Indexing)/i.test(trimmedRaw);
+
+          if (isPipelineTag || isProgressStatus) {
+            isStatusMessage = true;
+            onStatus && onStatus(trimmedRaw);
+          } else if (raw !== undefined) {
+            blockData += (blockData ? '\n' : '') + raw;
           }
         }
 
         if (!isStatusMessage && blockData) {
-          accumulatedAnswer += (accumulatedAnswer && !accumulatedAnswer.endsWith('\n') && blockData.startsWith('\n') ? '' : '') + blockData;
+          accumulatedAnswer += (accumulatedAnswer ? '\n' : '') + blockData;
           onToken && onToken(blockData, accumulatedAnswer);
         }
       }

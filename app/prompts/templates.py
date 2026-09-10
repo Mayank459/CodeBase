@@ -42,6 +42,10 @@ Question: {question}
 
 Architecture Context:
 {analysis}
+
+Requirements:
+1. Always start with a clean, visual Mermaid diagram (inside a ```mermaid fenced block, using `flowchart TD` or `graph TD`) depicting the core architectural layers, entrypoints, and subsystem relationships.
+2. Provide a structured, senior-developer breakdown of the core modules, services, and execution flow.
 """
 
 # ---------------------------------------------------------------------------
@@ -49,17 +53,17 @@ Architecture Context:
 # ---------------------------------------------------------------------------
 
 FLOW_TRACE_PROMPT = """\
-You are an expert software engineer explaining call flows.
+You are an expert software engineer explaining call flows and system execution paths.
 
 The user asked: "{question}"
 
-I traced the following execution path through the dependency graph starting from `{start_node}`:
+Execution path traced through the codebase dependency graph starting from `{start_node}`:
 
 {flow_text}
 
-Explain this flow in clear, plain English. Describe what each step does and how
-the components connect. If the trace seems incomplete, note that and explain
-what you can infer from the available information.
+Requirements:
+1. Generate a clean, valid Mermaid flowchart (inside a ```mermaid fenced block, using `flowchart TD`) illustrating the step-by-step caller-to-callee execution path.
+2. Explain this flow in clear, plain English. Describe what each step does and how the components connect.
 """
 
 # ---------------------------------------------------------------------------

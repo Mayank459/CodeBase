@@ -30,6 +30,15 @@ async def chat_with_agent(
         config=config,
     )
 
+    # Convert generator or non-string answers to string to ensure JSON serialization
+    import types
+    if "answer" in result:
+        ans = result["answer"]
+        if isinstance(ans, types.GeneratorType):
+            result["answer"] = "".join(str(chunk) for chunk in ans)
+        elif not isinstance(ans, str):
+            result["answer"] = str(ans)
+
     # Surface Human-in-the-Loop approval requests (e.g. PR creation)
     interrupts = result.get("__interrupt__")
     if interrupts:
@@ -87,10 +96,10 @@ async def chat_with_agent_stream(
                             f"{token}\n\n"
                         )
                 else:
-                    yield (
-                        "data: "
-                        f"{ans}\n\n"
-                    )
+                    # Proper W3C SSE multiline formatting
+                    for line in str(ans).split("\n"):
+                        yield f"data: {line}\n"
+                    yield "\n"
 
     return StreamingResponse(
         generate(),

@@ -157,9 +157,10 @@ export function ChatTab({ activeRepo }) {
             const copy = [...prev];
             if (copy[assistantMessageIndex]) {
               const streamedText = copy[assistantMessageIndex].content || '';
+              const resolved = (finalAnswer && finalAnswer.trim()) || (streamedText && streamedText.trim());
               copy[assistantMessageIndex] = {
                 ...copy[assistantMessageIndex],
-                content: finalAnswer || streamedText || 'Response completed.',
+                content: resolved || 'Unable to retrieve response. Please check repository indexing status.',
                 evidence: retrievedEvidence,
               };
             }
