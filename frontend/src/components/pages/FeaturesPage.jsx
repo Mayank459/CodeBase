@@ -66,7 +66,9 @@ export function FeaturesPage({
 
           {/* Active Tab View */}
           <div className="transition-all duration-300">
-            {activeTab === 'chat' && <ChatTab activeRepo={activeRepo} />}
+            <div className={activeTab === 'chat' ? 'block' : 'hidden'}>
+              <ChatTab activeRepo={activeRepo} />
+            </div>
             {activeTab === 'architecture' && <ArchitectureTab activeRepo={activeRepo} />}
             {activeTab === 'security' && (
               <SecurityTab

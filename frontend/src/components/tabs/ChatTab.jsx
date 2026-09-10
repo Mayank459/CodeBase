@@ -16,15 +16,49 @@ const CATEGORIZED_PROMPTS = [
 ];
 
 export function ChatTab({ activeRepo }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: activeRepo
-        ? `I am ready. Ask any structural, semantic, or call-flow question regarding **${activeRepo}**.`
-        : 'Welcome to CodeBase Intelligence. Please index a repository above to explore its call graphs, AST entities, and architecture in natural language.',
-      evidence: null,
+  const storageKey = `codebase_chat_history_${activeRepo || 'default'}`;
+
+  const getInitialMessages = (repo) => {
+    try {
+      const saved = localStorage.getItem(`codebase_chat_history_${repo || 'default'}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (_) {}
+    return [
+      {
+        role: 'assistant',
+        content: repo
+          ? `I am ready. Ask any structural, semantic, or call-flow question regarding **${repo}**.`
+          : 'Welcome to CodeBase Intelligence. Please index a repository above to explore its call graphs, AST entities, and architecture in natural language.',
+        evidence: null,
+      }
+    ];
+  };
+
+  const [messages, setMessages] = useState(() => getInitialMessages(activeRepo));
+  const prevRepoRef = useRef(activeRepo);
+
+  // Sync state if activeRepo changes
+  useEffect(() => {
+    if (prevRepoRef.current !== activeRepo) {
+      prevRepoRef.current = activeRepo;
+      setMessages(getInitialMessages(activeRepo));
     }
-  ]);
+  }, [activeRepo]);
+
+  // Persist messages to localStorage
+  useEffect(() => {
+    try {
+      if (messages && messages.length > 0) {
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+      }
+    } catch (_) {}
+  }, [messages, storageKey]);
+
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [pipelineStep, setPipelineStep] = useState('idle');
@@ -187,6 +221,9 @@ export function ChatTab({ activeRepo }) {
   };
 
   const handleClear = () => {
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (_) {}
     setMessages([
       {
         role: 'assistant',
