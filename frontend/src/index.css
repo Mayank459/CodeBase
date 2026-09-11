@@ -257,6 +257,49 @@ body {
   font-family: var(--font-mono);
 }
 
+/* Mermaid Diagram Typography & Layout Isolation */
+.mermaid-block-wrapper {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, sans-serif) !important;
+  line-height: normal !important;
+  letter-spacing: normal !important;
+}
+
+.mermaid-block-wrapper svg {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, sans-serif) !important;
+  user-select: none;
+}
+
+.mermaid-block-wrapper svg text,
+.mermaid-block-wrapper svg .nodeLabel,
+.mermaid-block-wrapper svg .edgeLabel,
+.mermaid-block-wrapper svg .label,
+.mermaid-block-wrapper svg p,
+.mermaid-block-wrapper svg span {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', system-ui, sans-serif) !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  letter-spacing: normal !important;
+  color: #f8fafc !important;
+  fill: #f8fafc !important;
+}
+
+.mermaid-block-wrapper svg .node rect,
+.mermaid-block-wrapper svg .node circle,
+.mermaid-block-wrapper svg .node ellipse,
+.mermaid-block-wrapper svg .node polygon,
+.mermaid-block-wrapper svg .node path {
+  stroke-width: 1.5px !important;
+}
+
+.mermaid-block-wrapper svg .edgePath .path {
+  stroke: #818cf8 !important;
+  stroke-width: 1.5px !important;
+}
+
+.mermaid-block-wrapper svg .arrowheadPath {
+  fill: #818cf8 !important;
+}
+
 .text-xs { font-size: 0.75rem; line-height: 1rem; }
 .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
 .text-base { font-size: 1rem; line-height: 1.5rem; }

@@ -1,7 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Copy, Check, Terminal, ExternalLink, Eye, Code, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Copy, Check, Terminal, ExternalLink, Eye, Code, ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import mermaid from 'mermaid';
 import { getMermaidLiveUrl } from '../api';
+
+function sanitizeMermaid(raw) {
+  if (!raw) return '';
+  let text = String(raw).trim();
+
+  // Strip code fences if present
+  text = text.replace(/^```(?:mermaid|flowchart|diagram)?\s*/i, '').replace(/```\s*$/i, '').trim();
+
+  // If text doesn't start with a supported diagram type, prepend flowchart TD
+  const hasKeyword = /^\s*(flowchart|graph|sequenceDiagram|classDiagram|classDiagram-v2|stateDiagram|erDiagram|journey|gantt|pie|mindmap|gitGraph)\b/i.test(text);
+  if (!hasKeyword) {
+    text = `flowchart TD\n${text}`;
+  }
+
+  // Sanitize flowchart and graph lines: ensure special characters inside brackets are safely quoted
+  if (text.startsWith('flowchart') || text.startsWith('graph')) {
+    const lines = text.split('\n').map((line) => {
+      let l = line;
+      // Quote any unquoted node label brackets that contain special characters: () : / - , etc.
+      l = l.replace(/(\b[A-Za-z0-9_]+)\[([^"\]\n]*[():/\\,+-][^"\]\n]*)\]/g, (match, id, content) => {
+        const cleaned = content.replace(/"/g, "'").trim();
+        return `${id}["${cleaned}"]`;
+      });
+      return l;
+    });
+    text = lines.join('\n');
+  }
+
+  return text;
+}
 
 export function MarkdownView({ content }) {
   if (!content) return null;
@@ -38,7 +68,10 @@ export function MarkdownView({ content }) {
     <div className="markdown-body chat-prose space-y-4 text-slate-100 font-tiempos text-[16px] sm:text-[17px] leading-[1.8] font-normal">
       {parts.map((part, idx) => {
         if (part.type === 'code') {
-          if (part.lang && part.lang.toLowerCase() === 'mermaid') {
+          const isMermaid = (part.lang && (part.lang.toLowerCase() === 'mermaid' || part.lang.toLowerCase() === 'flowchart' || part.lang.toLowerCase() === 'diagram')) ||
+            /^\s*(flowchart|graph|sequenceDiagram|classDiagram|classDiagram-v2|stateDiagram|erDiagram|journey|gantt|pie|mindmap|gitGraph)\b/i.test(part.code);
+
+          if (isMermaid) {
             return <MermaidSnippet key={idx} code={part.code} />;
           }
           return <CodeSnippet key={idx} lang={part.lang} code={part.code} />;
@@ -88,15 +121,18 @@ function MermaidSnippet({ code }) {
   const [viewMode, setViewMode] = useState('diagram');
   const [renderError, setRenderError] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [isExpanded, setIsExpanded] = useState(false);
   const containerRef = useRef(null);
-  const liveUrl = getMermaidLiveUrl(code);
+
+  const sanitized = sanitizeMermaid(code);
+  const liveUrl = getMermaidLiveUrl(sanitized || code);
 
   const handleZoomIn = () => setZoom((z) => Math.min(Math.round((z + 0.2) * 10) / 10, 2.5));
   const handleZoomOut = () => setZoom((z) => Math.max(Math.round((z - 0.2) * 10) / 10, 0.4));
   const handleResetZoom = () => setZoom(1);
 
   useEffect(() => {
-    if (viewMode === 'diagram' && containerRef.current && code) {
+    if (viewMode === 'diagram' && containerRef.current && sanitized) {
       containerRef.current.innerHTML = '';
       setRenderError(false);
       const uniqueId = `mermaid-chat-${Math.random().toString(36).substring(2, 9)}`;
@@ -106,20 +142,33 @@ function MermaidSnippet({ code }) {
         theme: 'dark',
         themeVariables: {
           darkMode: true,
-          background: '#080c16',
-          primaryColor: '#6366f1',
+          fontFamily: 'Plus Jakarta Sans, system-ui, -apple-system, sans-serif',
+          fontSize: '13px',
+          background: '#070b14',
+          primaryColor: '#1e1b4b',
           primaryTextColor: '#f8fafc',
-          primaryBorderColor: '#818cf8',
-          lineColor: '#94a3b8',
-          secondaryColor: '#1e1b4b',
-          tertiaryColor: '#0f172a',
+          primaryBorderColor: '#6366f1',
+          lineColor: '#818cf8',
+          secondaryColor: '#0f172a',
+          tertiaryColor: '#090d16',
+          mainBkg: '#111827',
+          nodeBorder: '#6366f1',
+          clusterBkg: '#0b0f19',
+          clusterBorder: '#3730a3',
+          titleColor: '#e0e7ff',
+          edgeLabelBackground: '#0b0f19',
         },
-        flowchart: { curve: 'basis', htmlLabels: true },
+        flowchart: {
+          curve: 'basis',
+          htmlLabels: true,
+          padding: 16,
+          useMaxWidth: true,
+        },
         securityLevel: 'loose',
       });
 
-      mermaid.parse(code, { suppressErrors: true })
-        .then(() => mermaid.render(uniqueId, code))
+      mermaid.parse(sanitized, { suppressErrors: true })
+        .then(() => mermaid.render(uniqueId, sanitized))
         .then(({ svg }) => {
           if (containerRef.current) {
             containerRef.current.innerHTML = svg;
@@ -129,32 +178,45 @@ function MermaidSnippet({ code }) {
               svgEl.style.width = '100%';
               svgEl.style.maxWidth = '100%';
               svgEl.style.height = 'auto';
-              svgEl.style.minHeight = '220px';
+              svgEl.style.minHeight = '200px';
               svgEl.style.display = 'block';
               svgEl.style.margin = '0 auto';
+              svgEl.style.overflow = 'visible';
             }
           }
         })
-        .catch(() => {
-          setRenderError(true);
+        .catch((err) => {
+          console.warn('Mermaid render error with sanitized code:', err);
+          // Retry with raw code once
+          mermaid.render(`retry-${uniqueId}`, code)
+            .then(({ svg }) => {
+              if (containerRef.current) {
+                containerRef.current.innerHTML = svg;
+              }
+            })
+            .catch(() => {
+              setRenderError(true);
+            });
         });
     }
-  }, [code, viewMode]);
+  }, [sanitized, code, viewMode]);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(sanitized || code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (_) {}
   };
 
   return (
-    <div className="mermaid-block-wrapper my-4 rounded-xl overflow-hidden border border-indigo-500/20 bg-[#080c16] shadow-xl">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-[#0d121f] border-b border-white/[0.08] text-xs font-mono text-slate-300">
+    <div className={`mermaid-block-wrapper my-4 rounded-xl overflow-hidden border border-indigo-500/20 bg-[#080c16] shadow-xl transition-all duration-200 ${
+      isExpanded ? 'fixed inset-4 z-50 flex flex-col bg-[#080c16]/98 backdrop-blur-2xl border-indigo-500/40 shadow-2xl' : ''
+    }`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-[#0d121f] border-b border-white/[0.08] text-xs font-mono text-slate-300">
         <div className="flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
-          <span className="text-indigo-200 font-semibold">Mermaid Visual Diagram</span>
+          <span className="text-indigo-200 font-semibold tracking-tight">Mermaid Visual Diagram</span>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -200,12 +262,23 @@ function MermaidSnippet({ code }) {
 
           <button
             type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="px-2 py-1 rounded bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1 text-[11px] transition-colors"
+            title={isExpanded ? 'Collapse' : 'Expand Fullscreen'}
+          >
+            {isExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            <span>{isExpanded ? 'Minimize' : 'Expand'}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setViewMode(viewMode === 'diagram' ? 'code' : 'diagram')}
             className="px-2 py-1 rounded bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1 text-[11px] transition-colors"
           >
             {viewMode === 'diagram' ? <Code size={12} /> : <Eye size={12} />}
             <span>{viewMode === 'diagram' ? 'Source' : 'Diagram'}</span>
           </button>
+
           {liveUrl && (
             <a
               href={liveUrl}
@@ -218,6 +291,7 @@ function MermaidSnippet({ code }) {
               <span>Editor</span>
             </a>
           )}
+
           <button
             type="button"
             onClick={handleCopy}
@@ -231,7 +305,9 @@ function MermaidSnippet({ code }) {
       </div>
 
       {viewMode === 'diagram' && !renderError ? (
-        <div className="p-4 overflow-auto max-h-[640px] flex items-start justify-center min-h-[240px] bg-gradient-to-b from-[#080c16] to-[#0a0f1d]">
+        <div className={`p-4 overflow-auto flex items-start justify-center bg-gradient-to-b from-[#080c16] to-[#0a0f1d] ${
+          isExpanded ? 'flex-1 h-full' : 'max-h-[640px] min-h-[240px]'
+        }`}>
           <div
             ref={containerRef}
             className="w-full flex justify-center transition-transform duration-200 ease-out origin-top"
@@ -241,9 +317,25 @@ function MermaidSnippet({ code }) {
           />
         </div>
       ) : (
-        <pre className="p-4 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre bg-[#04060a]">
-          <code>{code}</code>
-        </pre>
+        <div className="relative">
+          {renderError && (
+            <div className="px-4 py-2 bg-amber-500/10 border-b border-amber-500/20 text-amber-300 text-xs flex items-center justify-between">
+              <div className="flex items-center gap-2 font-mono">
+                <AlertCircle size={13} />
+                <span>Showing source code due to syntax variance.</span>
+              </div>
+              {liveUrl && (
+                <a href={liveUrl} target="_blank" rel="noreferrer" className="underline hover:text-white flex items-center gap-1 text-[11px]">
+                  <span>Open in Live Editor</span>
+                  <ExternalLink size={11} />
+                </a>
+              )}
+            </div>
+          )}
+          <pre className="p-4 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre bg-[#04060a]">
+            <code>{sanitized || code}</code>
+          </pre>
+        </div>
       )}
     </div>
   );
