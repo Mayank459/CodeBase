@@ -167,8 +167,11 @@ function MermaidSnippet({ code }) {
         securityLevel: 'loose',
       });
 
-      mermaid.parse(sanitized, { suppressErrors: true })
-        .then(() => mermaid.render(uniqueId, sanitized))
+      const cleanupRogueElements = () => {
+        document.querySelectorAll('body > [id^="dmermaid"], body > [id^="mermaid-"]').forEach((el) => el.remove());
+      };
+
+      mermaid.render(uniqueId, sanitized)
         .then(({ svg }) => {
           if (containerRef.current) {
             containerRef.current.innerHTML = svg;
@@ -184,18 +187,21 @@ function MermaidSnippet({ code }) {
               svgEl.style.overflow = 'visible';
             }
           }
+          cleanupRogueElements();
         })
         .catch((err) => {
-          console.warn('Mermaid render error with sanitized code:', err);
-          // Retry with raw code once
+          console.warn('Mermaid render error with sanitized code, attempting fallback:', err);
+          cleanupRogueElements();
           mermaid.render(`retry-${uniqueId}`, code)
             .then(({ svg }) => {
               if (containerRef.current) {
                 containerRef.current.innerHTML = svg;
               }
+              cleanupRogueElements();
             })
             .catch(() => {
               setRenderError(true);
+              cleanupRogueElements();
             });
         });
     }

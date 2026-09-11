@@ -302,8 +302,7 @@ export function UmlTab({ activeRepo }) {
       setSvgData(null);
       const uniqueId = `mermaid-${Date.now()}`;
 
-      mermaid.parse(mermaidCode, { suppressErrors: true })
-        .then(() => mermaid.render(uniqueId, mermaidCode))
+      mermaid.render(uniqueId, mermaidCode)
         .then(({ svg }) => {
           setSvgData(svg);
           if (containerRef.current) {
