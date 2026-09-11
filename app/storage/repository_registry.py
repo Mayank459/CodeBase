@@ -22,6 +22,42 @@ class RepositoryRegistry:
             except Exception as e:
                 print(f"[registry] Failed to load registry: {e}")
 
+        if not self.repositories:
+            self._auto_index_self()
+
+    def _auto_index_self(self):
+        """Automatically index the local CodeBase repository if registry is empty (e.g. after container restart)."""
+        try:
+            from app.core.config import BASE_DIR
+            from app.indexing.scanner import scan_repository
+            from app.parsers.parser_registry import PARSER_REGISTRY
+            from app.indexing.index_builder import IndexBuilder
+
+            py_files = [
+                f for f in scan_repository(BASE_DIR)
+                if f.suffix == ".py" and not any(part.startswith(".") for part in f.parts) and "node_modules" not in f.parts
+            ]
+            if not py_files:
+                return
+
+            parsed_files = []
+            for f in py_files:
+                p = PARSER_REGISTRY.get(f.suffix)
+                if p:
+                    try:
+                        src = f.read_text(encoding="utf-8", errors="ignore")[:8000]
+                        parsed_files.append(p(f.relative_to(BASE_DIR).as_posix(), src))
+                    except Exception:
+                        pass
+
+            if parsed_files:
+                builder = IndexBuilder()
+                repo_index = builder.build("CodeBase", parsed_files)
+                self.register("CodeBase", repo_index)
+                print(f"[registry] Auto-indexed CodeBase ({len(parsed_files)} files, {repo_index.graph.number_of_nodes()} nodes)")
+        except Exception as e:
+            print(f"[registry] Auto-indexing CodeBase failed: {e}")
+
     def _save(self):
         try:
             REPOSITORY_STORAGE.mkdir(parents=True, exist_ok=True)
@@ -59,6 +95,9 @@ class RepositoryRegistry:
     def get(self, name):
         if not self.repositories:
             self._load()
+
+        if not self.repositories:
+            self._auto_index_self()
 
         if not self.repositories:
             return None
