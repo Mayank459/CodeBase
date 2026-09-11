@@ -30,29 +30,63 @@ class RepositoryRegistry:
         except Exception as e:
             print(f"[registry] Failed to save registry: {e}")
 
+    def _normalize(self, name: str) -> str:
+        if not name:
+            return ""
+        clean = str(name).strip()
+        if "github.com/" in clean:
+            clean = clean.split("github.com/")[-1]
+        clean = clean.rstrip("/").split("/")[-1]
+        if clean.endswith(".git"):
+            clean = clean[:-4]
+        return clean.strip().lower()
+
     def register(self, name, repository_index):
-        self.repositories[name] = {
+        clean_name = str(name).strip()
+        self.repositories[clean_name] = {
             "index": repository_index,
             "timestamp": time.time()
         }
         self._save()
 
-    def get(self, name):
-        record = self.repositories.get(name)
+    def _extract_index(self, record):
         if not record:
             return None
-
-        # Backward compatibility for old cache format
         if not isinstance(record, dict):
             return record
+        return record.get("index")
 
-        # TTL: treat stale registrations as not-indexed, but DO NOT delete the
-        # embeddings — silently destroying data on access is destructive. The
-        # user re-indexes to refresh the timestamp, which upserts the same IDs.
-        if time.time() - record.get("timestamp", 0) > self.cache_ttl_seconds:
+    def get(self, name):
+        if not self.repositories:
+            self._load()
+
+        if not self.repositories:
             return None
 
-        return record["index"]
+        # 1. Exact match
+        if name and name in self.repositories:
+            return self._extract_index(self.repositories[name])
+
+        # 2. Case-insensitive and normalized match
+        norm = self._normalize(name)
+        if norm:
+            for k, record in self.repositories.items():
+                if self._normalize(k) == norm or k.strip().lower() == norm:
+                    return self._extract_index(record)
+
+        # 3. Substring match (e.g. "CodeBase" in "Mayank459/CodeBase")
+        if norm:
+            for k, record in self.repositories.items():
+                k_norm = self._normalize(k)
+                if norm in k_norm or k_norm in norm:
+                    return self._extract_index(record)
+
+        # 4. Fallback: if only one repository is registered, always return it
+        if len(self.repositories) == 1:
+            sole_record = next(iter(self.repositories.values()))
+            return self._extract_index(sole_record)
+
+        return None
 
     def contains(self, name) -> bool:
         return self.get(name) is not None

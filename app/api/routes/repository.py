@@ -124,14 +124,14 @@ def debug_search(request: ChatRequest):
     if not repository:
         return {"error": "Repository not indexed"}
 
-    retriever = HybridRetriever(repository.graph)
-    retrieval_result = retriever.retrieve(request.question)
+    retriever = HybridRetriever(repository.graph, repository_name=request.repository_name)
+    retrieval_result = retriever.retrieve(request.question, repository_name=request.repository_name)
     
     semantic_payloads = [r.payload for r in retrieval_result.get("semantic_results", [])]
     
     context_builder = ContextBuilder()
     context = context_builder.build(retrieval_result)
-    prompt = REPOSITORY_CHAT_PROMPT.format(context=context, question=request.question)
+    prompt = REPOSITORY_CHAT_PROMPT.format(history="", context=context, question=request.question)
 
     return {
         "semantic_results": semantic_payloads,
