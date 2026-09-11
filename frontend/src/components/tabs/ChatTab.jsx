@@ -150,22 +150,63 @@ export function ChatTab({ activeRepo }) {
             return copy;
           });
         },
-        onComplete: (finalAnswer) => {
+        onComplete: async (finalAnswer) => {
           setPipelineStep('done');
           setPipelineStatus('Response completed with verified grounding');
+          let streamedText = '';
           setMessages((prev) => {
-            const copy = [...prev];
-            if (copy[assistantMessageIndex]) {
-              const streamedText = copy[assistantMessageIndex].content || '';
-              const resolved = (finalAnswer && finalAnswer.trim()) || (streamedText && streamedText.trim());
-              copy[assistantMessageIndex] = {
-                ...copy[assistantMessageIndex],
-                content: resolved || 'Unable to retrieve response. Please check repository indexing status.',
-                evidence: retrievedEvidence,
-              };
+            if (prev[assistantMessageIndex]) {
+              streamedText = prev[assistantMessageIndex].content || '';
             }
-            return copy;
+            return prev;
           });
+
+          const resolved = (finalAnswer && finalAnswer.trim()) || (streamedText && streamedText.trim());
+          if (!resolved) {
+            try {
+              const res = await apiPost('/agent/chat', {
+                repository_name: activeRepo,
+                question,
+                history: historyPayload,
+              });
+              const answer = res.answer || res.error || 'Unable to retrieve response. Please check repository indexing status.';
+              setMessages((prev) => {
+                const copy = [...prev];
+                if (copy[assistantMessageIndex]) {
+                  copy[assistantMessageIndex] = {
+                    ...copy[assistantMessageIndex],
+                    content: answer,
+                    evidence: retrievedEvidence,
+                  };
+                }
+                return copy;
+              });
+            } catch (_) {
+              setMessages((prev) => {
+                const copy = [...prev];
+                if (copy[assistantMessageIndex]) {
+                  copy[assistantMessageIndex] = {
+                    ...copy[assistantMessageIndex],
+                    content: 'Unable to retrieve response. Please check repository indexing status.',
+                    evidence: retrievedEvidence,
+                  };
+                }
+                return copy;
+              });
+            }
+          } else {
+            setMessages((prev) => {
+              const copy = [...prev];
+              if (copy[assistantMessageIndex]) {
+                copy[assistantMessageIndex] = {
+                  ...copy[assistantMessageIndex],
+                  content: resolved,
+                  evidence: retrievedEvidence,
+                };
+              }
+              return copy;
+            });
+          }
         },
         onError: async (err) => {
           // Fallback to standard POST request if SSE streaming encounters network hiccups
