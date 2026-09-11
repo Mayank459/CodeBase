@@ -20,8 +20,8 @@ function sanitizeMermaid(raw) {
   if (text.startsWith('flowchart') || text.startsWith('graph')) {
     const lines = text.split('\n').map((line) => {
       let l = line;
-      // Quote any unquoted node label brackets that contain special characters: () : / - , etc.
-      l = l.replace(/(\b[A-Za-z0-9_]+)\[([^"\]\n]*[():/\\,+-][^"\]\n]*)\]/g, (match, id, content) => {
+      // Quote any unquoted node label brackets (e.g. A[path/to/file::function] -> A["path/to/file::function"])
+      l = l.replace(/(\b[A-Za-z0-9_]+)\[([^"\]\n]+)\]/g, (match, id, content) => {
         const cleaned = content.replace(/"/g, "'").trim();
         return `${id}["${cleaned}"]`;
       });
