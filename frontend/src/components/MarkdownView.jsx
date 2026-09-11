@@ -144,14 +144,14 @@ function MermaidSnippet({ code }) {
           darkMode: true,
           fontFamily: 'Plus Jakarta Sans, system-ui, -apple-system, sans-serif',
           fontSize: '13px',
-          background: '#070b14',
+          background: '#07090e',
           primaryColor: '#1e1b4b',
           primaryTextColor: '#f8fafc',
           primaryBorderColor: '#6366f1',
           lineColor: '#818cf8',
           secondaryColor: '#0f172a',
-          tertiaryColor: '#090d16',
-          mainBkg: '#111827',
+          tertiaryColor: '#111827',
+          mainBkg: '#1e1b4b',
           nodeBorder: '#6366f1',
           clusterBkg: '#0b0f19',
           clusterBorder: '#3730a3',
@@ -165,6 +165,7 @@ function MermaidSnippet({ code }) {
           useMaxWidth: true,
         },
         securityLevel: 'loose',
+        suppressErrorRendering: true,
       });
 
       const cleanupRogueElements = () => {
@@ -177,14 +178,10 @@ function MermaidSnippet({ code }) {
             containerRef.current.innerHTML = svg;
             const svgEl = containerRef.current.querySelector('svg');
             if (svgEl) {
-              svgEl.removeAttribute('height');
-              svgEl.style.width = '100%';
               svgEl.style.maxWidth = '100%';
               svgEl.style.height = 'auto';
-              svgEl.style.minHeight = '200px';
               svgEl.style.display = 'block';
               svgEl.style.margin = '0 auto';
-              svgEl.style.overflow = 'visible';
             }
           }
           cleanupRogueElements();
