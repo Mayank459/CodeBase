@@ -1,0 +1,37 @@
+[
+  {
+    "id": "eval-001",
+    "query": "Where is the FastAPI application instance initialized?",
+    "expected_files": ["main.py"],
+    "expected_symbols": ["app"],
+    "ground_truth_fact": "FastAPI is instantiated in main.py with title and description"
+  },
+  {
+    "id": "eval-002",
+    "query": "How is Python AST parsed and extracted?",
+    "expected_files": ["app/parsers/python/extractor.py"],
+    "expected_symbols": ["PythonExtractor", "extract_entities"],
+    "ground_truth_fact": "Tree-sitter is used to parse Python files into classes and functions"
+  },
+  {
+    "id": "eval-003",
+    "query": "Where is the NetworkX call graph built and traversed?",
+    "expected_files": ["app/graph/graph_builder.py"],
+    "expected_symbols": ["GraphBuilder", "build_graph"],
+    "ground_truth_fact": "NetworkX DiGraph builds edges representing callers and callees"
+  },
+  {
+    "id": "eval-004",
+    "query": "How does the LangGraph agent route incoming user queries?",
+    "expected_files": ["app/agents/router.py"],
+    "expected_symbols": ["router_node", "classify_intent"],
+    "ground_truth_fact": "Router classifies intent into chat, architecture, flow, or security"
+  },
+  {
+    "id": "eval-005",
+    "query": "Where are secrets and prompt injections intercepted?",
+    "expected_files": ["app/guardrails/safety_manager.py", "app/guardrails/prompt_injection.py"],
+    "expected_symbols": ["SafetyManager", "PromptInjectionGuardrail"],
+    "ground_truth_fact": "SafetyManager runs prompt injection and secret scrubbing guardrails"
+  }
+]

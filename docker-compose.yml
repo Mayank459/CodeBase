@@ -1,7 +1,44 @@
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "10000:10000"
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - COHERE_API_KEY=${COHERE_API_KEY}
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+    networks:
+      - codebase-net
+
   qdrant:
-    image: qdrant/qdrant
+    image: qdrant/qdrant:latest
     ports:
       - "6333:6333"
     volumes:
       - ./qdrant_storage:/qdrant/storage
+    restart: unless-stopped
+    networks:
+      - codebase-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - codebase-net
+
+networks:
+  codebase-net:
+    driver: bridge

@@ -4,9 +4,10 @@ FROM python:3.12-slim
 # Set the working directory
 WORKDIR /app
 
-# Install system dependencies (required for some Python packages like networkx/tree-sitter if they need compilation)
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file into the container
@@ -24,6 +25,10 @@ COPY . .
 
 # Expose the port the app runs on
 EXPOSE 10000
+
+# Health check probe
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:10000/health || exit 1
 
 # Command to run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]

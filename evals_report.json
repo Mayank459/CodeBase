@@ -1,0 +1,11 @@
+{
+  "scenarios_evaluated": 5,
+  "metrics": {
+    "hit_rate_at_1": 1.0,
+    "hit_rate_at_3": 1.0,
+    "mrr_at_3": 1.0,
+    "avg_faithfulness": 0.4476,
+    "avg_relevancy": 0.3821,
+    "citation_grounding": 1.0
+  }
+}

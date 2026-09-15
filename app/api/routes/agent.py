@@ -16,19 +16,35 @@ class ComparisonRequest(BaseModel):
 
 from app.agents.comparison_agent import comparison_node
 
+from app.guardrails.safety_manager import safety_manager
+from app.observability.metrics import metrics
+
 @router.post("/chat")
 async def chat_with_agent(
     request: AgentChatRequest
 ):
+    # 1. Input Guardrail Check (Prompt Injection & Sanitization)
+    in_check = safety_manager.validate_input(request.question)
+    if not in_check.passed:
+        metrics.record_guardrail_violation("prompt_injection")
+        metrics.record_request(endpoint="/agent/chat", status="blocked")
+        return {
+            "answer": f"⚠️ **Guardrail Notice:** Request intercepted by safety policy ({in_check.reason}). Please rephrase your codebase query.",
+            "route": "blocked_by_guardrail",
+            "status": "blocked"
+        }
+
+    # 2. Execute Graph with Telemetry
     config = {"configurable": {"thread_id": request.thread_id or "default"}}
-    result = graph.invoke(
-        {
-            "repository_name": request.repository_name,
-            "question": request.question,
-            "history": request.history
-        },
-        config=config,
-    )
+    with metrics.measure_latency("chat_workflow"):
+        result = graph.invoke(
+            {
+                "repository_name": request.repository_name,
+                "question": in_check.sanitized_input or request.question,
+                "history": request.history
+            },
+            config=config,
+        )
 
     # Convert generator or non-string answers to string to ensure JSON serialization
     import types
@@ -38,6 +54,18 @@ async def chat_with_agent(
             result["answer"] = "".join(str(chunk) for chunk in ans)
         elif not isinstance(ans, str):
             result["answer"] = str(ans)
+
+    # 3. Output Guardrail Check (Secret Scrubbing & Citation Grounding)
+    if "answer" in result and isinstance(result["answer"], str):
+        out_check = safety_manager.validate_output(result["answer"])
+        result["answer"] = out_check["final_text"]
+        if not out_check["passed"]:
+            if out_check["secret_violations"]:
+                metrics.record_guardrail_violation("secret_leakage")
+            if out_check["hallucinated_citations"]:
+                metrics.record_guardrail_violation("citation_fail")
+
+    metrics.record_request(endpoint="/agent/chat", status="success")
 
     # Surface Human-in-the-Loop approval requests (e.g. PR creation)
     interrupts = result.get("__interrupt__")
