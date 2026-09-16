@@ -8,3 +8,6 @@ class SecurityFinding:
     line_number: int
     description: str
     code_snippet: str
+    category: str = "Code Security"
+    cwe: str = "CWE-General"
+    recommendation: str = ""

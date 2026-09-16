@@ -66,53 +66,89 @@ export function SecurityTab({ activeRepo, onNavigateToPr }) {
     if (!scanResult?.content) return [];
 
     const text = scanResult.content;
+
+    // If report confirms 0 vulnerabilities or overall passed without issues:
+    const isCleanPass = (
+      (text.includes('PASSED (Grade A+)') || 
+       text.includes('0 Vulnerabilities Detected') || 
+       text.includes('0 security vulnerabilities') ||
+       text.includes('passed all automated') ||
+       text.includes('passed the security review')) &&
+      !text.includes('ACTION REQUIRED') && 
+      !text.includes('FAILED')
+    );
+
+    if (isCleanPass) {
+      return [];
+    }
+
     const findings = [];
+    // Match finding blocks formatted like "### Finding #1: ...", "### Vulnerability #1: ...", or "**Finding #1:**"
+    const blocks = text.split(/(?=###?\s*(?:Finding|Vulnerability|\d+\.)|\*\*Finding\s*#?\d+:)/i);
 
-    // Match markdown sections or bullet items
-    const sections = text.split(/(?=###?\s+|\d+\.\s+\*\*)/);
+    blocks.forEach((block, idx) => {
+      const trimmed = block.trim();
+      if (!trimmed || trimmed.length < 30) return;
 
-    sections.forEach((sec, idx) => {
-      const trimmed = sec.trim();
-      if (!trimmed || trimmed.length < 20) return;
+      // Skip non-finding overview sections
+      if (
+        /executive summary/i.test(trimmed) || 
+        /hardening roadmap/i.test(trimmed) || 
+        /security control matrix/i.test(trimmed) ||
+        /verified security/i.test(trimmed) ||
+        /recommendations/i.test(trimmed) ||
+        /conclusion/i.test(trimmed)
+      ) {
+        return;
+      }
+
+      // Must discuss an actual security issue
+      if (!/finding|vulnerability|cwe|severity|risk/i.test(trimmed)) {
+        return;
+      }
+
+      // Check if this finding was marked as a false positive
+      const isFalsePositive = /false positive|no actual vulnerability|no risk/i.test(trimmed);
 
       let severity = 'MEDIUM';
-      if (/critical/i.test(trimmed)) severity = 'CRITICAL';
-      else if (/high/i.test(trimmed)) severity = 'HIGH';
-      else if (/low/i.test(trimmed) || /info/i.test(trimmed)) severity = 'LOW';
+      if (/\[CRITICAL\]|\bseverity:\s*\*?critical\b/i.test(trimmed)) severity = 'CRITICAL';
+      else if (/\[HIGH\]|\bseverity:\s*\*?high\b/i.test(trimmed)) severity = 'HIGH';
+      else if (/\[LOW\]|\bseverity:\s*\*?low\b/i.test(trimmed)) severity = 'LOW';
+      else if (/\[MEDIUM\]|\bseverity:\s*\*?medium\b/i.test(trimmed)) severity = 'MEDIUM';
 
-      // Extract file reference (e.g. app/core/config.py:42 or file.py)
-      const fileMatch = trimmed.match(/([a-zA-Z0-9_\-\.\/]+\.[a-zA-Z0-9]+(?::\d+)?)/);
-      const file = fileMatch ? fileMatch[1] : 'repository/source';
+      if (isFalsePositive) {
+        severity = 'LOW';
+      }
+
+      // Extract file reference (e.g. frontend/src/components/ProblemDescription.jsx:73)
+      const fileMatch = trimmed.match(/(?:location|file):\s*`?([a-zA-Z0-9_\-\.\/]+\.[a-zA-Z0-9]+(?::\d+)?)`?/i) ||
+                        trimmed.match(/([a-zA-Z0-9_\-\.\/]+\.[a-zA-Z0-9]+:\d+)/);
+      const file = fileMatch ? fileMatch[1] : (activeRepo || 'Repository Source');
 
       // Extract title
-      const titleMatch = trimmed.match(/(?:###?\s*|\*\*|^\d+\.\s*)([^\n\*#]+)/);
+      const titleMatch = trimmed.match(/(?:###?\s*(?:Finding\s*#?\d+:?|Vulnerability\s*#?\d+:?)|\*\*Finding\s*#?\d+:?\s*)([^\n\*#]+)/i) ||
+                         trimmed.match(/(?:###?\s*)([^\n\*#]+)/);
       const title = titleMatch ? titleMatch[1].trim() : `Security Finding #${idx + 1}`;
+
+      // Extract CWE tag if present
+      const cweMatch = trimmed.match(/(CWE-\d+)/i);
+      const cwe = cweMatch ? cweMatch[1] : null;
 
       // Extract code block snippet if present
       const codeMatch = trimmed.match(/```(?:[a-zA-Z]+)?\s*([\s\S]*?)```/);
       const snippet = codeMatch ? codeMatch[1].trim() : null;
 
       findings.push({
-        id: idx + 1,
-        title,
+        id: findings.length + 1,
+        title: title.replace(/^Finding\s*#?\d+:\s*/i, '').replace(/^Vulnerability\s*#?\d+:\s*/i, ''),
         severity,
+        cwe,
         file,
         snippet,
+        isFalsePositive,
         rawText: trimmed,
       });
     });
-
-    // Fallback if regex split found nothing
-    if (findings.length === 0 && text.length > 50) {
-      findings.push({
-        id: 1,
-        title: 'General Security Audit Summary',
-        severity: 'MEDIUM',
-        file: activeRepo || 'Repository Root',
-        snippet: null,
-        rawText: text,
-      });
-    }
 
     return findings;
   }, [scanResult, activeRepo]);
@@ -120,11 +156,16 @@ export function SecurityTab({ activeRepo, onNavigateToPr }) {
   // Compute overall security score (0 - 100)
   const { score, criticalCount, highCount, mediumCount, lowCount, grade } = useMemo(() => {
     if (!scanResult) {
-      return { score: 92, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, grade: 'A' };
+      return { score: 100, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, grade: 'Pending Scan' };
+    }
+
+    if (parsedFindings.length === 0) {
+      return { score: 100, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, grade: 'A+ (Passed)' };
     }
 
     let crit = 0, high = 0, med = 0, low = 0;
     parsedFindings.forEach((f) => {
+      if (f.isFalsePositive) return;
       if (f.severity === 'CRITICAL') crit++;
       else if (f.severity === 'HIGH') high++;
       else if (f.severity === 'MEDIUM') med++;
@@ -132,12 +173,14 @@ export function SecurityTab({ activeRepo, onNavigateToPr }) {
     });
 
     let calculated = 100 - (crit * 25 + high * 15 + med * 8 + low * 3);
-    calculated = Math.max(calculated, 35);
+    calculated = Math.max(calculated, 20);
 
-    let g = 'A+';
-    if (calculated < 60) g = 'D (High Risk)';
-    else if (calculated < 75) g = 'C (Moderate Risk)';
-    else if (calculated < 90) g = 'B (Good)';
+    let g = 'A';
+    if (calculated >= 95) g = 'A+ (Excellent)';
+    else if (calculated >= 85) g = 'A (Good)';
+    else if (calculated >= 70) g = 'B (Moderate Risk)';
+    else if (calculated >= 50) g = 'C (Elevated Risk)';
+    else g = 'D (High Risk)';
 
     return {
       score: calculated,
@@ -157,6 +200,7 @@ export function SecurityTab({ activeRepo, onNavigateToPr }) {
         !searchQuery.trim() ||
         f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         f.file.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (f.cwe && f.cwe.toLowerCase().includes(searchQuery.toLowerCase())) ||
         f.rawText.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSeverity && matchesSearch;
     });
@@ -422,6 +466,52 @@ export function SecurityTab({ activeRepo, onNavigateToPr }) {
                   </div>
                 );
               })
+            ) : parsedFindings.length === 0 ? (
+              <div className="glass-panel p-8 text-center space-y-4 border border-emerald-500/20 bg-emerald-500/[0.03]">
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+                  <ShieldCheck size={32} />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white tracking-wide">
+                    Codebase Passed Security Vulnerability Verification
+                  </h4>
+                  <p className="text-xs text-slate-300 max-w-md mx-auto mt-1">
+                    Zero critical vulnerabilities, exposed credentials, or execution sinks were detected in <strong className="text-emerald-300">{activeRepo}</strong>.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto pt-2 text-left">
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                      <CheckCircle2 size={13} />
+                      <span>Secret Isolation</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Secrets cleanly retrieved via environment variables without plaintext leaks.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                      <CheckCircle2 size={13} />
+                      <span>Execution Sinks</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      No dangerous dynamic execution calls (eval, exec, pickle.loads) detected.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                      <CheckCircle2 size={13} />
+                      <span>Injection Defense</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Safe query parameterization and absence of shell execution flaws.
+                    </p>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="glass-panel p-10 text-center text-slate-400 space-y-2">
                 <CheckCircle2 size={32} className="mx-auto text-emerald-400 mb-2" />

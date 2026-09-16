@@ -1,46 +1,82 @@
+"""Advanced static code security scanner."""
+from pathlib import Path
+from typing import List, Optional
 from app.security.models import SecurityFinding
-from app.security.patterns import SECURITY_PATTERNS
+from app.security.patterns import (
+    SECURITY_RULES,
+    IGNORED_EXTENSIONS,
+    IGNORED_PATH_PARTS,
+    SAFE_LINE_PATTERNS,
+    PLACEHOLDER_REGEX
+)
 
 class SecurityScanner:
+    def should_skip_file(self, file_path: str) -> bool:
+        if not file_path:
+            return True
+        norm_path = file_path.replace("\\", "/").lower()
+        path_obj = Path(norm_path)
+
+        # Skip documentation, assets, lockfiles
+        if path_obj.suffix in IGNORED_EXTENSIONS:
+            return True
+
+        # Skip test directories, node_modules, internal git files
+        parts = set(norm_path.split("/"))
+        if parts & IGNORED_PATH_PARTS:
+            return True
+
+        return False
+
     def scan_file(
         self,
-        file_path,
-        content
-    ):
-        findings = []
-        if not content:
+        file_path: str,
+        content: str
+    ) -> List[SecurityFinding]:
+        findings: List[SecurityFinding] = []
+        if not content or self.should_skip_file(file_path):
             return findings
 
         lines = content.splitlines()
 
         for line_number, line in enumerate(lines, start=1):
-            for finding_type, patterns in SECURITY_PATTERNS.items():
-                for pattern in patterns:
-                    if pattern in line:
-                        severity = "HIGH"
-                        if finding_type in ["hardcoded_secret", "dangerous_eval", "dangerous_exec", "pickle_loads", "shell_true"]:
-                            severity = "CRITICAL"
-                        elif finding_type in ["md5_usage", "insecure_cors"]:
-                            severity = "MEDIUM"
+            stripped = line.strip()
+            if not stripped or len(stripped) < 4:
+                continue
 
+            # 1. Skip lines that are purely comments, safe environment retrievals, or log statements
+            if any(pat.search(line) for pat in SAFE_LINE_PATTERNS):
+                continue
+
+            # 2. Evaluate high-precision security rules
+            for rule in SECURITY_RULES:
+                match = rule["regex"].search(line)
+                if match:
+                    # Apply specific filter (e.g. check that secret is not a placeholder)
+                    if rule["filter"](match):
                         findings.append(
                             SecurityFinding(
-                                finding_type=finding_type,
-                                severity=severity,
-                                file_path=file_path,
+                                finding_type=rule["type"],
+                                severity=rule["severity"],
+                                file_path=file_path.replace("\\", "/"),
                                 line_number=line_number,
-                                description=f"{finding_type.replace('_', ' ').title()} ({pattern})",
-                                code_snippet=line.strip()
+                                description=rule["description"],
+                                code_snippet=stripped[:180],
+                                category=rule["category"],
+                                cwe=rule["cwe"],
+                                recommendation=f"Sanitize or remove `{rule['type']}` at line {line_number}."
                             )
                         )
+                        # Avoid multiple redundant findings on the exact same line
+                        break
 
         return findings
 
     def scan_repository(
         self,
         parsed_files
-    ):
-        all_findings = []
+    ) -> List[SecurityFinding]:
+        all_findings: List[SecurityFinding] = []
 
         for parsed_file in parsed_files:
             # 1. Prefer full raw source code if available
