@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, Trash2, Bot, User, Sparkles, Terminal, ArrowRight, 
-  CornerDownLeft, Shield, Network, Layers, GitBranch, Database 
+  CornerDownLeft, Shield, Network, Layers, GitBranch, Database,
+  Maximize2, Minimize2, X, Minus, Download
 } from 'lucide-react';
 import { apiPost, streamChatAgent, fetchDebugSearch } from '../../api';
 import { MarkdownView } from '../MarkdownView';
@@ -65,6 +66,33 @@ export function ChatTab({ activeRepo }) {
   const [pipelineStatus, setPipelineStatus] = useState('');
   const [activeAgent, setActiveAgent] = useState('Chat Agent');
   const [showPipeline, setShowPipeline] = useState(true);
+  const [windowState, setWindowState] = useState('normal'); // 'normal' | 'maximized' | 'minimized' | 'closed'
+
+  // Press Esc to exit maximized mode
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && windowState === 'maximized') {
+        setWindowState('normal');
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [windowState]);
+
+  const handleExportMarkdown = () => {
+    if (!messages || messages.length === 0) return;
+    const md = messages
+      .map((m) => `### ${m.role === 'user' ? '👤 Developer' : '🤖 CodeBase Intelligence AI'}\n\n${m.content}\n`)
+      .join('\n---\n\n');
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `codebase_chat_${activeRepo || 'session'}_${Date.now()}.md`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const messagesContainerRef = useRef(null);
 
@@ -275,54 +303,206 @@ export function ChatTab({ activeRepo }) {
     ]);
   };
 
-  return (
-    <div className="flex flex-col h-[780px] rounded-2xl bg-[#0b0e17] overflow-hidden border border-white/[0.08] shadow-2xl">
-      {/* 1. macOS Window Header Bar (Figma Style) */}
-      <div className="px-4 py-3 border-b border-white/[0.08] bg-[#080b12] flex items-center justify-between">
+  // 1. Minimized Dock State
+  if (windowState === 'minimized') {
+    return (
+      <div className="rounded-2xl border border-white/[0.1] bg-[#090d16] p-4 shadow-2xl flex items-center justify-between transition-all duration-300 hover:border-indigo-500/40">
         <div className="flex items-center gap-3">
-          {/* macOS window dots */}
-          <div className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-[#ff5f56]" />
-            <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
-            <span className="h-3 w-3 rounded-full bg-[#27c93f]" />
-          </div>
-
-          <div className="h-4 w-px bg-white/10 mx-1" />
-
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-white tracking-tight">AST Intelligence Playground</span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
-              LangGraph Multi-Agent
-            </span>
+            <button
+              onClick={() => setWindowState('closed')}
+              className="h-3.5 w-3.5 rounded-full bg-[#ff5f56] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
+              title="Close chat"
+            >
+              <X size={8} className="text-[#450000] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
+            </button>
+            <button
+              onClick={() => setWindowState('normal')}
+              className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
+              title="Restore chat"
+            >
+              <Minus size={8} className="text-[#4e3200] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
+            </button>
+            <button
+              onClick={() => setWindowState('maximized')}
+              className="h-3.5 w-3.5 rounded-full bg-[#27c93f] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
+              title="Maximize to full page"
+            >
+              <Maximize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
+            </button>
           </div>
+          <div className="h-4 w-px bg-white/10 mx-1" />
+          <span className="text-xs font-mono font-bold text-white">AST Intelligence Playground</span>
+          <span className="text-[11px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
+            Minimized • {messages.length} message{messages.length !== 1 ? 's' : ''}
+          </span>
         </div>
-
-        <div className="flex items-center gap-3">
-          {/* Live Indicator */}
-          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>live</span>
-          </div>
-
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowPipeline(!showPipeline)}
-            className={`px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
-              showPipeline ? 'bg-white/[0.08] text-white font-medium' : 'text-slate-400 hover:text-white'
-            }`}
-            title="Toggle execution pipeline view"
+            onClick={() => setWindowState('normal')}
+            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
           >
-            Pipeline
-          </button>
-
-          <button
-            onClick={handleClear}
-            className="p-1 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
-            title="Reset conversation"
-          >
-            <Trash2 size={13} />
+            <span>Restore Window</span>
+            <Maximize2 size={13} />
           </button>
         </div>
       </div>
+    );
+  }
+
+  // 2. Closed State
+  if (windowState === 'closed') {
+    return (
+      <div className="p-8 rounded-2xl bg-[#090d16]/90 border border-white/[0.08] text-center space-y-4 shadow-xl">
+        <div className="h-12 w-12 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+          <Bot size={22} />
+        </div>
+        <div className="space-y-1">
+          <h4 className="text-sm font-bold text-white font-mono">AST Intelligence Playground Closed</h4>
+          <p className="text-xs text-slate-400">You can reopen the interactive multi-agent chat session at any time.</p>
+        </div>
+        <button
+          onClick={() => setWindowState('normal')}
+          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold inline-flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+        >
+          <Sparkles size={14} />
+          <span>Reopen Chat Playground</span>
+        </button>
+      </div>
+    );
+  }
+
+  const isMax = windowState === 'maximized';
+
+  return (
+    <div
+      className={
+        isMax
+          ? 'fixed inset-0 z-[999] bg-[#07090e]/95 backdrop-blur-2xl p-2 sm:p-4 md:p-6 w-screen h-screen flex flex-col overflow-hidden animate-in fade-in duration-200'
+          : 'flex flex-col h-[780px] rounded-2xl bg-[#0b0e17] overflow-hidden border border-white/[0.08] shadow-2xl transition-all duration-300'
+      }
+    >
+      <div className={isMax ? 'flex flex-col h-full rounded-2xl bg-[#0b0e17] overflow-hidden border border-white/[0.14] shadow-2xl' : 'flex flex-col h-full'}>
+        {/* 1. macOS Window Header & Top Navigation Bar */}
+        <div className="px-4 py-3 border-b border-white/[0.08] bg-[#080b12] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {/* Interactive macOS window traffic lights */}
+            <div className="flex items-center gap-2">
+              {/* Red Dot = Close */}
+              <button
+                type="button"
+                onClick={() => setWindowState('closed')}
+                className="h-3.5 w-3.5 rounded-full bg-[#ff5f56] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
+                title="Close chat window"
+              >
+                <X size={8} className="text-[#450000] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
+              </button>
+
+              {/* Yellow Dot = Minimize */}
+              <button
+                type="button"
+                onClick={() => setWindowState('minimized')}
+                className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
+                title="Minimize chat to dock"
+              >
+                <Minus size={8} className="text-[#4e3200] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
+              </button>
+
+              {/* Green Dot = Maximize to full page / Restore */}
+              <button
+                type="button"
+                onClick={() => setWindowState(isMax ? 'normal' : 'maximized')}
+                className="h-3.5 w-3.5 rounded-full bg-[#27c93f] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
+                title={isMax ? 'Restore normal window (Esc)' : 'Maximize chat to full page'}
+              >
+                {isMax ? (
+                  <Minimize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
+                ) : (
+                  <Maximize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
+                )}
+              </button>
+            </div>
+
+            <div className="h-4 w-px bg-white/10 mx-1" />
+
+            {/* Title & Context Pills */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-white tracking-tight">AST Intelligence Playground</span>
+              <span className="hidden sm:inline-flex text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
+                LangGraph Multi-Agent
+              </span>
+              {activeRepo && (
+                <span className="hidden md:inline-flex text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300">
+                  {activeRepo}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Navbar Controls & Actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Indicator */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>live</span>
+            </div>
+
+            {/* Pipeline View Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowPipeline(!showPipeline)}
+              className={`px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                showPipeline ? 'bg-white/[0.08] text-white font-medium border border-white/10' : 'text-slate-400 hover:text-white'
+              }`}
+              title="Toggle execution pipeline view"
+            >
+              Pipeline
+            </button>
+
+            {/* Export Markdown */}
+            <button
+              type="button"
+              onClick={handleExportMarkdown}
+              className="p-1.5 rounded text-slate-400 hover:text-white transition-colors cursor-pointer hover:bg-white/[0.06]"
+              title="Export conversation as Markdown"
+            >
+              <Download size={14} />
+            </button>
+
+            {/* Clear Chat */}
+            <button
+              type="button"
+              onClick={handleClear}
+              className="p-1.5 rounded text-slate-400 hover:text-rose-400 transition-colors cursor-pointer hover:bg-white/[0.06]"
+              title="Reset conversation"
+            >
+              <Trash2 size={14} />
+            </button>
+
+            <div className="h-4 w-px bg-white/10 mx-0.5" />
+
+            {/* Fullscreen / Restore Action Button */}
+            <button
+              type="button"
+              onClick={() => setWindowState(isMax ? 'normal' : 'maximized')}
+              className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-indigo-600 border border-white/[0.08] hover:border-indigo-500 text-slate-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title={isMax ? 'Exit Full Page (Esc)' : 'Maximize Chat to Full Page'}
+            >
+              {isMax ? (
+                <>
+                  <Minimize2 size={13} />
+                  <span className="hidden sm:inline">Exit Fullscreen</span>
+                  <kbd className="hidden md:inline px-1 py-0.2 rounded bg-black/30 text-[9px] border border-white/10">Esc</kbd>
+                </>
+              ) : (
+                <>
+                  <Maximize2 size={13} />
+                  <span className="hidden sm:inline">Maximize</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
       {/* 2. Multi-Agent Pipeline Row (Figma Version 5 Spec) */}
       {showPipeline && (
@@ -496,5 +676,6 @@ export function ChatTab({ activeRepo }) {
         </div>
       </div>
     </div>
+  </div>
   );
 }

@@ -3,6 +3,53 @@
 @tailwind utilities;
 
 /* ==========================================================================
+   Custom Typography: Matrixtype, CS Brilon Pixel, Cosmo Core
+   ========================================================================== */
+@font-face {
+  font-family: 'Matrixtype';
+  src: url('/fonts/Matrixtype-lxMZX.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Matrixtype';
+  src: url('/fonts/MatrixtypeBold-yYyB5.ttf') format('truetype');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Matrixtype Display';
+  src: url('/fonts/MatrixtypeDisplay-9MyE5.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Matrixtype Display';
+  src: url('/fonts/MatrixtypeDisplayBold-6R4e6.ttf') format('truetype');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Explicit Font Utility Classes to guarantee instant rendering */
+.font-matrixtype {
+  font-family: 'Matrixtype', 'JetBrains Mono', monospace !important;
+}
+
+.font-matrixtype-display {
+  font-family: 'Matrixtype Display', 'Matrixtype', 'JetBrains Mono', monospace !important;
+}
+
+
+
+
+/* ==========================================================================
    CodeBase Intelligence Platform — Senior Dev Design System
    Obsidian Dark Palette + Precision Layout Primitives + Glassmorphism
    ========================================================================== */
@@ -50,6 +97,10 @@
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
   --font-tiempos: 'Tiempos Text', 'Tiempos', 'Tiempos Headline', 'Newsreader', 'Source Serif 4', 'Charter', 'Georgia', 'Cambria', serif;
+  --font-matrixtype: 'Matrixtype', 'JetBrains Mono', monospace;
+  --font-matrixtype-display: 'Matrixtype Display', 'Matrixtype', 'JetBrains Mono', monospace;
+
+
 
   /* Radii */
   --radius-xs: 4px;

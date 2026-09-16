@@ -9,7 +9,11 @@ export default {
       fontFamily: {
         sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'Menlo', 'monospace'],
+        matrixtype: ['Matrixtype', 'JetBrains Mono', 'monospace'],
+        'matrixtype-display': ['"Matrixtype Display"', 'Matrixtype', 'JetBrains Mono', 'monospace'],
       },
+
+
       colors: {
         canvas: '#07090e',
         surface: '#0e131f',

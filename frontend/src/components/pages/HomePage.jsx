@@ -5,6 +5,7 @@ import {
   GitBranch, Database, Zap, Cpu, CheckCircle2, ChevronRight, Layers, Search
 } from 'lucide-react';
 
+
 export function HomePage({ 
   onNavigatePage, 
   onSelectTab, 
@@ -104,18 +105,22 @@ export function HomePage({
   return (
     <div className="space-y-16 lg:space-y-20 w-full">
       
-      {/* 1. HERO SECTION (Spaced Out & Full Width) */}
+      {/* 1. HERO SECTION (Cosmo Core Typography) */}
       <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-b from-[#0f172a]/90 via-[#0d1322]/70 to-[#07090e] p-8 sm:p-12 lg:p-16 shadow-2xl backdrop-blur-xl">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-32 -mt-32" />
         <div className="absolute bottom-0 left-1/3 w-[450px] h-[450px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-4xl space-y-8">
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-mono shadow-sm">
+          {/* Top Badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs shadow-sm font-matrixtype">
             <Sparkles size={14} className="text-cyan-400 animate-spin" />
-            <span>LangGraph Multi-Agent RAG v2.0 • Senior Developer Workstation</span>
+            <span className="tracking-wide font-matrixtype">
+              LangGraph Multi-Agent RAG v2.0 • Senior Developer Workstation
+            </span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.12]">
+          {/* Hero Main Headline (Matrixtype Display) */}
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-wide leading-[1.15] font-matrixtype-display">
             Repository Intelligence <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-indigo-300">
               & Full-Stack Code Comprehension.
@@ -131,7 +136,7 @@ export function HomePage({
             <button
               type="button"
               onClick={() => onNavigatePage('features')}
-              className="px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-xl shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-2.5 group"
+              className="px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-xl shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-2.5 group tracking-wide font-matrixtype"
             >
               <Zap size={16} className="text-cyan-200 group-hover:scale-110 transition-transform" />
               <span>Open Features Workstation</span>
@@ -141,7 +146,7 @@ export function HomePage({
             <button
               type="button"
               onClick={onOpenIndexer}
-              className="px-5 py-3.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-slate-200 hover:text-white transition-all cursor-pointer text-sm font-mono flex items-center gap-2.5"
+              className="px-5 py-3.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-slate-200 hover:text-white transition-all cursor-pointer text-sm flex items-center gap-2.5 tracking-wide font-matrixtype"
             >
               <GitBranch size={16} className="text-indigo-400" />
               <span>{activeRepo ? `Manage: ${activeRepo}` : 'Ingest Repository'}</span>
@@ -159,36 +164,58 @@ export function HomePage({
           </div>
         </div>
 
-        {/* 2. PLATFORM METRICS BANNER (Spaced Across Full Width) */}
+        {/* 2. PLATFORM METRICS BANNER (Matrixtype Typography) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-12 border-t border-white/[0.08] mt-12">
           <div className="space-y-1">
-            <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">99.99%</div>
-            <div className="text-xs text-slate-400 font-mono uppercase tracking-wider">uptime SLA</div>
+            <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-wide font-matrixtype">
+              99.99%
+            </div>
+            <div className="text-xs text-slate-400 uppercase tracking-wider font-matrixtype">
+              uptime SLA
+            </div>
           </div>
           <div className="space-y-1">
-            <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">87ms</div>
-            <div className="text-xs text-slate-400 font-mono uppercase tracking-wider">p50 query latency</div>
+            <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-wide font-matrixtype">
+              87ms
+            </div>
+            <div className="text-xs text-slate-400 uppercase tracking-wider font-matrixtype">
+              p50 query latency
+            </div>
           </div>
           <div className="space-y-1">
-            <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">128k</div>
-            <div className="text-xs text-slate-400 font-mono uppercase tracking-wider">sliding context</div>
+            <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-wide font-matrixtype">
+              128k
+            </div>
+            <div className="text-xs text-slate-400 uppercase tracking-wider font-matrixtype">
+              sliding context
+            </div>
           </div>
           <div className="space-y-1">
-            <div className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">AST + Qdrant</div>
-            <div className="text-xs text-slate-400 font-mono uppercase tracking-wider">hybrid retrieval</div>
+            <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-wide font-matrixtype">
+              AST + Qdrant
+            </div>
+            <div className="text-xs text-slate-400 uppercase tracking-wider font-matrixtype">
+              hybrid retrieval
+            </div>
           </div>
         </div>
+
+
+
+
+
       </section>
 
-      {/* 3. DEDICATED FEATURES MATRIX SHOWCASE (9 CARDS ACROSS FULL WIDTH) */}
+      {/* 2. DEDICATED FEATURES MATRIX SHOWCASE (Matrixtype Typography) */}
       <section className="space-y-8">
+
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-matrixtype">
               <Layers size={13} />
               <span>Full Capability Suite</span>
             </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-wide font-matrixtype-display">
               All 9 Developer Tools on One Dedicated Platform
             </h2>
             <p className="text-slate-400 text-sm sm:text-base max-w-2xl">
@@ -199,7 +226,7 @@ export function HomePage({
           <button
             type="button"
             onClick={() => onNavigatePage('features')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-indigo-500/40 text-xs font-mono text-indigo-400 hover:text-indigo-300 transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-indigo-500/40 text-xs font-matrixtype text-indigo-400 hover:text-indigo-300 transition-all cursor-pointer tracking-wide"
           >
             <span>Open All Tools in Workstation</span>
             <ChevronRight size={15} />
@@ -223,12 +250,12 @@ export function HomePage({
                     >
                       <Icon size={22} />
                     </div>
-                    <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-white/[0.04] text-slate-400 border border-white/[0.06]">
+                    <span className="text-[11px] font-matrixtype px-2.5 py-1 rounded-full bg-white/[0.04] text-slate-400 border border-white/[0.06] tracking-wide">
                       {feat.tag}
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors font-sans">
+                  <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors font-matrixtype tracking-tight">
                     {feat.title}
                   </h3>
 
@@ -240,7 +267,7 @@ export function HomePage({
                 <button
                   type="button"
                   onClick={() => handleLaunchTool(feat.id)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-white/[0.03] hover:bg-indigo-600 border border-white/[0.08] hover:border-indigo-500 text-slate-300 hover:text-white transition-all text-xs sm:text-sm font-mono flex items-center justify-between cursor-pointer group-hover:border-indigo-500/40"
+                  className="w-full py-2.5 px-4 rounded-xl bg-white/[0.03] hover:bg-indigo-600 border border-white/[0.08] hover:border-indigo-500 text-slate-300 hover:text-white transition-all text-xs sm:text-sm font-matrixtype flex items-center justify-between cursor-pointer group-hover:border-indigo-500/40 tracking-wide"
                 >
                   <span className="font-semibold">{feat.cta}</span>
                   <ArrowRight size={14} className="transition-transform group-hover:translate-x-1.5" />
@@ -254,10 +281,10 @@ export function HomePage({
       {/* 4. ARCHITECTURE PIPELINE BREAKDOWN (Spacious Full Width) */}
       <section className="p-8 sm:p-12 rounded-3xl bg-[#0a0e17] border border-white/[0.08] space-y-8 shadow-xl">
         <div className="max-w-3xl space-y-2">
-          <div className="text-[11px] font-mono text-indigo-400 uppercase tracking-wider font-bold">
+          <div className="text-[11px] font-matrixtype text-indigo-400 uppercase tracking-wider font-bold">
             Execution Pipeline Architecture
           </div>
-          <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+          <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-wide font-matrixtype-display">
             How CodeBase Indexes & Comprehends Complex Repositories
           </h3>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
@@ -265,7 +292,7 @@ export function HomePage({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-2 text-xs font-mono">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-2 text-xs font-matrixtype">
           {[
             { step: '01', title: 'Shallow Clone', desc: 'depth=1 Git snapshot' },
             { step: '02', title: 'Tree-sitter AST', desc: 'Symbol extraction' },
@@ -275,8 +302,8 @@ export function HomePage({
             { step: '06', title: 'LangGraph RAG', desc: 'Multi-agent verification' },
           ].map((s, idx) => (
             <div key={idx} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-indigo-500/30 transition-colors space-y-2">
-              <span className="text-indigo-400 font-bold text-xs block">{s.step}</span>
-              <div className="text-slate-200 font-semibold text-xs sm:text-sm">{s.title}</div>
+              <span className="text-indigo-400 font-bold text-xs block font-matrixtype">{s.step}</span>
+              <div className="text-slate-200 font-semibold text-xs sm:text-sm font-matrixtype tracking-tight">{s.title}</div>
               <div className="text-[11px] text-slate-400">{s.desc}</div>
             </div>
           ))}
