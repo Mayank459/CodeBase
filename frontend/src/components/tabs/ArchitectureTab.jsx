@@ -5,21 +5,8 @@ import {
   Workflow, Code2, Server, Cpu, Database, ShieldCheck, Zap, 
   Boxes, Compass, Terminal, FolderTree, ArrowRight
 } from 'lucide-react';
-import { apiPost, extractMermaidCode } from '../../api';
-import mermaid from 'mermaid';
-
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  themeVariables: {
-    darkMode: true,
-    background: '#07090e',
-    primaryColor: '#6366f1',
-    primaryTextColor: '#ffffff',
-    lineColor: '#64748b',
-  },
-  securityLevel: 'loose',
-});
+import { apiPost } from '../../api';
+import { MarkdownView } from '../MarkdownView';
 
 export function ArchitectureTab({ activeRepo }) {
   const [loading, setLoading] = useState(false);
@@ -32,7 +19,6 @@ export function ArchitectureTab({ activeRepo }) {
   const [tracerTarget, setTracerTarget] = useState('');
   const [tracingFlow, setTracingFlow] = useState(false);
   const [flowResult, setFlowResult] = useState(null);
-  const [flowMermaidSvg, setFlowMermaidSvg] = useState('');
   const [flowError, setFlowError] = useState(null);
 
   const handleAnalyze = async () => {
@@ -119,7 +105,6 @@ export function ArchitectureTab({ activeRepo }) {
     setTracingFlow(true);
     setFlowError(null);
     setFlowResult(null);
-    setFlowMermaidSvg('');
 
     try {
       const res = await apiPost('/agent/chat', {
@@ -132,21 +117,6 @@ export function ArchitectureTab({ activeRepo }) {
       } else {
         const text = res.answer || '';
         setFlowResult(text);
-
-        let mermaidCode = extractMermaidCode(text);
-        if (!mermaidCode || mermaidCode.length < 20) {
-          mermaidCode = buildSequenceFromTrace(target, text);
-        }
-
-        if (mermaidCode) {
-          try {
-            const id = `mermaid-flow-${Date.now()}`;
-            const { svg } = await mermaid.render(id, mermaidCode);
-            setFlowMermaidSvg(svg);
-          } catch (mErr) {
-            console.warn('Flow diagram rendering warning:', mErr);
-          }
-        }
       }
     } catch (err) {
       setFlowError(err.message || 'Failed to trace call flow.');
@@ -154,6 +124,15 @@ export function ArchitectureTab({ activeRepo }) {
       setTracingFlow(false);
     }
   };
+
+  const traceDisplayContent = useMemo(() => {
+    if (!flowResult) return '';
+    if (/```(?:mermaid|flowchart|diagram)/i.test(flowResult)) {
+      return flowResult;
+    }
+    const seq = buildSequenceFromTrace(tracerTarget, flowResult);
+    return `\`\`\`mermaid\n${seq}\n\`\`\`\n\n${flowResult}`;
+  }, [flowResult, tracerTarget]);
 
   // Convert modules dict to sortable array
   const modulesList = useMemo(() => {
@@ -617,31 +596,17 @@ export function ArchitectureTab({ activeRepo }) {
               </div>
             )}
 
-            {flowMermaidSvg && (
-              <div className="rounded-xl border border-white/[0.08] bg-[#05070c] p-4 overflow-x-auto space-y-3">
-                <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] text-xs font-mono text-slate-400">
+            {traceDisplayContent && (
+              <div className="rounded-xl border border-indigo-500/30 bg-[#05070c] p-5 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] text-xs font-mono text-slate-400">
                   <span className="text-cyan-400 font-semibold flex items-center gap-1.5">
-                    <Workflow size={13} />
-                    <span>Visual Call Hierarchy Flow</span>
+                    <Workflow size={14} />
+                    <span>Visual Call Flow & Component Hierarchy</span>
                   </span>
                   <span className="text-slate-400">Target: <strong className="text-indigo-300">{tracerTarget}</strong></span>
                 </div>
-                <div 
-                  className="flex justify-center min-h-[160px] p-2"
-                  dangerouslySetInnerHTML={{ __html: flowMermaidSvg }}
-                />
-              </div>
-            )}
-
-            {flowResult && (
-              <div className="rounded-xl border border-white/[0.08] bg-[#05070c] p-5 space-y-2">
-                <div className="text-xs font-mono font-semibold text-slate-300 pb-2 border-b border-white/[0.06] flex items-center gap-1.5">
-                  <Sparkles size={12} className="text-cyan-400" />
-                  <span>Execution Logic & Component Interactions</span>
-                </div>
-                <div className="text-xs font-sans text-slate-300 leading-relaxed whitespace-pre-wrap">
-                  {flowResult}
-                </div>
+                
+                <MarkdownView content={traceDisplayContent} />
               </div>
             )}
           </div>

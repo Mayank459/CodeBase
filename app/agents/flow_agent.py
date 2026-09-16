@@ -130,6 +130,7 @@ Instructions:
    - Always wrap node labels in double quotes, e.g.:
      A["Entrypoint: {start_node.split('::')[-1]}"] --> B["Processing Step"]
      B --> C["Downstream Handler"]
+   - CRITICAL: Never output "..." or ellipses or truncation lines inside the mermaid block. Every line must be a complete, syntactically valid node connection.
    - Do NOT output trivial 1-node or 2-node diagrams. Detail the caller-to-callee pipeline and data flow based on the traced components and architecture.
 2. SECOND, explain this flow in clear, technical, plain English. Describe what each step does, how components connect, and the runtime lifecycle.
 """

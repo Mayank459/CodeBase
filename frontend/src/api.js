@@ -269,9 +269,18 @@ export function extractMermaidCode(rawText) {
   if (!rawText) return null;
   let text = String(rawText).trim();
 
-  const codeBlockMatch = text.match(/```(?:mermaid)?\s*([\s\S]*?)```/i);
+  // Normalize line endings
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  const codeBlockMatch = text.match(/```(?:mermaid|flowchart|diagram)?\s*([\s\S]*?)```/i);
   if (codeBlockMatch) {
     text = codeBlockMatch[1].trim();
+  } else {
+    // If not closed by ```, check if it starts with ```mermaid
+    const unclosedMatch = text.match(/```(?:mermaid|flowchart|diagram)?\s*([\s\S]*)$/i);
+    if (unclosedMatch) {
+      text = unclosedMatch[1].trim();
+    }
   }
 
   const keywords = [
@@ -280,36 +289,60 @@ export function extractMermaidCode(rawText) {
     'pie', 'mindmap', 'gitGraph', 'timeline', 'C4Context'
   ];
 
-  const firstLine = text.split('\n')[0].trim();
-  if (keywords.some(k => firstLine.startsWith(k))) {
-    // Sanitize flowchart node labels with inner square brackets, angle brackets, and quotes
-    if (text.startsWith('graph ') || text.startsWith('flowchart')) {
-      const cleanLabel = (labelContent) => {
-        let s = labelContent.trim();
-        if (s.startsWith('"') && s.endsWith('"')) {
-          s = s.slice(1, -1);
-        }
-        s = s.replace(/\\"/g, "'").replace(/"/g, "'");
-        s = s.replace(/\[/g, '#91;').replace(/\]/g, '#93;');
-        s = s.replace(/</g, '#lt;').replace(/>/g, '#gt;');
-        return `["${s}"]`;
-      };
+  // Filter out any lines after mermaid block (e.g. if markdown headers are included)
+  const rawLines = text.split('\n');
+  const cleanLines = [];
+  let foundStart = false;
 
-      const lines = text.split('\n').map((line) => {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('graph') || trimmed.startsWith('flowchart')) {
-          return line;
-        }
-        const m = trimmed.match(/^(n\d+)\[(.*)\]\s*(-->)\s*(n\d+)\[(.*)\]$/);
-        if (m) {
-          const [, id1, l1, arrow, id2, l2] = m;
-          return `${id1}${cleanLabel(l1)} ${arrow} ${id2}${cleanLabel(l2)}`;
-        }
-        return line;
-      });
-      text = lines.join('\n');
+  for (let line of rawLines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (!foundStart) {
+      if (keywords.some(k => trimmed.startsWith(k))) {
+        foundStart = true;
+        cleanLines.push(trimmed);
+      }
+      continue;
     }
-    return text;
+
+    // Stop if a markdown header or section separator is encountered
+    if (/^#{1,6}\s+/.test(trimmed) || trimmed.startsWith('---') || trimmed.startsWith('***')) {
+      break;
+    }
+
+    // Skip ellipses, truncation indicators, or bullet points without arrows
+    if (/^(\.{3,}|…|etc\.?)$/.test(trimmed)) continue;
+    if (/^[-*]\s+/.test(trimmed) && !trimmed.includes('-->') && !trimmed.includes('---')) continue;
+
+    cleanLines.push(line);
   }
-  return null;
+
+  if (!foundStart || cleanLines.length === 0) {
+    // Fallback: check if the first line itself was a keyword
+    const firstLine = text.split('\n')[0].trim();
+    if (keywords.some(k => firstLine.startsWith(k))) {
+      return text;
+    }
+    return null;
+  }
+
+  let result = cleanLines.join('\n');
+
+  // Sanitize flowchart node labels
+  if (result.startsWith('graph ') || result.startsWith('flowchart')) {
+    const lines = result.split('\n').map((line) => {
+      let l = line.trimEnd();
+      l = l.replace(/;+$/, '');
+      // Ensure node labels with brackets are safely quoted: A[label] -> A["label"]
+      l = l.replace(/(\b[A-Za-z0-9_]+)\[([^"\]\n]+)\]/g, (match, id, content) => {
+        const cleaned = content.replace(/"/g, "'").trim();
+        return `${id}["${cleaned}"]`;
+      });
+      return l;
+    });
+    result = lines.join('\n');
+  }
+
+  return result;
 }

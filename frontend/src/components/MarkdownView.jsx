@@ -7,19 +7,58 @@ function sanitizeMermaid(raw) {
   if (!raw) return '';
   let text = String(raw).trim();
 
+  // Normalize line endings
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
   // Strip code fences if present
   text = text.replace(/^```(?:mermaid|flowchart|diagram)?\s*/i, '').replace(/```\s*$/i, '').trim();
 
-  // If text doesn't start with a supported diagram type, prepend flowchart TD
-  const hasKeyword = /^\s*(flowchart|graph|sequenceDiagram|classDiagram|classDiagram-v2|stateDiagram|erDiagram|journey|gantt|pie|mindmap|gitGraph)\b/i.test(text);
-  if (!hasKeyword) {
+  const keywords = [
+    'classDiagram', 'classDiagram-v2', 'graph ', 'graph\n', 'flowchart',
+    'sequenceDiagram', 'stateDiagram', 'erDiagram', 'journey', 'gantt',
+    'pie', 'mindmap', 'gitGraph', 'timeline', 'C4Context'
+  ];
+
+  // Filter out any lines after mermaid block (e.g. if markdown headers are included)
+  const rawLines = text.split('\n');
+  const cleanLines = [];
+  let foundStart = false;
+
+  for (let line of rawLines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (!foundStart) {
+      if (keywords.some(k => trimmed.startsWith(k))) {
+        foundStart = true;
+        cleanLines.push(trimmed);
+      }
+      continue;
+    }
+
+    // Stop if a markdown header or section separator is encountered
+    if (/^#{1,6}\s+/.test(trimmed) || trimmed.startsWith('---') || trimmed.startsWith('***')) {
+      break;
+    }
+
+    // Skip ellipses, truncation indicators, or bullet points without arrows
+    if (/^(\.{3,}|…|etc\.?)$/.test(trimmed)) continue;
+    if (/^[-*]\s+/.test(trimmed) && !trimmed.includes('-->') && !trimmed.includes('---')) continue;
+
+    cleanLines.push(line);
+  }
+
+  if (!foundStart || cleanLines.length === 0) {
     text = `flowchart TD\n${text}`;
+  } else {
+    text = cleanLines.join('\n');
   }
 
   // Sanitize flowchart and graph lines: ensure special characters inside brackets are safely quoted
   if (text.startsWith('flowchart') || text.startsWith('graph')) {
     const lines = text.split('\n').map((line) => {
-      let l = line;
+      let l = line.trimEnd();
+      l = l.replace(/;+$/, '');
       // Quote any unquoted node label brackets (e.g. A[path/to/file::function] -> A["path/to/file::function"])
       l = l.replace(/(\b[A-Za-z0-9_]+)\[([^"\]\n]+)\]/g, (match, id, content) => {
         const cleaned = content.replace(/"/g, "'").trim();
@@ -36,17 +75,20 @@ function sanitizeMermaid(raw) {
 export function MarkdownView({ content }) {
   if (!content) return null;
 
+  // Normalize line endings to Unix \n so regex matches reliably on Windows / CRLF
+  const normalizedContent = String(content).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
   // Split markdown into code blocks vs regular paragraphs/headers/tables
   const parts = [];
-  const regex = /```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g;
+  const regex = /```([a-zA-Z0-9_-]*)[ \t]*\n([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
 
-  while ((match = regex.exec(content)) !== null) {
+  while ((match = regex.exec(normalizedContent)) !== null) {
     if (match.index > lastIndex) {
       parts.push({
         type: 'markdown',
-        text: content.slice(lastIndex, match.index),
+        text: normalizedContent.slice(lastIndex, match.index),
       });
     }
     parts.push({
@@ -57,10 +99,10 @@ export function MarkdownView({ content }) {
     lastIndex = match.index + match[0].length;
   }
 
-  if (lastIndex < content.length) {
+  if (lastIndex < normalizedContent.length) {
     parts.push({
       type: 'markdown',
-      text: content.slice(lastIndex),
+      text: normalizedContent.slice(lastIndex),
     });
   }
 
@@ -162,7 +204,7 @@ function MermaidSnippet({ code }) {
           curve: 'basis',
           htmlLabels: true,
           padding: 16,
-          useMaxWidth: true,
+          useMaxWidth: false,
         },
         securityLevel: 'loose',
         suppressErrorRendering: true,
@@ -178,8 +220,12 @@ function MermaidSnippet({ code }) {
             containerRef.current.innerHTML = svg;
             const svgEl = containerRef.current.querySelector('svg');
             if (svgEl) {
+              svgEl.removeAttribute('height');
+              svgEl.removeAttribute('width');
+              svgEl.style.width = '100%';
               svgEl.style.maxWidth = '100%';
               svgEl.style.height = 'auto';
+              svgEl.style.minHeight = '300px';
               svgEl.style.display = 'block';
               svgEl.style.margin = '0 auto';
             }
@@ -193,6 +239,17 @@ function MermaidSnippet({ code }) {
             .then(({ svg }) => {
               if (containerRef.current) {
                 containerRef.current.innerHTML = svg;
+                const svgEl = containerRef.current.querySelector('svg');
+                if (svgEl) {
+                  svgEl.removeAttribute('height');
+                  svgEl.removeAttribute('width');
+                  svgEl.style.width = '100%';
+                  svgEl.style.maxWidth = '100%';
+                  svgEl.style.height = 'auto';
+                  svgEl.style.minHeight = '300px';
+                  svgEl.style.display = 'block';
+                  svgEl.style.margin = '0 auto';
+                }
               }
               cleanupRogueElements();
             })

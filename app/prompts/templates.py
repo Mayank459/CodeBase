@@ -44,7 +44,7 @@ Architecture Context:
 {analysis}
 
 Requirements:
-1. Always start with a clean, visual Mermaid diagram (inside a ```mermaid fenced block, using `flowchart TD` or `graph TD`) depicting the core architectural layers, entrypoints, and subsystem relationships.
+1. Always start with a clean, visual Mermaid diagram (inside a ```mermaid fenced block, using `flowchart TD` or `graph TD`) depicting the core architectural layers, entrypoints, and subsystem relationships. Ensure 100% valid Mermaid syntax, wrap all node labels in double quotes, and never include '...' or ellipsis lines inside the diagram.
 2. Provide a structured, senior-developer breakdown of the core modules, services, and execution flow.
 """
 
@@ -62,7 +62,7 @@ Execution path traced through the codebase dependency graph starting from `{star
 {flow_text}
 
 Requirements:
-1. Generate a clean, valid Mermaid flowchart (inside a ```mermaid fenced block, using `flowchart TD`) illustrating the step-by-step caller-to-callee execution path.
+1. Generate a clean, valid Mermaid flowchart (inside a ```mermaid fenced block, using `flowchart TD`) illustrating the step-by-step caller-to-callee execution path. Wrap all labels in double quotes and never include '...' or ellipsis truncation lines inside the diagram.
 2. Explain this flow in clear, plain English. Describe what each step does and how the components connect.
 """
 
