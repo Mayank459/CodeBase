@@ -678,8 +678,10 @@ body {
 
 .nav-tab-item:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .nav-tab-item.active {
@@ -688,6 +690,32 @@ body {
   font-weight: 600;
   border-color: var(--border-highlight);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Feature Tab Guide Popover Dropdown */
+@keyframes tabGuideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-tab-guide-in {
+  animation: tabGuideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.tab-guide-card {
+  background: linear-gradient(145deg, rgba(12, 17, 30, 0.98), rgba(7, 10, 18, 0.99));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 20px 45px -10px rgba(0, 0, 0, 0.85),
+    0 0 25px -5px var(--tab-glow, rgba(99, 102, 241, 0.15)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(24px);
 }
 
 @media (min-width: 1200px) {
