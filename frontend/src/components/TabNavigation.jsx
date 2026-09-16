@@ -220,7 +220,7 @@ export function TabNavigation({ activeTab, onSelectTab }) {
     const wrapperRect = wrapperEl.getBoundingClientRect();
 
     const tabCenter = (tabRect.left + tabRect.right) / 2 - wrapperRect.left;
-    const cardWidth = 380;
+    const cardWidth = 450;
 
     let cardLeft = tabCenter - cardWidth / 2;
     const minLeft = 8;
@@ -484,7 +484,7 @@ export function TabNavigation({ activeTab, onSelectTab }) {
         <div
           onMouseEnter={handleGuideMouseEnter}
           onMouseLeave={handleGuideMouseLeave}
-          className="absolute z-50 w-[380px] max-w-[calc(100vw-32px)] tab-guide-card rounded-2xl p-4 animate-tab-guide-in"
+          className="absolute z-50 w-[450px] max-w-[calc(100vw-32px)] tab-guide-card rounded-2xl p-5 animate-tab-guide-in"
           style={{
             left: `${guidePos.left}px`,
             top: `${guidePos.top}px`,
@@ -493,61 +493,61 @@ export function TabNavigation({ activeTab, onSelectTab }) {
         >
           {/* Caret Pointer pointing to the hovered tab */}
           <div
-            className="absolute -top-1.5 w-3 h-3 rotate-45 tab-guide-card border-b-0 border-r-0 pointer-events-none"
+            className="absolute -top-2 w-4 h-4 rotate-45 tab-guide-card border-b-0 border-r-0 pointer-events-none"
             style={{ 
               left: `${guidePos.arrowLeft}px`,
-              borderColor: 'rgba(255, 255, 255, 0.18)'
+              borderColor: 'rgba(255, 255, 255, 0.2)'
             }}
           />
 
           {/* Ambient Glow Gradient inside card */}
           <div 
-            className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-20 rounded-full blur-2xl opacity-20"
+            className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-24 rounded-full blur-3xl opacity-25"
             style={{ backgroundColor: currentHoveredTab.color }}
           />
 
           {/* Header Row */}
-          <div className="relative flex items-start gap-3 mb-2.5">
+          <div className="relative flex items-start gap-3.5 mb-3">
             <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg transition-transform duration-300"
+              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg transition-transform duration-300"
               style={{ 
                 background: currentHoveredTab.glowBg, 
                 border: `1px solid ${currentHoveredTab.borderColor}` 
               }}
             >
               {React.createElement(currentHoveredTab.icon, {
-                size: 20,
+                size: 24,
                 style: { color: currentHoveredTab.color }
               })}
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <h4 className="text-sm font-bold text-white font-matrixtype tracking-wide truncate">
+              <div className="flex items-center gap-2.5 mb-1 flex-wrap">
+                <h4 className="text-base font-bold text-white font-matrixtype tracking-wide">
                   {currentHoveredTab.label}
                 </h4>
-                <span className={`text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded border font-mono tracking-wider ${currentHoveredTab.badgeBg}`}>
+                <span className={`text-xs uppercase font-semibold px-2 py-0.5 rounded border font-mono tracking-wider ${currentHoveredTab.badgeBg}`}>
                   {currentHoveredTab.badge}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+              <p className="text-xs sm:text-[13px] text-slate-300 font-sans leading-relaxed">
                 {currentHoveredTab.tagline}
               </p>
             </div>
           </div>
 
           {/* Key Capabilities Section */}
-          <div className="relative mt-3 pt-2.5 border-t border-white/10">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5 font-matrixtype">
-              <Sparkles size={11} style={{ color: currentHoveredTab.color }} />
+          <div className="relative mt-3.5 pt-3 border-t border-white/10">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-2 font-matrixtype">
+              <Sparkles size={13} style={{ color: currentHoveredTab.color }} />
               <span>Core Capabilities</span>
             </div>
             
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {currentHoveredTab.features.map((feat, idx) => (
-                <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 leading-snug">
+                <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-[13px] text-slate-200 leading-snug">
                   <div 
-                    className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 shadow-sm"
+                    className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 shadow-sm"
                     style={{ backgroundColor: currentHoveredTab.color }}
                   />
                   <span>{feat}</span>
@@ -557,24 +557,24 @@ export function TabNavigation({ activeTab, onSelectTab }) {
           </div>
 
           {/* Pro Tip Box */}
-          <div className="relative mt-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/8 flex items-start gap-2 text-[11px] text-slate-300 leading-relaxed shadow-inner">
-            <Lightbulb size={13} className="text-amber-400 flex-shrink-0 mt-0.5 animate-pulse" />
+          <div className="relative mt-3.5 p-3 rounded-xl bg-white/[0.04] border border-white/10 flex items-start gap-2.5 text-xs sm:text-[13px] text-slate-300 leading-relaxed shadow-inner">
+            <Lightbulb size={16} className="text-amber-400 flex-shrink-0 mt-0.5 animate-pulse" />
             <div>
-              <span className="font-semibold text-slate-200">Pro Tip: </span>
-              <span className="text-slate-400">{currentHoveredTab.tip}</span>
+              <span className="font-semibold text-slate-100">Pro Tip: </span>
+              <span className="text-slate-300">{currentHoveredTab.tip}</span>
             </div>
           </div>
 
           {/* Footer Bar */}
-          <div className="relative mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-xs">
+          <div className="relative mt-3.5 pt-3 border-t border-white/10 flex items-center justify-between text-xs sm:text-[13px]">
             {activeTab === currentHoveredTab.id ? (
-              <div className="flex items-center gap-1.5 text-emerald-400 font-medium text-[11px]">
-                <CheckCircle2 size={13} />
+              <div className="flex items-center gap-2 text-emerald-400 font-medium text-xs sm:text-[13px]">
+                <CheckCircle2 size={15} />
                 <span>Currently Active View</span>
               </div>
             ) : (
-              <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                <Terminal size={11} className="text-slate-500" />
+              <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                <Terminal size={13} className="text-slate-500" />
                 <span>Quick switch tool</span>
               </span>
             )}
@@ -583,17 +583,17 @@ export function TabNavigation({ activeTab, onSelectTab }) {
               <button
                 type="button"
                 onClick={() => handleSelect(currentHoveredTab.id)}
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-white px-2.5 py-1 rounded-lg transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
                 style={{
                   background: `linear-gradient(135deg, ${currentHoveredTab.color}cc, ${currentHoveredTab.color}88)`,
                   border: `1px solid ${currentHoveredTab.color}`,
                 }}
               >
                 <span>Launch Feature</span>
-                <ArrowRight size={12} />
+                <ArrowRight size={13} />
               </button>
             ) : (
-              <span className="text-[10px] text-slate-400 font-mono">
+              <span className="text-xs text-slate-400 font-mono">
                 {currentHoveredTab.shortcut}
               </span>
             )}
