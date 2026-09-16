@@ -166,10 +166,15 @@ class ArchitectureAnalyzer:
         all_imports = set()
         for p in self.repository_index.parsed_files:
             for imp in p.imports:
-                mod = getattr(imp, "module", "") or getattr(imp, "name", "") or str(imp)
-                top = mod.split(".")[0].lower().replace(" as ", " ").split()[0]
-                if top:
-                    all_imports.add(top)
+                mod = getattr(imp, "module", "") or getattr(imp, "name", "")
+                if not mod or not isinstance(mod, str):
+                    continue
+                clean_mod = mod.lstrip(".").strip()
+                if not clean_mod:
+                    continue
+                top_parts = clean_mod.split(".")[0].lower().replace(" as ", " ").split()
+                if top_parts:
+                    all_imports.add(top_parts[0])
 
         for imp_name, (name, category, role, color) in FRAMEWORK_REGISTRY.items():
             if imp_name.lower() in all_imports and imp_name.lower() not in detected:

@@ -15,8 +15,9 @@ class RepositorySummarizer:
         stats = analyzer.analyze()
 
         top_components = "\n".join(
-            f"- {node[0].split('::')[-1]}"
-            for node in stats["top_nodes"][:15]
+            f"- {str(node[0]).split('::')[-1]}"
+            for node in stats.get("top_nodes", [])[:15]
+            if isinstance(node, (list, tuple)) and len(node) > 0 and node[0]
         )
 
         file_count = len(repository_index.parsed_files)
