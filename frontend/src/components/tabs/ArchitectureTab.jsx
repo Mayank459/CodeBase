@@ -537,14 +537,14 @@ export function ArchitectureTab({ activeRepo }) {
 
             <div className="flex flex-col sm:flex-row items-center gap-2.5">
               <div className="relative flex-1 w-full">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="e.g. index_repository, chat_with_agent, clone_repository, authenticate..."
                   value={tracerTarget}
                   onChange={(e) => setTracerTarget(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleTraceFlow()}
-                  className="input-field pl-9 py-2 text-xs font-mono w-full"
+                  className="input-field pl-10 py-2 text-xs font-mono w-full has-icon-left"
                 />
               </div>
 

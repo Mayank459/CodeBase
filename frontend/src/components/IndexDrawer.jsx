@@ -201,10 +201,10 @@ export function IndexDrawer({
                 value={repoUrl}
                 onChange={(e) => setRepoUrl(e.target.value)}
                 placeholder="https://github.com/organization/repository"
-                className="input-field pl-9 font-mono text-xs"
+                className="input-field pl-10 font-mono text-xs has-icon-left"
                 disabled={isIndexing}
               />
-              <GitBranch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <GitBranch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
 
             <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none px-2">

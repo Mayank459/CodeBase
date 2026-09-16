@@ -527,26 +527,57 @@ body {
 }
 
 /* Inputs */
-.input-field {
-  width: 100%;
-  background: #090d16;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  padding: 9px 14px;
-  font-family: var(--font-sans);
-  font-size: 0.8125rem;
-  color: var(--text-primary);
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+@layer components {
+  .input-field {
+    width: 100%;
+    background: #090d16;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    padding: 9px 14px;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .input-field:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+  }
+
+  .input-field::placeholder {
+    color: var(--text-dim);
+  }
 }
 
-.input-field:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-glow);
+/* Guarantee icon clearance: inputs with leading icons never overlap text */
+.relative:has(> svg.absolute.left-2) > input,
+.relative:has(> svg.absolute.left-2\.5) > input,
+.relative:has(> svg.absolute.left-3) > input,
+.relative:has(> svg.absolute.left-3\.5) > input,
+.relative:has(> svg.absolute.left-4) > input,
+input.has-icon-left,
+input[class*="pl-9"],
+input[class*="pl-10"],
+input[class*="pl-11"],
+input[class*="pl-12"] {
+  padding-left: 2.6rem !important; /* ~41.6px ensures complete clearance for 14-16px icons */
 }
 
-.input-field::placeholder {
-  color: var(--text-dim);
+/* Guarantee icon clearance: inputs with trailing icons/buttons never overlap text */
+.relative:has(> button.absolute.right-2) > input,
+.relative:has(> button.absolute.right-2\.5) > input,
+.relative:has(> button.absolute.right-3) > input,
+.relative:has(> button.absolute.right-3\.5) > input,
+.relative:has(> svg.absolute.right-2) > input,
+.relative:has(> svg.absolute.right-3) > input,
+input.has-icon-right,
+input[class*="pr-9"],
+input[class*="pr-10"],
+input[class*="pr-11"],
+input[class*="pr-12"] {
+  padding-right: 2.6rem !important;
 }
 
 /* Status Badges */

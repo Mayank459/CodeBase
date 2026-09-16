@@ -144,7 +144,7 @@ export function SettingsPage({ onNavigate }) {
                 value={groqKey}
                 onChange={(e) => setGroqKey(e.target.value)}
                 placeholder="gsk_..."
-                className="input-field font-mono text-xs pr-10"
+                className="input-field font-mono text-xs pr-10 has-icon-right"
               />
               <button
                 type="button"
@@ -168,7 +168,7 @@ export function SettingsPage({ onNavigate }) {
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
                 placeholder="AIzaSy..."
-                className="input-field font-mono text-xs pr-10"
+                className="input-field font-mono text-xs pr-10 has-icon-right"
               />
               <button
                 type="button"
@@ -192,7 +192,7 @@ export function SettingsPage({ onNavigate }) {
                 value={cohereKey}
                 onChange={(e) => setCohereKey(e.target.value)}
                 placeholder="co_..."
-                className="input-field font-mono text-xs pr-10"
+                className="input-field font-mono text-xs pr-10 has-icon-right"
               />
               <button
                 type="button"
