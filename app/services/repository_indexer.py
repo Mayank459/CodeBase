@@ -112,6 +112,7 @@ class RepositoryIndexer:
                 # Make the path relative to the repo root so it displays cleanly in the UI
                 rel_path = file.relative_to(repo_path).as_posix()
                 parsed = parser(rel_path, source_code)
+                parsed.source_code = source_code
                 parsed_files.append(parsed)
             except Exception as e:
                 _safe_print(f"[indexer] Parse error {file}: {e}")

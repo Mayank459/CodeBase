@@ -5,25 +5,28 @@ from app.security.report_generator import SecurityReportGenerator
 from app.chat.llm_provider import LLMProvider
 
 def security_node(state):
-    repository = repository_registry.get(state["repository_name"])
+    repo_name = state.get("repository_name", "")
+    repository = repository_registry.get(repo_name)
 
     if not repository:
-        state["answer"] = "Repository not indexed. Please index it first."
+        state["answer"] = f"⚠️ Repository '{repo_name}' is not currently indexed. Please index it first using the repository ingestion drawer."
         return state
 
     scanner = SecurityScanner()
     findings = scanner.scan_repository(repository.parsed_files)
 
     formatter = SecurityReportGenerator()
-    report = formatter.generate(findings)
+    report = formatter.generate(findings, repository_name=repository.repository_name)
 
     llm = LLMProvider()
     
     prompt = f"""
-You are a Senior Security Auditor evaluating a repository codebase.
+You are a Senior Security Auditor evaluating the '{repository.repository_name}' codebase.
 
-Analyze the following automated security scanner findings. Explain the risks associated with these specific findings in a highly professional, easy-to-read manner. If no vulnerabilities were found, confirm that the codebase passed the automated checks.
+Analyze the following automated security scanner findings specifically for '{repository.repository_name}'. Explain the risks associated with these specific findings in a highly professional, easy-to-read manner. Categorize issues by severity (CRITICAL, HIGH, MEDIUM, LOW) and reference the exact file paths and line numbers provided in the report. If no vulnerabilities were found, confirm that '{repository.repository_name}' passed the automated checks.
 
+Repository Name: {repository.repository_name}
+Automated Scanner Findings:
 {report}
 """
 

@@ -5,17 +5,18 @@ from app.storage.repository_registry import repository_registry
 
 
 def security_fix_node(state):
-    repository = repository_registry.get(state["repository_name"])
+    repo_name = state.get("repository_name", "")
+    repository = repository_registry.get(repo_name)
 
     if repository is None:
-        state["answer"] = "Repository not indexed. Please index it first."
+        state["answer"] = f"⚠️ Repository '{repo_name}' is not currently indexed. Please index it first using the repository ingestion drawer."
         return state
 
     scanner = SecurityScanner()
     findings = scanner.scan_repository(repository.parsed_files)
 
     if not findings:
-        state["answer"] = "✅ No security vulnerabilities found in the codebase!"
+        state["answer"] = f"✅ No security vulnerabilities found in '{repository.repository_name}'!"
         return state
 
     patch_generator = PatchGenerator()

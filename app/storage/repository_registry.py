@@ -102,8 +102,15 @@ class RepositoryRegistry:
         if not self.repositories:
             return None
 
+        # If no name was requested, only fallback if exactly one repo exists
+        if not name:
+            if len(self.repositories) == 1:
+                sole_record = next(iter(self.repositories.values()))
+                return self._extract_index(sole_record)
+            return None
+
         # 1. Exact match
-        if name and name in self.repositories:
+        if name in self.repositories:
             return self._extract_index(self.repositories[name])
 
         # 2. Case-insensitive and normalized match
@@ -120,15 +127,23 @@ class RepositoryRegistry:
                 if norm in k_norm or k_norm in norm:
                     return self._extract_index(record)
 
-        # 4. Fallback: if only one repository is registered, always return it
-        if len(self.repositories) == 1:
-            sole_record = next(iter(self.repositories.values()))
-            return self._extract_index(sole_record)
-
+        # Do not return a different repository when a specific name was requested!
         return None
 
     def contains(self, name) -> bool:
-        return self.get(name) is not None
+        if not name:
+            return False
+        if name in self.repositories:
+            return True
+        norm = self._normalize(name)
+        if norm:
+            for k in self.repositories:
+                if self._normalize(k) == norm or k.strip().lower() == norm:
+                    return True
+                k_norm = self._normalize(k)
+                if norm in k_norm or k_norm in norm:
+                    return True
+        return False
 
 
 repository_registry = RepositoryRegistry()

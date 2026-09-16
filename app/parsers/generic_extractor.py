@@ -21,5 +21,6 @@ def extract_generic_file(file_path: str, source_code: str) -> ParsedFile:
         classes=[],
         functions=[],
         variables=[content_variable],
-        imports=[]
+        imports=[],
+        source_code=source_code
     )

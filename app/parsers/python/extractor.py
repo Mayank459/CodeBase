@@ -33,7 +33,8 @@ def extract_python_file(
 ):
 
     parsed_file = ParsedFile(
-        file_path=file_path
+        file_path=file_path,
+        source_code=source_code
     )
 
     tree = parser.parse(

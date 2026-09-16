@@ -18,3 +18,5 @@ class ParsedFile:
     imports: list[ParsedImport] = field(default_factory=list)
 
     variables: list[ParsedVariable] = field(default_factory=list)
+
+    source_code: str = ""
