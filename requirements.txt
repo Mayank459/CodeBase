@@ -16,3 +16,6 @@ portalocker
 pandas
 gitpython
 prometheus-client
+sqlalchemy
+redis
+opentelemetry-api
