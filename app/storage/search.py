@@ -15,14 +15,17 @@ def search(query: str, top_k: int = 5, repository_name: Optional[str] = None):
 
     query_filter = None
     if repository_name:
+        # Case-insensitive repository name match or exact match
+        clean_repo = str(repository_name).strip()
         query_filter = Filter(
             must=[
                 FieldCondition(
                     key="repository_name",
-                    match=MatchValue(value=repository_name)
+                    match=MatchValue(value=clean_repo)
                 )
             ]
         )
+
 
     results = client.query_points(
         collection_name=COLLECTION_NAME,

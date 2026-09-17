@@ -1,4 +1,4 @@
-"""Tracing and workflow span manager for LLM and agent execution."""
+"""Tracing and workflow span manager with OpenTelemetry integration for LLM and agent execution."""
 import time
 import uuid
 from typing import Dict, Any, List, Optional
@@ -7,6 +7,15 @@ from contextlib import contextmanager
 
 from app.observability.logger import logger
 from app.observability.metrics import metrics
+
+# Optional OpenTelemetry initialization
+_otel_tracer = None
+try:
+    from opentelemetry import trace
+    _otel_tracer = trace.get_tracer("codebase-ai-backend")
+except Exception:
+    _otel_tracer = None
+
 
 @dataclass
 class Span:
@@ -22,12 +31,12 @@ class Span:
     def finish(self):
         self.end_time = time.perf_counter()
         self.duration_ms = round((self.end_time - self.start_time) * 1000, 2)
-        # Record Prometheus latency metric
         if self.duration_ms:
-            metrics.measure_latency(self.name)
+            metrics.record_latency(self.name, self.duration_ms / 1000.0)
+
 
 class Tracer:
-    """Lightweight in-memory tracing manager for agent workflows."""
+    """Production tracing manager supporting both OpenTelemetry and lightweight in-memory spans."""
 
     def __init__(self):
         self.active_spans: Dict[str, List[Span]] = {}
@@ -44,9 +53,23 @@ class Tracer:
             self.active_spans[trace_id] = []
         self.active_spans[trace_id].append(span_obj)
 
+        otel_ctx = None
+        if _otel_tracer:
+            try:
+                otel_ctx = _otel_tracer.start_as_current_span(name)
+                otel_ctx.__enter__()
+            except Exception:
+                otel_ctx = None
+
         try:
             yield span_obj
         finally:
+            if otel_ctx:
+                try:
+                    otel_ctx.__exit__(None, None, None)
+                except Exception:
+                    pass
+
             span_obj.finish()
             logger.info(
                 f"Span '{name}' completed in {span_obj.duration_ms}ms",
@@ -59,5 +82,21 @@ class Tracer:
 
     def get_spans(self, trace_id: str) -> List[Span]:
         return self.active_spans.get(trace_id, [])
+
+    def get_trace_summary(self, trace_id: str) -> Dict[str, Any]:
+        spans = self.get_spans(trace_id)
+        return {
+            "trace_id": trace_id,
+            "total_spans": len(spans),
+            "stages": [
+                {
+                    "name": s.name,
+                    "duration_ms": s.duration_ms,
+                    "attributes": s.attributes
+                }
+                for s in spans
+            ]
+        }
+
 
 tracer = Tracer()

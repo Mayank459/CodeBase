@@ -1,6 +1,7 @@
 [
   {
     "id": "eval-001",
+    "category": "symbol_retrieval",
     "query": "Where is the FastAPI application instance initialized?",
     "expected_files": ["main.py"],
     "expected_symbols": ["app"],
@@ -8,30 +9,394 @@
   },
   {
     "id": "eval-002",
+    "category": "symbol_retrieval",
     "query": "How is Python AST parsed and extracted?",
     "expected_files": ["app/parsers/python/extractor.py"],
-    "expected_symbols": ["PythonExtractor", "extract_entities"],
-    "ground_truth_fact": "Tree-sitter is used to parse Python files into classes and functions"
+    "expected_symbols": ["PythonExtractor", "extract_python_file"],
+    "ground_truth_fact": "Tree-sitter is used to parse Python files into classes, functions and imports"
   },
   {
     "id": "eval-003",
-    "query": "Where is the NetworkX call graph built and traversed?",
-    "expected_files": ["app/graph/graph_builder.py"],
-    "expected_symbols": ["GraphBuilder", "build_graph"],
-    "ground_truth_fact": "NetworkX DiGraph builds edges representing callers and callees"
+    "category": "call_graph",
+    "query": "Where is the dependency graph built with MultiDiGraph and typed edges?",
+    "expected_files": ["app/graph/builder.py"],
+    "expected_symbols": ["RepositoryGraphBuilder", "add_parsed_file"],
+    "ground_truth_fact": "RepositoryGraphBuilder builds typed multi-graph edges for calls, imports, defines, and inherits"
   },
   {
     "id": "eval-004",
-    "query": "How does the LangGraph agent route incoming user queries?",
+    "category": "architecture",
+    "query": "How does the LangGraph agent route incoming user queries with structured intents?",
     "expected_files": ["app/agents/router.py"],
-    "expected_symbols": ["router_node", "classify_intent"],
-    "ground_truth_fact": "Router classifies intent into chat, architecture, flow, or security"
+    "expected_symbols": ["router_node", "classify_intents"],
+    "ground_truth_fact": "Router classifies intent into primary and secondary intents, retrieval and write flags"
   },
   {
     "id": "eval-005",
+    "category": "security",
     "query": "Where are secrets and prompt injections intercepted?",
     "expected_files": ["app/guardrails/safety_manager.py", "app/guardrails/prompt_injection.py"],
     "expected_symbols": ["SafetyManager", "PromptInjectionGuardrail"],
     "ground_truth_fact": "SafetyManager runs prompt injection and secret scrubbing guardrails"
+  },
+  {
+    "id": "eval-006",
+    "category": "symbol_retrieval",
+    "query": "Where is the tree-sitter python parser constructed?",
+    "expected_files": ["app/parsers/python/parser.py"],
+    "expected_symbols": ["build_python_parser"],
+    "ground_truth_fact": "build_python_parser creates Language and Parser instances for Python"
+  },
+  {
+    "id": "eval-007",
+    "category": "symbol_retrieval",
+    "query": "Where are import statements sanitized during parsing?",
+    "expected_files": ["app/parsers/python/extractor.py"],
+    "expected_symbols": ["clean_import"],
+    "ground_truth_fact": "clean_import removes import and from prefixes to isolate module names"
+  },
+  {
+    "id": "eval-008",
+    "category": "call_graph",
+    "query": "How does bidirectional BFS graph expansion traverse callers and callees?",
+    "expected_files": ["app/retrieval/context_expander.py"],
+    "expected_symbols": ["GraphContextExpander", "expand", "get_related_nodes"],
+    "ground_truth_fact": "GraphContextExpander traverses incoming callers via predecessors and outgoing callees via successors"
+  },
+  {
+    "id": "eval-009",
+    "category": "retrieval_fusion",
+    "query": "Where is Reciprocal Rank Fusion (RRF) implemented to combine dense and sparse results?",
+    "expected_files": ["app/retrieval/ranking.py"],
+    "expected_symbols": ["ResultRanker", "reciprocal_rank_fusion"],
+    "ground_truth_fact": "reciprocal_rank_fusion calculates rank-weighted harmonic sum of dense and sparse scores"
+  },
+  {
+    "id": "eval-010",
+    "category": "retrieval_sparse",
+    "query": "Where is the in-memory BM25 inverted index implemented for exact symbol code search?",
+    "expected_files": ["app/retrieval/sparse_search.py"],
+    "expected_symbols": ["BM25Retriever", "tokenize_code"],
+    "ground_truth_fact": "BM25Retriever tokenizes code identifiers and computes BM25 relevance with exact symbol boosting"
+  },
+  {
+    "id": "eval-011",
+    "category": "persistence",
+    "query": "Where are repository metadata and persistent jobs saved in SQLite/Postgres?",
+    "expected_files": ["app/storage/db.py"],
+    "expected_symbols": ["DatabaseManager", "RepositoryModel", "IndexingJobModel"],
+    "ground_truth_fact": "db.py configures SQLAlchemy models and DatabaseManager for repositories and indexing jobs"
+  },
+  {
+    "id": "eval-012",
+    "category": "background_jobs",
+    "query": "Where is the background job manager with cancellation and SSE event queues?",
+    "expected_files": ["app/indexing/job_manager.py"],
+    "expected_symbols": ["BackgroundJobManager", "cancel_job", "stream_job_events"],
+    "ground_truth_fact": "BackgroundJobManager manages queued, running, completed, and cancelled states with Event tokens"
+  },
+  {
+    "id": "eval-013",
+    "category": "latency_telemetry",
+    "query": "Where are Time To First Token (TTFT) and throughput tokens per second tracked?",
+    "expected_files": ["app/observability/metrics.py", "app/chat/llm_provider.py"],
+    "expected_symbols": ["record_ttft", "record_tokens_per_sec", "generate_stream"],
+    "ground_truth_fact": "metrics.py defines TTFT_SECONDS and TOKENS_PER_SECOND histograms observed during streaming"
+  },
+  {
+    "id": "eval-014",
+    "category": "caching",
+    "query": "Where are query embeddings and repository architecture summaries cached with LRU and TTL?",
+    "expected_files": ["app/storage/cache.py"],
+    "expected_symbols": ["LRUTTLCache", "CacheManager"],
+    "ground_truth_fact": "CacheManager provides bounded LRU/TTL caching with optional Redis backend"
+  },
+  {
+    "id": "eval-015",
+    "category": "auth",
+    "query": "Where are API key authentication, repository access checks, and sliding-window rate limiting enforced?",
+    "expected_files": ["app/api/dependencies/auth.py"],
+    "expected_symbols": ["get_current_user", "verify_repo_access", "RateLimiter"],
+    "ground_truth_fact": "auth.py verifies tokens, checks repository ownership/access, and enforces rate limits"
+  },
+  {
+    "id": "eval-016",
+    "category": "pr_workflow",
+    "query": "Where are generated patches validated for AST syntax and path traversal before PR creation?",
+    "expected_files": ["app/pr_generator/diff_generator.py"],
+    "expected_symbols": ["DiffGenerator", "validate_patch"],
+    "ground_truth_fact": "DiffGenerator runs ast.parse syntax checks and path traversal validation on patch replacement code"
+  },
+  {
+    "id": "eval-017",
+    "category": "hitl",
+    "query": "Where is the Human-in-the-Loop workflow resumed after human approval?",
+    "expected_files": ["app/hitl/resume_handler.py"],
+    "expected_symbols": ["ResumeHandler", "resume"],
+    "ground_truth_fact": "ResumeHandler loads saved checkpoint state, injects approval, and resumes compiled LangGraph"
+  },
+  {
+    "id": "eval-018",
+    "category": "hitl_persistence",
+    "query": "Where are LangGraph checkpoints persisted to disk across restarts?",
+    "expected_files": ["app/memory/persistent_checkpointer.py"],
+    "expected_symbols": ["PersistentCheckpointer", "persistent_checkpointer"],
+    "ground_truth_flag": "PersistentCheckpointer serializes LangGraph memory states to disk pickle storage"
+  },
+  {
+    "id": "eval-019",
+    "category": "security_scanner",
+    "query": "Where are AST code security vulnerabilities like SQL injection and hardcoded secrets identified?",
+    "expected_files": ["app/security/scanner.py"],
+    "expected_symbols": ["SecurityScanner", "scan_repository"],
+    "ground_truth_fact": "SecurityScanner inspects parsed files for insecure patterns and vulnerability types"
+  },
+  {
+    "id": "eval-020",
+    "category": "patch_generation",
+    "query": "Where are automated remediation patches generated for security findings?",
+    "expected_files": ["app/security/patch_generator.py"],
+    "expected_symbols": ["PatchGenerator", "generate_patch"],
+    "ground_truth_fact": "PatchGenerator generates code replacements targeting security findings"
+  },
+  {
+    "id": "eval-021",
+    "category": "symbol_retrieval",
+    "query": "Where is the symbol resolver registering functions, classes, and methods?",
+    "expected_files": ["app/graph/resolver.py"],
+    "expected_symbols": ["SymbolResolver", "build"],
+    "ground_truth_fact": "SymbolResolver scans parsed files and registers symbols into SymbolTable"
+  },
+  {
+    "id": "eval-022",
+    "category": "symbol_retrieval",
+    "query": "Where is the Qdrant client initialized?",
+    "expected_files": ["app/storage/qdrant_client.py"],
+    "expected_symbols": ["get_client"],
+    "ground_truth_fact": "get_client creates and returns a QdrantClient instance"
+  },
+  {
+    "id": "eval-023",
+    "category": "vector_store",
+    "query": "Where are vector embeddings stored into Qdrant collection?",
+    "expected_files": ["app/storage/vector_store.py"],
+    "expected_symbols": ["store_entities", "create_collection"],
+    "ground_truth_fact": "store_entities upserts PointStruct batches containing vector embeddings and metadata payload"
+  },
+  {
+    "id": "eval-024",
+    "category": "vector_store",
+    "query": "Where are vectors deleted when a repository is deleted or re-indexed?",
+    "expected_files": ["app/storage/vector_store.py"],
+    "expected_symbols": ["delete_repository"],
+    "ground_truth_fact": "delete_repository deletes vector points matching the repository_name payload filter"
+  },
+  {
+    "id": "eval-025",
+    "category": "indexing_scanner",
+    "query": "Where are files in a repository recursively scanned while ignoring vendor directories?",
+    "expected_files": ["app/indexing/scanner.py"],
+    "expected_symbols": ["scan_repository"],
+    "ground_truth_fact": "scan_repository scans paths and filters out git, node_modules, and hidden folders"
+  },
+  {
+    "id": "eval-026",
+    "category": "indexing_loader",
+    "query": "Where are remote git repositories cloned into local storage?",
+    "expected_files": ["app/indexing/repository_loader.py"],
+    "expected_symbols": ["clone_repository"],
+    "ground_truth_fact": "clone_repository clones git repositories into REPOSITORY_STORAGE"
+  },
+  {
+    "id": "eval-027",
+    "category": "context_compression",
+    "query": "Where is retrieval context budgeted and compressed for prompt generation?",
+    "expected_files": ["app/chat/context_builder.py"],
+    "expected_symbols": ["ContextBuilder", "build", "_compress_snippet"],
+    "ground_truth_fact": "ContextBuilder enforces max character limits and strips redundant blank lines from code snippets"
+  },
+  {
+    "id": "eval-028",
+    "category": "model_routing",
+    "query": "Where does the LLM provider route between fast and advanced models based on task type?",
+    "expected_files": ["app/chat/llm_provider.py"],
+    "expected_symbols": ["LLMProvider", "_resolve_model", "generate"],
+    "ground_truth_fact": "_resolve_model selects fast vs advanced model depending on whether task requires deep reasoning"
+  },
+  {
+    "id": "eval-029",
+    "category": "observability_tracing",
+    "query": "Where is distributed tracing managed with span context managers?",
+    "expected_files": ["app/observability/tracer.py"],
+    "expected_symbols": ["Tracer", "span", "start_trace"],
+    "ground_truth_fact": "Tracer manages active spans and integrates with OpenTelemetry and Prometheus latency metrics"
+  },
+  {
+    "id": "eval-030",
+    "category": "observability_logging",
+    "query": "Where is structured JSON logging configured for the application?",
+    "expected_files": ["app/observability/logger.py"],
+    "expected_symbols": ["logger"],
+    "ground_truth_fact": "logger.py configures structured logging with correlation IDs and timestamps"
+  },
+  {
+    "id": "eval-031",
+    "category": "guardrail_prompt_injection",
+    "query": "Where are prompt injection attempts detected in user inputs?",
+    "expected_files": ["app/guardrails/prompt_injection.py"],
+    "expected_symbols": ["PromptInjectionGuardrail", "validate"],
+    "ground_truth_fact": "PromptInjectionGuardrail evaluates inputs against jailbreak patterns and adversarial keywords"
+  },
+  {
+    "id": "eval-032",
+    "category": "guardrail_secrets",
+    "query": "Where are API keys and tokens scrubbed from LLM outputs?",
+    "expected_files": ["app/guardrails/secret_scrubber.py"],
+    "expected_symbols": ["SecretScrubber", "scrub"],
+    "ground_truth_fact": "SecretScrubber detects and redacts AWS keys, private tokens, and credentials from generated text"
+  },
+  {
+    "id": "eval-033",
+    "category": "guardrail_citations",
+    "query": "Where are code file citations in answers verified against actual repository files?",
+    "expected_files": ["app/guardrails/citation_verifier.py"],
+    "expected_symbols": ["CitationVerifier", "verify"],
+    "ground_truth_fact": "CitationVerifier verifies that cited file paths correspond to existing files in the index"
+  },
+  {
+    "id": "eval-034",
+    "category": "agent_flow",
+    "query": "Where is execution flow traced through the dependency graph?",
+    "expected_files": ["app/agents/flow_agent.py"],
+    "expected_symbols": ["flow_node"],
+    "ground_truth_fact": "flow_node uses FlowAnalyzer to explain the sequence of function calls"
+  },
+  {
+    "id": "eval-035",
+    "category": "agent_architecture",
+    "query": "Where is the repository architecture overview generated?",
+    "expected_files": ["app/agents/architecture_agent.py"],
+    "expected_symbols": ["architecture_node"],
+    "ground_truth_fact": "architecture_node synthesizes architecture summaries using repository index and graph structure"
+  },
+  {
+    "id": "eval-036",
+    "category": "agent_dead_code",
+    "query": "Where is unused code detected by identifying unreferenced graph nodes?",
+    "expected_files": ["app/agents/dead_code_agent.py"],
+    "expected_symbols": ["dead_code_node"],
+    "ground_truth_fact": "dead_code_node scans dependency graph for uncalled functions and dead methods"
+  },
+  {
+    "id": "eval-037",
+    "category": "agent_uml",
+    "query": "Where are Mermaid class diagrams generated from parsed classes and methods?",
+    "expected_files": ["app/agents/uml_agent.py"],
+    "expected_symbols": ["uml_node"],
+    "ground_truth_fact": "uml_node generates Mermaid syntax class diagrams from repository AST classes"
+  },
+  {
+    "id": "eval-038",
+    "category": "agent_comparison",
+    "query": "Where are two repositories compared side-by-side?",
+    "expected_files": ["app/agents/comparison_agent.py"],
+    "expected_symbols": ["comparison_node"],
+    "ground_truth_fact": "comparison_node performs multi-repo structural and architectural comparison"
+  },
+  {
+    "id": "eval-039",
+    "category": "agent_evolution",
+    "query": "Where is git commit history and code churn analyzed?",
+    "expected_files": ["app/agents/evolution_agent.py"],
+    "expected_symbols": ["evolution_node"],
+    "ground_truth_fact": "evolution_node analyzes commit histories, churn hotspots, and tag evolution"
+  },
+  {
+    "id": "eval-040",
+    "category": "pr_description",
+    "query": "Where is the pull request title, summary, and markdown description generated?",
+    "expected_files": ["app/pr_generator/pr_description_generator.py"],
+    "expected_symbols": ["PRDescriptionGenerator", "generate"],
+    "ground_truth_fact": "PRDescriptionGenerator formats patches into title, summary, and markdown change log"
+  },
+  {
+    "id": "eval-041",
+    "category": "routes_repository",
+    "query": "Where are the repository endpoints for cloning, scanning, parsing, and SSE streaming?",
+    "expected_files": ["app/api/routes/repository.py"],
+    "expected_symbols": ["clone", "scan", "parse_repository", "index_stream"],
+    "ground_truth_fact": "app/api/routes/repository.py exposes repository management endpoints"
+  },
+  {
+    "id": "eval-042",
+    "category": "routes_agent",
+    "query": "Where is the query endpoint that invokes the LangGraph agent graph?",
+    "expected_files": ["app/api/routes/agent.py"],
+    "expected_symbols": ["ask_agent", "resume_workflow"],
+    "ground_truth_fact": "agent.py provides endpoints for asking questions and resuming paused HITL workflows"
+  },
+  {
+    "id": "eval-043",
+    "category": "config",
+    "query": "Where is BASE_DIR and REPOSITORY_STORAGE configured?",
+    "expected_files": ["app/core/config.py"],
+    "expected_symbols": ["BASE_DIR", "REPOSITORY_STORAGE"],
+    "ground_truth_fact": "config.py defines base paths and repository storage locations"
+  },
+  {
+    "id": "eval-044",
+    "category": "graph_types",
+    "query": "Where are the EdgeType and NodeType enums defined?",
+    "expected_files": ["app/graph/graph_types.py"],
+    "expected_symbols": ["EdgeType", "NodeType"],
+    "ground_truth_fact": "graph_types.py defines NodeType and EdgeType enum values for the graph schema"
+  },
+  {
+    "id": "eval-045",
+    "category": "entity_extractor",
+    "query": "Where are CodeEntity objects extracted from parsed files?",
+    "expected_files": ["app/indexing/models/entity_extractor.py"],
+    "expected_symbols": ["EntityExtractor", "extract_entities"],
+    "ground_truth_fact": "EntityExtractor creates CodeEntity instances for functions, classes, and variables"
+  },
+  {
+    "id": "eval-046",
+    "category": "abstention",
+    "query": "Where is the Kubernetes Helm deployment chart generator implemented?",
+    "expected_files": [],
+    "expected_symbols": [],
+    "ground_truth_fact": "The codebase does not contain a Kubernetes Helm chart generator (proper abstention expected)"
+  },
+  {
+    "id": "eval-047",
+    "category": "abstention",
+    "query": "Where is the Stripe payment webhook handler implemented?",
+    "expected_files": [],
+    "expected_symbols": [],
+    "ground_truth_fact": "The codebase does not contain Stripe payment webhook handlers (proper abstention expected)"
+  },
+  {
+    "id": "eval-048",
+    "category": "abstention",
+    "query": "Find the GraphQL schema definition and mutations file",
+    "expected_files": [],
+    "expected_symbols": [],
+    "ground_truth_fact": "The codebase does not define GraphQL schemas or mutations (proper abstention expected)"
+  },
+  {
+    "id": "eval-049",
+    "category": "abstention",
+    "query": "Where is the Elasticsearch cluster configuration file?",
+    "expected_files": [],
+    "expected_symbols": [],
+    "ground_truth_fact": "The codebase does not use Elasticsearch (proper abstention expected)"
+  },
+  {
+    "id": "eval-050",
+    "category": "abstention",
+    "query": "Where is the Celery worker task definitions for image transcoding?",
+    "expected_files": [],
+    "expected_symbols": [],
+    "ground_truth_fact": "The codebase does not contain Celery image transcoding tasks (proper abstention expected)"
   }
 ]

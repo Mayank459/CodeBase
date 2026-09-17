@@ -25,6 +25,45 @@ def scan(request: RepositoryRequest):
 
 
 
+@router.post("/jobs")
+def create_indexing_job(request: RepositoryRequest):
+    """Create and start a persistent background indexing job."""
+    from app.indexing.job_manager import job_manager
+    job_id = job_manager.create_job(request.repo_url, force=request.force)
+    job_manager.start_job(job_id, request.repo_url, force=request.force)
+    return {"job_id": job_id, "status": "queued", "message": "Indexing job queued"}
+
+
+@router.get("/jobs/{job_id}")
+def get_job_status(job_id: str):
+    """Query status, progress, commit_sha, and file errors of an indexing job."""
+    from app.indexing.job_manager import job_manager
+    status = job_manager.get_job_status(job_id)
+    if not status:
+        return {"error": f"Job {job_id} not found"}
+    return status
+
+
+@router.post("/jobs/{job_id}/cancel")
+def cancel_job(job_id: str):
+    """Cancel a running indexing job."""
+    from app.indexing.job_manager import job_manager
+    success = job_manager.cancel_job(job_id)
+    return {"job_id": job_id, "cancelled": success}
+
+
+@router.get("/jobs/{job_id}/stream")
+def stream_job_progress(job_id: str):
+    """Stream SSE progress events for a background job."""
+    from fastapi.responses import StreamingResponse
+    from app.indexing.job_manager import job_manager
+    return StreamingResponse(
+        job_manager.stream_job_events(job_id),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
 @router.post("/parse")
 def parse_repository(request: RepositoryRequest):
     from app.services.repository_indexer import RepositoryIndexer
@@ -36,44 +75,24 @@ def parse_repository(request: RepositoryRequest):
 @router.post("/index-stream")
 def index_stream(request: RepositoryRequest):
     """
-    Stream indexing progress as Server-Sent Events.
-    Each event is a JSON line: data: {"step": ..., "message": ...}
-    Final event has step="done" and includes the full result dict.
+    Stream indexing progress as Server-Sent Events via JobManager.
     """
-    import queue
-    import threading
-    import json
     from fastapi.responses import StreamingResponse
-    from app.services.repository_indexer import RepositoryIndexer
+    from app.indexing.job_manager import job_manager
 
-    q: queue.Queue = queue.Queue()
-
-    def run():
-        try:
-            indexer = RepositoryIndexer()
-            indexer.index_repository(repo_url=request.repo_url, on_progress=q.put, force=request.force)
-        except Exception as exc:
-            q.put({"step": "error", "message": str(exc)})
-        finally:
-            q.put(None)  # sentinel — tells generator to stop
-
-    threading.Thread(target=run, daemon=True).start()
-
-    def generate():
-        while True:
-            event = q.get()
-            if event is None:
-                break
-            yield f"data: {json.dumps(event)}\n\n"
+    job_id = job_manager.create_job(request.repo_url, force=request.force)
+    job_manager.start_job(job_id, request.repo_url, force=request.force)
 
     return StreamingResponse(
-        generate(),
+        job_manager.stream_job_events(job_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
+            "X-Job-ID": job_id
         },
     )
+
 
 
 @router.post("/chat")

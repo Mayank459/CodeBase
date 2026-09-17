@@ -12,3 +12,5 @@ class AgentState(TypedDict):
     approval_needed: bool
     approval_request: dict
     history: list
+    routing: dict
+    secondary_intents: List[str]

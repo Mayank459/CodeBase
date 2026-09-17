@@ -85,6 +85,28 @@ class RepositoryRegistry:
         }
         self._save()
 
+        # Feed BM25 sparse index
+        try:
+            from app.retrieval.sparse_search import bm25_retriever
+            if hasattr(repository_index, "entities"):
+                bm25_retriever.index_entities(clean_name, repository_index.entities)
+        except Exception as e:
+            print(f"[registry] BM25 indexing error: {e}")
+
+        # Persist metadata to database
+        try:
+            from app.storage.db import db_manager
+            file_count = len(getattr(repository_index, "parsed_files", []))
+            node_count = repository_index.graph.number_of_nodes() if hasattr(repository_index, "graph") else 0
+            db_manager.save_repository_metadata(
+                name=clean_name,
+                file_count=file_count,
+                node_count=node_count
+            )
+        except Exception as e:
+            print(f"[registry] DB metadata save error: {e}")
+
+
     def _extract_index(self, record):
         if not record:
             return None

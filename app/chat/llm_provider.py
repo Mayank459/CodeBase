@@ -1,157 +1,222 @@
+"""Unified LLM Provider module supporting Model Routing, TTFT telemetry, and automatic fallback."""
 from dotenv import load_dotenv
 import os
+import time
+from typing import Protocol, runtime_checkable, Generator, Optional, Dict, Any
 import httpx
+
+from app.observability.metrics import metrics
 
 load_dotenv()
 
+
+@runtime_checkable
+class LLMProviderProtocol(Protocol):
+    """Common LLM provider interface for benchmarking and model routing."""
+
+    def generate(
+        self,
+        prompt: str,
+        *,
+        task_type: str = "general",
+        temperature: float = 0.7,
+        max_tokens: int = 8192
+    ) -> str:
+        ...
+
+    def generate_stream(
+        self,
+        prompt: str,
+        *,
+        task_type: str = "general",
+        temperature: float = 0.7,
+        max_tokens: int = 8192
+    ) -> Generator[str, None, None]:
+        ...
+
+
 class LLMProvider:
+    """
+    Production-ready LLM provider supporting model routing (fast vs advanced models),
+    resilient fallback (Groq -> Gemini), and stage-level TTFT & throughput telemetry.
+    """
+
+    # Model catalog
+    FAST_MODEL_GROQ = os.getenv("GROQ_FAST_MODEL", "llama-3.1-8b-instant")
+    ADVANCED_MODEL_GROQ = os.getenv("GROQ_ADVANCED_MODEL", "llama-3.3-70b-versatile")
+
+    FAST_MODEL_GEMINI = os.getenv("GEMINI_FAST_MODEL", "gemini-2.5-flash")
+    ADVANCED_MODEL_GEMINI = os.getenv("GEMINI_ADVANCED_MODEL", "gemini-3.6-flash")
+
     def __init__(self):
         self.groq_api_key = (os.getenv("GROQ_API_KEY") or os.getenv("GROK_API_KEY") or "").strip()
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
 
-        # Always initialize Gemini client for fallback support
+        # Initialize Gemini client for primary/fallback
         from google import genai
         from google.genai import types
         self.genai = genai
         self.types = types
         self.client = genai.Client(api_key=self.gemini_api_key)
 
-        # Use Groq if API key is provided, with automatic Gemini fallback
         self.use_groq = bool(self.groq_api_key)
-        self.use_grok = self.use_groq  # Backward-compatible alias
+        self.use_grok = self.use_groq
+        self.base_url = "https://api.groq.com/openai/v1"
 
-        if self.use_groq:
-            self.model_type = "groq"
-            self.api_key = self.groq_api_key
-            self.base_url = "https://api.groq.com/openai/v1"
-            self.model = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+    def _resolve_model(self, task_type: str = "general", provider: str = "groq") -> str:
+        """Route model based on task complexity (fast vs advanced)."""
+        is_advanced = task_type in ["security_fix", "patch_generation", "code_reasoning", "security_analysis"]
+
+        if provider == "groq":
+            default_model = os.getenv("GROQ_MODEL")
+            if default_model:
+                return default_model
+            return self.ADVANCED_MODEL_GROQ if is_advanced else self.FAST_MODEL_GROQ
         else:
-            self.model_type = "gemini"
+            return self.ADVANCED_MODEL_GEMINI if is_advanced else self.FAST_MODEL_GEMINI
 
-    def generate(self, prompt):
-        """Generate text using configured LLM (Groq or Gemini)."""
+    def generate(
+        self,
+        prompt: str,
+        *,
+        task_type: str = "general",
+        temperature: float = 0.7,
+        max_tokens: int = 8192
+    ) -> str:
+        """Generate text with automatic model routing and provider fallback."""
+        start_time = time.perf_counter()
+        result = ""
+        model_used = ""
+
         if self.use_groq:
+            model_used = self._resolve_model(task_type, provider="groq")
             try:
-                return self._generate_groq(prompt)
+                result = self._generate_groq(prompt, model=model_used, temperature=temperature, max_tokens=max_tokens)
             except Exception as e:
                 print(f"[LLM] Groq failed: {e}. Falling back to Gemini...")
-                return self._generate_gemini(prompt)
+                model_used = self._resolve_model(task_type, provider="gemini")
+                result = self._generate_gemini(prompt, model=model_used, max_tokens=max_tokens)
         else:
-            return self._generate_gemini(prompt)
+            model_used = self._resolve_model(task_type, provider="gemini")
+            result = self._generate_gemini(prompt, model=model_used, max_tokens=max_tokens)
 
-    def generate_stream(self, prompt):
-        """Generate text using configured LLM with streaming and automatic fallback."""
+        elapsed = time.perf_counter() - start_time
+        metrics.record_latency("llm_generation", elapsed)
+        # Rough token estimation for metrics (4 chars ~ 1 token)
+        est_tokens = max(1, len(result) // 4)
+        if elapsed > 0:
+            metrics.record_tokens_per_sec(model_used, est_tokens / elapsed)
+        metrics.record_tokens(model_used, prompt_tokens=len(prompt) // 4, completion_tokens=est_tokens)
+
+        return result
+
+    def generate_stream(
+        self,
+        prompt: str,
+        *,
+        task_type: str = "general",
+        temperature: float = 0.7,
+        max_tokens: int = 8192
+    ) -> Generator[str, None, None]:
+        """Stream text tokens while tracking TTFT and tokens/sec telemetry."""
+        start_time = time.perf_counter()
+        first_token_received = False
+        token_count = 0
+        model_used = ""
+
+        generator = None
         if self.use_groq:
+            model_used = self._resolve_model(task_type, provider="groq")
             try:
-                stream = self._generate_groq_stream(prompt)
-                first_chunk = next(stream, None)
+                generator = self._generate_groq_stream(prompt, model=model_used, temperature=temperature, max_tokens=max_tokens)
+                first_chunk = next(generator, None)
                 if first_chunk is not None:
+                    ttft = time.perf_counter() - start_time
+                    metrics.record_ttft(model_used, ttft)
+                    first_token_received = True
+                    token_count += 1
                     yield first_chunk
-                    yield from stream
-                    return
             except Exception as e:
                 print(f"[LLM] Groq streaming failed: {e}. Falling back to Gemini...")
+                generator = None
 
-            yield from self._generate_gemini_stream(prompt)
-        else:
-            yield from self._generate_gemini_stream(prompt)
+        if generator is None:
+            model_used = self._resolve_model(task_type, provider="gemini")
+            generator = self._generate_gemini_stream(prompt, model=model_used, max_tokens=max_tokens)
 
-    def _generate_groq(self, prompt):
-        """Generate using Groq API."""
+        for chunk in generator:
+            if not first_token_received:
+                ttft = time.perf_counter() - start_time
+                metrics.record_ttft(model_used, ttft)
+                first_token_received = True
+            token_count += 1
+            yield chunk
+
+        total_elapsed = time.perf_counter() - start_time
+        metrics.record_latency("llm_generation", total_elapsed)
+        if total_elapsed > 0 and token_count > 0:
+            metrics.record_tokens_per_sec(model_used, token_count / total_elapsed)
+
+    def _generate_groq(self, prompt: str, model: str, temperature: float = 0.7, max_tokens: int = 8192) -> str:
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {self.groq_api_key}",
             "Content-Type": "application/json"
         }
-
         payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 8192,
-            "temperature": 0.7
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": temperature
         }
+        with httpx.Client(timeout=60.0) as client:
+            response = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
 
-        try:
-            with httpx.Client() as client:
-                response = client.post(
-                    f"{self.base_url}/chat/completions",
-                    json=payload,
-                    headers=headers,
-                    timeout=60.0
-                )
-                response.raise_for_status()
-                data = response.json()
-                return data["choices"][0]["message"]["content"]
-        except httpx.HTTPError as e:
-            raise RuntimeError(f"Groq API error: {e}")
-
-    def _generate_groq_stream(self, prompt):
-        """Generate using Groq API with streaming."""
+    def _generate_groq_stream(self, prompt: str, model: str, temperature: float = 0.7, max_tokens: int = 8192):
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {self.groq_api_key}",
             "Content-Type": "application/json"
         }
-
         payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "max_tokens": 8192,
-            "temperature": 0.7,
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
             "stream": True
         }
+        with httpx.Client(timeout=60.0) as client:
+            with client.stream("POST", f"{self.base_url}/chat/completions", json=payload, headers=headers) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if line.startswith("data: "):
+                        data_str = line[6:]
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            import json
+                            data = json.loads(data_str)
+                            content = data.get("choices", [{}])[0].get("delta", {}).get("content")
+                            if content:
+                                yield content
+                        except Exception:
+                            pass
 
-        try:
-            with httpx.Client() as client:
-                with client.stream(
-                    "POST",
-                    f"{self.base_url}/chat/completions",
-                    json=payload,
-                    headers=headers,
-                    timeout=60.0
-                ) as response:
-                    response.raise_for_status()
-                    for line in response.iter_lines():
-                        if line.startswith("data: "):
-                            data_str = line[6:]
-                            if data_str == "[DONE]":
-                                break
-                            try:
-                                import json
-                                data = json.loads(data_str)
-                                content = data.get("choices", [{}])[0].get("delta", {}).get("content")
-                                if content:
-                                    yield content
-                            except:
-                                pass
-        except httpx.HTTPError as e:
-            raise RuntimeError(f"Groq API streaming error: {e}")
-
-    # Aliases for backward compatibility
-    _generate_grok = _generate_groq
-    _generate_grok_stream = _generate_groq_stream
-
-    def _generate_gemini(self, prompt):
-        """Generate using Google Gemini API."""
+    def _generate_gemini(self, prompt: str, model: str, max_tokens: int = 8192) -> str:
         response = self.client.models.generate_content(
-            model='gemini-3.6-flash',
+            model=model,
             contents=prompt,
-            config=self.types.GenerateContentConfig(
-                max_output_tokens=8192,
-            )
+            config=self.types.GenerateContentConfig(max_output_tokens=max_tokens)
         )
         return response.text
 
-    def _generate_gemini_stream(self, prompt):
-        """Generate using Google Gemini API with streaming."""
+    def _generate_gemini_stream(self, prompt: str, model: str, max_tokens: int = 8192):
         for chunk in self.client.models.generate_content(
-            model='gemini-3.6-flash',
+            model=model,
             contents=prompt,
-            config=self.types.GenerateContentConfig(
-                max_output_tokens=8192,
-            ),
+            config=self.types.GenerateContentConfig(max_output_tokens=max_tokens),
             stream=True
         ):
-            yield chunk.text
+            if chunk.text:
+                yield chunk.text

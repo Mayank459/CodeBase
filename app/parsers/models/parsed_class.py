@@ -15,3 +15,4 @@ class ParsedClass:
     code: str
 
     methods: list[ParsedMethod] = field(default_factory=list)
+    bases: list[str] = field(default_factory=list)

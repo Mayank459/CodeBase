@@ -37,6 +37,7 @@
 10. [Observability, Prometheus Metrics & Audit Telemetry](#10-observability-prometheus-metrics--audit-telemetry)
 11. [Module Directory & File Responsibility Directory](#11-module-directory--file-responsibility-directory)
 12. [Backend Optimization & Improvement Roadmap](#12-backend-optimization--improvement-roadmap)
+13. [Machine Learning Models & Data Schemas Specification](#13-machine-learning-models--data-schemas-specification)
 
 ---
 
@@ -698,6 +699,28 @@ While the backend is robust, scalable, and highly performant, the following key 
 5. **Incremental Git Diffs & Dynamic Graph Patching:**
    - *Current:* Re-indexes the full repository when force re-indexing.
    - *Improvement:* Ingest `git diff` patches upon webhook trigger (`push` events), surgically updating only modified nodes and edges in the NetworkX graph and Qdrant collection.
+
+---
+
+## 13. Machine Learning Models & Data Schemas Specification
+
+> Complete technical breakdown and code-level attributes are maintained in [`app/MODELS_SPECIFICATION.md`](file:///c:/Users/HP/OneDrive/Desktop/Projects/CodeBase/app/MODELS_SPECIFICATION.md).
+
+### 13.1 AI / ML Model Matrix
+
+| Model Tier | Model Identifier | Provider / Engine | Dimensionality / Context | Primary Role & Failover |
+| :--- | :--- | :--- | :--- | :--- |
+| **Primary LLM** | `llama-3.3-70b-versatile` | Groq LPUs (`app/chat/llm_provider.py`) | 128K context, 8K output tokens | Low-latency chat, agentic routing, code reasoning (~120ms TTFT) |
+| **Failover LLM** | `gemini-2.5-flash` / `gemini-1.5-flash` | Google DeepMind SDK (`google-genai`) | 1M context, 8K output tokens | Automatic fallback on Groq 429 rate limits or connection dropouts |
+| **Embedding Engine** | `embed-english-light-v3.0` | Cohere API (`app/embeddings/`) | 384 Dimensions (Float32) | Dense vector representations of code entities (capped to 300 chars) |
+| **Vector Store** | `codebase_entities` | Qdrant Vector Engine (`app/storage/`) | 384 Dim, Cosine HNSW | Sub-10ms similarity search isolated by repository metadata filters |
+
+### 13.2 Core Domain Data Models (`app/indexing/models/`)
+
+- **`CodeEntity`:** Atomic semantic unit with `id`, `name`, `entity_type` (function, class, endpoint, summary), `content`, `file_path`, `line_number`, `graph_node_id`.
+- **`RepositoryIndex`:** Multi-representation container holding the parsed AST files, file index, and the NetworkX `DiGraph`.
+- **`SecurityFinding`:** Structured vulnerability record with `finding_type`, `severity` (CRITICAL, HIGH, MEDIUM, LOW), `cwe`, `file_path`, `line_number`, and `recommendation`.
+- **`AgentState`:** LangGraph `TypedDict` capturing the complete conversation history, routing destination, repository metadata, and Human-in-the-Loop pending patch.
 
 ---
 *Documentation compiled and maintained for the CodeBase Engineering Team.*

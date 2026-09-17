@@ -76,9 +76,10 @@ def build_agent_graph():
 
     return builder.compile(checkpointer=checkpointer)
 
-# In-memory checkpointer enables Human-in-the-Loop resumes (PR approval).
-# Note: data is lost on restart; swap for a SQLite/Postgres saver for persistence.
-checkpointer = MemorySaver()
+# Persistent checkpointer enables Human-in-the-Loop resumes (PR approval) across restarts
+from app.memory.persistent_checkpointer import persistent_checkpointer
+checkpointer = persistent_checkpointer
 
 # Provide a pre-compiled graph object
 graph = build_agent_graph()
+

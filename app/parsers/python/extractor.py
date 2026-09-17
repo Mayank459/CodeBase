@@ -91,6 +91,13 @@ def extract_python_file(
                 "name"
             )
 
+            bases = []
+            superclasses_node = node.child_by_field_name("superclasses")
+            if superclasses_node:
+                for arg in superclasses_node.children:
+                    if arg.type in ["identifier", "attribute"]:
+                        bases.append(arg.text.decode())
+
             parsed_class = ParsedClass(
                 name=name_node.text.decode(),
                 start_line=node.start_point[0] + 1,
@@ -98,8 +105,10 @@ def extract_python_file(
                 code=source_code[
                     node.start_byte:node.end_byte
                 ],
-                methods=[]
+                methods=[],
+                bases=bases
             )
+
 
             for child in node.children:
 

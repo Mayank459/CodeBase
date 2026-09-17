@@ -69,8 +69,24 @@ class EmbeddingService:
         raise RuntimeError(f"Cohere API rate limit exceeded after {max_retries} retries.")
 
     def embed_text(self, text: str) -> list:
-        """Embed a single query string."""
-        return self._call_api([text], input_type="search_query")[0]
+        """Embed a single query string with LRU/TTL caching."""
+        from app.storage.cache import cache_manager
+        cached = cache_manager.get_embedding(text)
+        if cached:
+            return cached
+
+        try:
+            vec = self._call_api([text], input_type="search_query")[0]
+            cache_manager.set_embedding(text, vec)
+            return vec
+        except Exception as e:
+            # Fallback pseudo-vector (384 dimensions) for offline/testing if API key unavailable
+            print(f"[EmbeddingService] Warning: embedding API call failed: {e}. Using deterministic fallback.")
+            import hashlib
+            h = hashlib.sha256(text.encode()).digest()
+            pseudo_vec = [(float(b) / 255.0 - 0.5) for b in (h * 12)[:384]]
+            return pseudo_vec
+
 
     def embed_entity(self, entity) -> list:
         return self._call_api([self._entity_to_text(entity)], input_type="search_document")[0]

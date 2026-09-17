@@ -36,16 +36,17 @@ class ResumeHandler:
             "approved": approved,
         }
 
-        # Resume the graph — LangGraph will continue from the interrupt() call
+        resolution = "approved" if approved else "rejected"
         try:
             config = {"configurable": {"thread_id": request_id}}
             result = graph.invoke(state, config=config)
         except Exception as exc:
-            checkpoint_store.remove(request_id)
+            checkpoint_store.remove(request_id, resolution="failed")
             return {"error": str(exc)}
 
-        checkpoint_store.remove(request_id)
+        checkpoint_store.remove(request_id, resolution=resolution)
         return result
+
 
 
 resume_handler = ResumeHandler()
