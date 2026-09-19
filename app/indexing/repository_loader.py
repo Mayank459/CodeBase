@@ -1,4 +1,7 @@
+import re
 import shutil
+import ipaddress
+from urllib.parse import urlparse
 from pathlib import Path
 from git import Repo, GitCommandError
 
@@ -12,14 +15,81 @@ KNOWN_REPOS = {
     "codebase": "https://github.com/Mayank459/CodeBase",
 }
 
+# Blocked private and link-local IP networks for SSRF prevention
+BLOCKED_IP_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),  # Cloud metadata
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+]
+
+
+def _check_ssrf_host(hostname: str) -> None:
+    """Verify hostname is not a local or cloud metadata address."""
+    if not hostname:
+        raise ValueError("Invalid URL: Hostname cannot be empty.")
+
+    host_lower = hostname.lower()
+    if host_lower in ["localhost", "127.0.0.1", "0.0.0.0", "metadata.google.internal"]:
+        raise ValueError(f"SSRF blocked: Host '{hostname}' is not permitted.")
+
+    try:
+        ip = ipaddress.ip_address(host_lower)
+        for net in BLOCKED_IP_NETWORKS:
+            if ip in net:
+                raise ValueError(f"SSRF blocked: Private or loopback IP '{ip}' is not permitted.")
+    except ValueError as exc:
+        if "SSRF blocked" in str(exc):
+            raise
+        # Not a raw IP literal, hostname resolution can be performed or allowed if safe domain
+        pass
+
+
+def sanitize_repo_name(name: str) -> str:
+    """Sanitize repository name to strictly prevent directory traversal."""
+    raw = (name or "").strip()
+    if raw.endswith(".git"):
+        raw = raw[:-4]
+
+    # Reject directory traversal indicators
+    if not raw or ".." in raw or "/" in raw or "\\" in raw:
+        raise ValueError(f"Invalid or unsafe repository name: '{name}'")
+
+    # Only allow alphanumeric characters, dashes, dots, and underscores
+    sanitized = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw)
+    if sanitized in [".", "..", ""]:
+        raise ValueError(f"Invalid repository directory name: '{name}'")
+
+    return sanitized
+
 
 def normalize_repo_url(repo_url: str) -> str:
-    """Normalize short repository names, GitHub shorthand (owner/repo), or URLs."""
+    """Normalize short repository names, GitHub shorthand (owner/repo), or URLs with safety checks."""
     raw = (repo_url or "").strip()
     if not raw:
         return "https://github.com/psf/requests"
 
-    if raw.startswith("http://") or raw.startswith("https://") or raw.startswith("git@"):
+    # Block git argument injection (e.g. `--upload-pack=...` or `-u`)
+    if raw.startswith("-"):
+        raise ValueError(f"Invalid repository URL '{repo_url}': URL cannot start with a dash.")
+
+    # Block dangerous git protocol handlers
+    if any(raw.lower().startswith(scheme) for scheme in ["ext::", "file://", "fd::", "ssh://-"]):
+        raise ValueError(f"Unauthorized git protocol scheme in URL: '{repo_url}'")
+
+    if raw.startswith("http://") or raw.startswith("https://"):
+        parsed = urlparse(raw)
+        _check_ssrf_host(parsed.hostname or "")
+        return raw
+
+    if raw.startswith("git@"):
+        # Strictly enforce valid git SSH format for known trusted hosts (e.g. git@github.com:owner/repo.git)
+        if not re.match(r"^git@[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+(?:\.git)?$", raw):
+            raise ValueError(f"Invalid git SSH URL format: '{repo_url}'")
         return raw
 
     lowered = raw.lower()
@@ -27,9 +97,15 @@ def normalize_repo_url(repo_url: str) -> str:
         return KNOWN_REPOS[lowered]
 
     if "/" in raw:
-        return f"https://github.com/{raw}"
+        parts = [p.strip() for p in raw.split("/") if p.strip()]
+        if len(parts) == 2 and all(re.match(r"^[a-zA-Z0-9_\-\.]+$", p) for p in parts):
+            return f"https://github.com/{parts[0]}/{parts[1]}"
+        raise ValueError(f"Invalid repository shorthand format: '{repo_url}'")
 
-    return f"https://github.com/{raw}/{raw}"
+    if re.match(r"^[a-zA-Z0-9_\-\.]+$", raw):
+        return f"https://github.com/{raw}/{raw}"
+
+    raise ValueError(f"Unrecognized or invalid repository identifier: '{repo_url}'")
 
 
 def clone_repository(repo_url: str) -> str:
@@ -40,12 +116,16 @@ def clone_repository(repo_url: str) -> str:
     If already cloned, skips and returns the existing path.
     """
     valid_url = normalize_repo_url(repo_url)
-    repo_name = valid_url.rstrip("/").split("/")[-1]
+    raw_name = valid_url.rstrip("/").split("/")[-1]
+    repo_name = sanitize_repo_name(raw_name)
 
-    if repo_name.endswith(".git"):
-        repo_name = repo_name[:-4]
+    storage_root = REPOSITORY_STORAGE.resolve()
+    storage_root.mkdir(parents=True, exist_ok=True)
+    destination = (storage_root / repo_name).resolve()
 
-    destination = REPOSITORY_STORAGE / repo_name
+    # Verify destination is strictly inside storage_root (boundary check)
+    if not destination.is_relative_to(storage_root) or destination == storage_root:
+        raise ValueError(f"Path traversal detected: destination '{destination}' is outside storage root.")
 
     # Check if a valid, non-empty repository already exists
     if destination.exists():

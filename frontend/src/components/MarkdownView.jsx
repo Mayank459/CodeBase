@@ -206,7 +206,7 @@ function MermaidSnippet({ code }) {
           padding: 16,
           useMaxWidth: false,
         },
-        securityLevel: 'loose',
+        securityLevel: 'strict',
         suppressErrorRendering: true,
       });
 

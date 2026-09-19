@@ -19,11 +19,23 @@ async def correlation_id_middleware(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
+import os
+
+# CORS Origins configuration
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+env_cors = os.getenv("CORS_ORIGINS", "")
+allowed_origins = [orig.strip() for orig in env_cors.split(",") if orig.strip()] if env_cors else DEFAULT_CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 

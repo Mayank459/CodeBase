@@ -1,9 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from app.api.dependencies.auth import get_current_user
 from app.agents.graph_builder import graph
 from app.api.schemas.repository import EvolutionRequest
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 class AgentChatRequest(BaseModel):
     repository_name: str

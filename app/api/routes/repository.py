@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.api.dependencies.auth import get_current_user
 from app.api.schemas.repository import RepositoryRequest
 from app.indexing.repository_loader import clone_repository
 from app.indexing.scanner import scan_repository
@@ -7,7 +8,7 @@ from app.api.schemas.chat import (
     ChatRequest
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 @router.post("/clone")
 def clone(request: RepositoryRequest):

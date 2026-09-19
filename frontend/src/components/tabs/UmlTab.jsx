@@ -281,7 +281,7 @@ export function UmlTab({ activeRepo }) {
           secondaryColor: '#0f172a',
           tertiaryColor: '#1e1b4b',
         },
-        securityLevel: 'loose',
+        securityLevel: 'strict',
         suppressErrorRendering: true,
         maxTextSize: 1000000,
         maxEdges: 5000,

@@ -39,7 +39,7 @@ SECURITY_RULES = [
         "cwe": "CWE-798",
         "description": "Hardcoded API Key or Secret Credential assigned directly in source code",
         "regex": re.compile(
-            r'(?i)\b(api_key|secret_key|jwt_secret|access_token|private_key|auth_token|db_password)\s*[:=]\s*["\']([^"\']{10,})["\']'
+            r'(?i)\b(api_key|secret_key|jwt_secret|access_token|private_key|auth_token|db_password)\s*[:=]\s*["\']([^"\']{3,})["\']'
         ),
         "filter": lambda m: not PLACEHOLDER_REGEX.search(m.group(2))
     },
@@ -60,7 +60,7 @@ SECURITY_RULES = [
         "severity": "CRITICAL",
         "cwe": "CWE-95",
         "description": "Dynamic code evaluation via eval() which may allow arbitrary code execution",
-        "regex": re.compile(r'(?<![a-zA-Z0-9_])eval\s*\('),
+        "regex": re.compile(r'(?<![a-zA-Z0-9_\.])eval\s*\('),
         "filter": lambda m: True
     },
     {
@@ -69,7 +69,7 @@ SECURITY_RULES = [
         "severity": "CRITICAL",
         "cwe": "CWE-94",
         "description": "Dynamic execution via exec() which executes arbitrary Python code",
-        "regex": re.compile(r'(?<![a-zA-Z0-9_])exec\s*\('),
+        "regex": re.compile(r'(?<![a-zA-Z0-9_\.])exec\s*\('),
         "filter": lambda m: True
     },
     {
@@ -82,7 +82,7 @@ SECURITY_RULES = [
         "filter": lambda m: True
     },
     {
-        "type": "shell_injection_risk",
+        "type": "shell_true",
         "category": "Command Injection",
         "severity": "HIGH",
         "cwe": "CWE-78",

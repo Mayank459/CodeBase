@@ -26,6 +26,10 @@ class SecurityScanner:
         if parts & IGNORED_PATH_PARTS:
             return True
 
+        # Skip scanner's own internal rule pattern definitions and remediation templates
+        if norm_path.endswith("app/security/patterns.py") or norm_path.endswith("app/security/remediation_templates.py"):
+            return True
+
         return False
 
     def scan_file(

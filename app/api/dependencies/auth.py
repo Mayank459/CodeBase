@@ -1,6 +1,8 @@
 """Authentication, Authorization, and Rate Limiting dependencies."""
 import os
 import time
+import hmac
+import hashlib
 from typing import Optional, Dict, Any
 from collections import defaultdict
 from fastapi import Header, HTTPException, Security, Depends
@@ -12,7 +14,7 @@ security_bearer = HTTPBearer(auto_error=False)
 # Configuration flag: if True, strict token verification is enforced.
 # In local development mode, defaults to permissive dev user.
 AUTH_REQUIRED = os.getenv("AUTH_REQUIRED", "false").lower() in ["true", "1", "yes"]
-MASTER_API_KEY = os.getenv("MASTER_API_KEY", "codebase-master-key-2026")
+MASTER_API_KEY = os.getenv("MASTER_API_KEY")
 
 
 class UserIdentity:
@@ -70,7 +72,7 @@ async def get_current_user(
 
     # Permissive local dev mode fallback
     if not AUTH_REQUIRED:
-        if token == MASTER_API_KEY:
+        if token and MASTER_API_KEY and hmac.compare_digest(token, MASTER_API_KEY):
             return UserIdentity("admin-1", "admin", role="admin", is_admin=True)
         return UserIdentity("local-dev-user", "developer", role="admin", is_admin=True)
 
@@ -80,13 +82,17 @@ async def get_current_user(
             detail="Authentication required. Provide 'Authorization: Bearer <token>' or 'X-API-Key: <key>'."
         )
 
-    # Master key bypass
-    if token == MASTER_API_KEY:
+    # Master key bypass (constant-time check)
+    if MASTER_API_KEY and hmac.compare_digest(token, MASTER_API_KEY):
         return UserIdentity("admin-0", "master_admin", role="admin", is_admin=True)
 
-    # Check Database users
+    # Check Database users with SHA-256 hashed token lookup (with plaintext fallback for legacy keys)
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     with SessionFactory() as session:
-        user = session.query(UserModel).filter_by(api_key_hash=token, is_active=True).first()
+        user = session.query(UserModel).filter(
+            ((UserModel.api_key_hash == token_hash) | (UserModel.api_key_hash == token)) &
+            (UserModel.is_active == True)
+        ).first()
         if not user:
             raise HTTPException(status_code=403, detail="Invalid or revoked authentication credentials.")
         return UserIdentity(
