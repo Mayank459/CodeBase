@@ -45,7 +45,7 @@ class LLMProvider:
     FAST_MODEL_GROQ = os.getenv("GROQ_FAST_MODEL", "llama-3.1-8b-instant")
     ADVANCED_MODEL_GROQ = os.getenv("GROQ_ADVANCED_MODEL", "llama-3.3-70b-versatile")
 
-    FAST_MODEL_GEMINI = os.getenv("GEMINI_FAST_MODEL", "gemini-2.5-flash")
+    FAST_MODEL_GEMINI = os.getenv("GEMINI_FAST_MODEL", "gemini-3.6-flash")
     ADVANCED_MODEL_GEMINI = os.getenv("GEMINI_ADVANCED_MODEL", "gemini-3.6-flash")
 
     def __init__(self):
@@ -73,7 +73,10 @@ class LLMProvider:
                 return default_model
             return self.ADVANCED_MODEL_GROQ if is_advanced else self.FAST_MODEL_GROQ
         else:
-            return self.ADVANCED_MODEL_GEMINI if is_advanced else self.FAST_MODEL_GEMINI
+            resolved = self.ADVANCED_MODEL_GEMINI if is_advanced else self.FAST_MODEL_GEMINI
+            if "gemini-2.5-flash" in resolved:
+                resolved = "gemini-3.6-flash"
+            return resolved
 
     def generate(
         self,
@@ -203,20 +206,52 @@ class LLMProvider:
                         except Exception:
                             pass
 
+    def _sanitize_gemini_model(self, model: str) -> str:
+        if not model or "gemini-2.5-flash" in model:
+            return "gemini-3.6-flash"
+        return model
+
     def _generate_gemini(self, prompt: str, model: str, max_tokens: int = 8192) -> str:
-        response = self.client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=self.types.GenerateContentConfig(max_output_tokens=max_tokens)
-        )
-        return response.text
+        model = self._sanitize_gemini_model(model)
+        try:
+            response = self.client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=self.types.GenerateContentConfig(max_output_tokens=max_tokens)
+            )
+            return response.text
+        except Exception as e:
+            if model != "gemini-3.6-flash":
+                print(f"[LLM] Gemini call with '{model}' failed ({e}). Retrying with 'gemini-3.6-flash'...")
+                response = self.client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=prompt,
+                    config=self.types.GenerateContentConfig(max_output_tokens=max_tokens)
+                )
+                return response.text
+            raise
 
     def _generate_gemini_stream(self, prompt: str, model: str, max_tokens: int = 8192):
-        for chunk in self.client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=self.types.GenerateContentConfig(max_output_tokens=max_tokens),
-            stream=True
-        ):
-            if chunk.text:
-                yield chunk.text
+        model = self._sanitize_gemini_model(model)
+        try:
+            for chunk in self.client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=self.types.GenerateContentConfig(max_output_tokens=max_tokens),
+                stream=True
+            ):
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            if model != "gemini-3.6-flash":
+                print(f"[LLM] Gemini stream with '{model}' failed ({e}). Retrying with 'gemini-3.6-flash'...")
+                for chunk in self.client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=prompt,
+                    config=self.types.GenerateContentConfig(max_output_tokens=max_tokens),
+                    stream=True
+                ):
+                    if chunk.text:
+                        yield chunk.text
+            else:
+                raise

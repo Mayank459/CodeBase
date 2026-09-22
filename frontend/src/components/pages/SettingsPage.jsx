@@ -227,7 +227,7 @@ export function SettingsPage({ onNavigate }) {
               <option value="qwen/qwen3.8-27b">Qwen 3.8 27B (Default Groq Engine)</option>
               <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Groq)</option>
               <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Ultra-Fast)</option>
-              <option value="gemini-2.5-flash-latest">Gemini 2.5 Flash (Direct Google)</option>
+              <option value="gemini-3.6-flash">Gemini 3.6 Flash (Direct Google)</option>
             </select>
           </div>
 
