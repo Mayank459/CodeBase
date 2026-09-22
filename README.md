@@ -93,16 +93,18 @@ CodeBase provides 9 core intelligence tools complemented by production-grade pla
 | Module | Core Technology | Description |
 |---|---|---|
 | **🧠 Intelligence Chat** | `LangGraph` + `Qdrant` | Contextual conversational agent with character-by-character SSE streaming, AST evidence pills, and multi-agent execution telemetry. |
-| **🛡️ Enterprise Guardrails** | `Regex Heuristics` + `AST Verifier` | Input prompt injection protection, output secret/PII scrubbing, and citation grounding checks. |
+| **⚡ Decision & Routing Engine** | `Laya` + `System 1 Engine` | Non-autoregressive sub-35ms typed decision routing across 100+ languages with automatic fallback to heuristics. |
+| **🛡️ Enterprise Guardrails** | `Laya Semantic Triage` + `Regex` | Input prompt injection protection (REST & SSE), streamed token secret/PII scrubbing, and citation grounding checks. |
 | **📊 Retrieval & LLM Evals** | `RetrievalEvaluator` + `LLMOutputEvaluator` | Automated regression testing for Hit Rate@K, MRR, Faithfulness, and Citation Grounding. |
 | **📈 Workflow Observability** | `Prometheus` + `Structured JSON` | Latency histograms, token counters, distributed tracing spans, and `/metrics` scrape endpoint. |
 | **🕸️ Architecture Call Graph** | `NetworkX` + `Cytoscape` | Interactive 2D topological call-graph visualizer exploring caller/callee paths and modular coupling. |
 | **🔒 Automated Security Audit** | `Static AST` + `CVSS` | Vulnerability assessment across code surfaces and dependencies with CVSS severity badges and automated remediation patch drafts. |
+| **🔧 Context-Aware Remediation** | `PatchGenerator` + `Diff Engine` | Contextual unified diff generation across CWE-95, CWE-78, CWE-327, CWE-798, CWE-502, CWE-89, and CWE-79. |
 | **✂️ Dead Code Detection** | `Symbol Resolution` | Static symbol cross-reference engine identifying unreferenced functions, dangling classes, and zero-callsite methods. |
 | **📚 Documentation Generator** | `AST Metadata` + `LLM` | Generates standardized Google/NumPy-compliant docstrings and comprehensive Markdown documentation suites. |
-| **📐 UML Class & Sequence Models** | `Mermaid.js` | Generates interactive UML class diagrams, call sequence diagrams, and architecture swimlanes. |
+| **📐 UML Class & Sequence Models** | `Mermaid.js (Strict)` | Generates interactive UML class diagrams, call sequence diagrams, and architecture swimlanes with XSS-safe strict rendering. |
 | **🔄 Multi-Repo Diff Analyzer** | `AST Semantic Diff` | Compares architecture, interfaces, and symbol implementations across distinct repositories. |
-| **🚀 Autonomous PR Gate** | `HITL Verification` | Human-in-the-loop remediation gate allowing engineers to inspect, review, and approve automated patch branches. |
+| **🚀 Autonomous PR Gate** | `HITL Verification` | Human-in-the-loop remediation gate allowing engineers to inspect, review, and approve automated patch branches with role authorization. |
 
 ---
 

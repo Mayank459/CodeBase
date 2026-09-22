@@ -1,3 +1,4 @@
+"""Security fix agent module."""
 from app.security.scanner import SecurityScanner
 from app.security.patch_generator import PatchGenerator
 from app.security.remediation_report import RemediationReportGenerator
@@ -16,7 +17,8 @@ def security_fix_node(state):
     findings = scanner.scan_repository(repository.parsed_files)
 
     if not findings:
-        state["answer"] = f"✅ No security vulnerabilities found in '{repository.repository_name}'!"
+        state["answer"] = f"✅ No security vulnerabilities found in '{repository.repository_name}'! All security policies and checks passed."
+        state["security_patches"] = []
         return state
 
     patch_generator = PatchGenerator()
@@ -30,4 +32,14 @@ def security_fix_node(state):
     raw_report = report_generator.generate(findings, patches)
 
     state["answer"] = raw_report
+    state["security_patches"] = [
+        {
+            "file_path": p.file_path,
+            "line_number": p.line_number,
+            "original_code": p.original_code,
+            "replacement_code": p.replacement_code,
+            "explanation": p.explanation
+        }
+        for p in patches
+    ]
     return state

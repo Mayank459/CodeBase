@@ -84,7 +84,9 @@ async def get_current_user(
 
     # Master key bypass (constant-time check)
     if MASTER_API_KEY and hmac.compare_digest(token, MASTER_API_KEY):
-        return UserIdentity("admin-0", "master_admin", role="admin", is_admin=True)
+        identity = UserIdentity("admin-0", "master_admin", role="admin", is_admin=True)
+        api_rate_limiter.check(identity.user_id)
+        return identity
 
     # Check Database users with SHA-256 hashed token lookup (with plaintext fallback for legacy keys)
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
@@ -95,12 +97,14 @@ async def get_current_user(
         ).first()
         if not user:
             raise HTTPException(status_code=403, detail="Invalid or revoked authentication credentials.")
-        return UserIdentity(
+        identity = UserIdentity(
             user_id=user.id,
             username=user.username,
             role=user.role,
             is_admin=(user.role == "admin")
         )
+        api_rate_limiter.check(identity.user_id)
+        return identity
 
 
 def verify_repo_access(repository_name: str, user: UserIdentity = Depends(get_current_user)) -> bool:
