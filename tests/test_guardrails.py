@@ -86,3 +86,29 @@ def test_safety_manager_e2e():
     assert out_res["passed"] is False
     assert "super_secret_pw" not in out_res["final_text"]
     assert "[REDACTED_PASSWORD]" in out_res["final_text"]
+
+def test_safety_manager_property_aliases():
+    sm = SafetyManager()
+    assert sm.leakage_guardrail is sm.leakage_guard
+    assert sm.injection_guardrail is sm.injection_guard
+    assert sm.citation_guardrail is sm.citation_guard
+    
+    scrubbed = sm.leakage_guardrail.scrub("test message with sk-12345678901234567890123456789012")
+    assert "[REDACTED_API_KEY]" in scrubbed.scrubbed_text
+
+def test_persistent_checkpointer_serialization():
+    from app.memory.persistent_checkpointer import PersistentCheckpointer
+    cp = PersistentCheckpointer()
+    config = {"configurable": {"thread_id": "test_thread_guardrail", "checkpoint_ns": ""}}
+    checkpoint = {
+        "v": 1,
+        "id": "chk_test",
+        "channel_values": {"msg": "hi"},
+        "channel_versions": {},
+        "versions_seen": {},
+        "pending_sends": []
+    }
+    metadata = {"source": "test", "step": 1, "writes": {}}
+    # Should not throw any exception or print lambda unpickling warnings
+    result = cp.put(config, checkpoint, metadata, {})
+    assert result is not None

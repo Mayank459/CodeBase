@@ -13,6 +13,18 @@ class SafetyManager:
         self.leakage_guard = DataLeakageGuardrail()
         self.citation_guard = CitationValidatorGuardrail()
 
+    @property
+    def leakage_guardrail(self) -> DataLeakageGuardrail:
+        return self.leakage_guard
+
+    @property
+    def injection_guardrail(self) -> PromptInjectionGuardrail:
+        return self.injection_guard
+
+    @property
+    def citation_guardrail(self) -> CitationValidatorGuardrail:
+        return self.citation_guard
+
     def validate_input(self, user_query: str) -> GuardrailResult:
         """Validates incoming developer query for prompt injection and malicious payloads."""
         return self.injection_guard.validate(user_query)

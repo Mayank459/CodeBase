@@ -122,7 +122,7 @@ async def chat_with_agent_stream(
         ):
             for ev in stream.get_events():
                 # Scrub secrets from stream progress messages
-                scrubbed_msg = safety_manager.leakage_guardrail.scrub(ev['message']).scrubbed_text
+                scrubbed_msg = safety_manager.leakage_guard.scrub(ev['message']).scrubbed_text
                 yield (
                     "data: "
                     f"{scrubbed_msg}\n\n"
@@ -137,13 +137,13 @@ async def chat_with_agent_stream(
                 import types
                 if isinstance(ans, types.GeneratorType):
                     for token in ans:
-                        scrubbed_tok = safety_manager.leakage_guardrail.scrub(str(token)).scrubbed_text
+                        scrubbed_tok = safety_manager.leakage_guard.scrub(str(token)).scrubbed_text
                         yield (
                             "data: "
                             f"{scrubbed_tok}\n\n"
                         )
                 else:
-                    scrubbed_ans = safety_manager.leakage_guardrail.scrub(str(ans)).scrubbed_text
+                    scrubbed_ans = safety_manager.leakage_guard.scrub(str(ans)).scrubbed_text
                     # Proper W3C SSE multiline formatting
                     for line in scrubbed_ans.split("\n"):
                         yield f"data: {line}\n"
