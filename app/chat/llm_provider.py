@@ -42,8 +42,8 @@ class LLMProvider:
     """
 
     # Model catalog
-    FAST_MODEL_GROQ = os.getenv("GROQ_FAST_MODEL", "llama-3.1-8b-instant")
-    ADVANCED_MODEL_GROQ = os.getenv("GROQ_ADVANCED_MODEL", "llama-3.3-70b-versatile")
+    FAST_MODEL_GROQ = os.getenv("GROQ_FAST_MODEL", "qwen/qwen3.8-27b")
+    ADVANCED_MODEL_GROQ = os.getenv("GROQ_ADVANCED_MODEL", "qwen/qwen3.8-27b")
 
     FAST_MODEL_GEMINI = os.getenv("GEMINI_FAST_MODEL", "gemini-3.6-flash")
     ADVANCED_MODEL_GEMINI = os.getenv("GEMINI_ADVANCED_MODEL", "gemini-3.6-flash")
@@ -171,7 +171,7 @@ class LLMProvider:
             "max_tokens": max_tokens,
             "temperature": temperature
         }
-        with httpx.Client(timeout=60.0) as client:
+        with httpx.Client(timeout=httpx.Timeout(10.0, connect=5.0)) as client:
             response = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
@@ -189,7 +189,7 @@ class LLMProvider:
             "temperature": temperature,
             "stream": True
         }
-        with httpx.Client(timeout=60.0) as client:
+        with httpx.Client(timeout=httpx.Timeout(10.0, connect=5.0)) as client:
             with client.stream("POST", f"{self.base_url}/chat/completions", json=payload, headers=headers) as response:
                 response.raise_for_status()
                 for line in response.iter_lines():
@@ -221,10 +221,10 @@ class LLMProvider:
             )
             return response.text
         except Exception as e:
-            if model != "gemini-3.6-flash":
-                print(f"[LLM] Gemini call with '{model}' failed ({e}). Retrying with 'gemini-3.6-flash'...")
+            if model != "gemini-flash-latest":
+                print(f"[LLM] Gemini call with '{model}' failed ({e}). Retrying with 'gemini-flash-latest'...")
                 response = self.client.models.generate_content(
-                    model="gemini-3.6-flash",
+                    model="gemini-flash-latest",
                     contents=prompt,
                     config=self.types.GenerateContentConfig(max_output_tokens=max_tokens)
                 )
@@ -234,22 +234,20 @@ class LLMProvider:
     def _generate_gemini_stream(self, prompt: str, model: str, max_tokens: int = 8192):
         model = self._sanitize_gemini_model(model)
         try:
-            for chunk in self.client.models.generate_content(
+            for chunk in self.client.models.generate_content_stream(
                 model=model,
                 contents=prompt,
                 config=self.types.GenerateContentConfig(max_output_tokens=max_tokens),
-                stream=True
             ):
                 if chunk.text:
                     yield chunk.text
         except Exception as e:
-            if model != "gemini-3.6-flash":
-                print(f"[LLM] Gemini stream with '{model}' failed ({e}). Retrying with 'gemini-3.6-flash'...")
-                for chunk in self.client.models.generate_content(
-                    model="gemini-3.6-flash",
+            if model != "gemini-flash-latest":
+                print(f"[LLM] Gemini stream with '{model}' failed ({e}). Retrying with 'gemini-flash-latest'...")
+                for chunk in self.client.models.generate_content_stream(
+                    model="gemini-flash-latest",
                     contents=prompt,
                     config=self.types.GenerateContentConfig(max_output_tokens=max_tokens),
-                    stream=True
                 ):
                     if chunk.text:
                         yield chunk.text

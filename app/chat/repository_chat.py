@@ -31,3 +31,17 @@ class RepositoryChat:
             history=history
         )
         return self.llm.generate(prompt)
+
+    def ask_stream(
+        self,
+        question,
+        history=""
+    ):
+        retrieval_result = self.retriever.retrieve(question, repository_name=self.repository_name)
+        context = self.context_builder.build(retrieval_result)
+        prompt = REPOSITORY_CHAT_PROMPT.format(
+            context=context,
+            question=question,
+            history=history
+        )
+        return self.llm.generate_stream(prompt)
