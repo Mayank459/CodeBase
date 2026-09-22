@@ -1,0 +1,50 @@
+name: Strix Security Scan
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  strix-pentest:
+    name: Strix AI Penetration Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for diff-scope resolution
+
+      - name: Install Strix CLI
+        run: |
+          curl -sSL https://strix.ai/install | bash
+
+      - name: Run Strix Autonomous Pentest
+        env:
+          STRIX_LLM: ${{ secrets.STRIX_LLM || 'openai/gpt-4o' }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          strix -n -t ./ --scan-mode quick --max-budget 10
+
+      - name: Verify Scan Completion
+        if: always()
+        run: |
+          if [ -d "strix_runs" ]; then
+            run_json=$(ls -t strix_runs/*/run.json 2>/dev/null | head -1)
+            if [ -n "$run_json" ] && [ -f "$run_json" ]; then
+              status=$(jq -r .status "$run_json" 2>/dev/null || echo "unknown")
+              echo "Strix run status: $status"
+              if [ "$status" = "stopped" ]; then
+                echo "Warning: Strix run hit hard budget limit before full completion."
+              fi
+            fi
+          fi
+
+      - name: Upload Strix Findings SARIF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: strix-security-report
+          path: strix_runs/
+          retention-days: 14

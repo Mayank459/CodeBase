@@ -308,6 +308,44 @@ CodeBase/
 
 ---
 
+## 🛡️ Strix Autonomous Security Testing & Agent Skills
+
+CodeBase is integrated with [**Strix**](https://github.com/usestrix/strix), the autonomous AI penetration testing tool. Strix enables continuous white-box security audits, API penetration tests, and automated vulnerability validation.
+
+### Installed Strix Agent Skills
+The repository is equipped with 9 specialized agent skills located in `.agents/skills/`:
+- `find-security-vulnerabilities-in-code`: White-box AI security review reasoning over source data flows, routes, and authorization boundaries.
+- `api-security-testing`: OWASP API Security Top 10 automated testing with validated exploit proof-of-concepts.
+- `application-security-testing`: End-to-end product security review and ranked remediation planning.
+- `ci-security-scanning-with-strix`: Diff-scoped pre-merge security gating in CI/CD pipelines.
+- `fix-security-vulnerabilities-with-strix`: Root-cause vulnerability remediation and re-verification.
+- `owasp-top-10-testing`: OWASP Top 10:2025 category coverage and compliance reporting.
+- `penetration-testing-with-strix`: Autonomous dynamic penetration testing execution.
+- `managed-pentesting-with-strix`: Managed cloud scanning via `app.strix.ai`.
+- `web-app-penetration-testing`: Dynamic black-box web and API penetration testing.
+
+### Running Strix
+
+#### 1. Self-Hosted Local CLI (Docker)
+```bash
+# White-box scan of the repository
+strix -n -t ./ --scan-mode standard --max-budget 10
+
+# Scan running API backend with spec
+strix -n -t http://localhost:8000 --scan-mode quick --max-budget 5
+```
+
+#### 2. Managed Cloud (No Docker required)
+```bash
+strix cloud login
+strix cloud scans start --source . --wait
+```
+
+#### 3. Automated CI/CD Workflow
+Diff-scoped security scans run automatically on pull requests via `.github/workflows/strix-security.yml`, producing SARIF reports and blocking vulnerable code before merging.
+
+---
+
 ## 📄 License
 
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for complete details.

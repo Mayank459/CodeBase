@@ -27,6 +27,7 @@ DEFAULT_CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
+    "https://codebase-ys83.onrender.com",
 ]
 env_cors = os.getenv("CORS_ORIGINS", "")
 allowed_origins = [orig.strip() for orig in env_cors.split(",") if orig.strip()] if env_cors else DEFAULT_CORS_ORIGINS
@@ -34,6 +35,7 @@ allowed_origins = [orig.strip() for orig in env_cors.split(",") if orig.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"^https?:\/\/.*$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
