@@ -36,52 +36,86 @@ CodeBase operates on a **Dual-Plane Indexing Architecture** with built-in **Inpu
 
 ```mermaid
 flowchart TD
-    subgraph INGESTION["1. INGESTION & PARSING ENGINE"]
-        GH[GitHub Repository / Local Git] -->|Shallow Clone depth=1| CLN[Repository Loader]
-        CLN --> SCAN[Language Extractor]
-        SCAN --> TS[Tree-sitter AST Parser]
-        TS --> ENT[Class & Function Symbol Index]
-        TS --> NX[NetworkX Call Graph Builder]
+    subgraph INGESTION [1. Ingestion and Parsing Engine]
+        GH[GitHub Repository or Local Git]
+        CLN[Repository Loader]
+        SCAN[Language Extractor]
+        TS[Tree-sitter AST Parser]
+        ENT[Class and Function Symbol Index]
+        NX[NetworkX Call Graph Builder]
+
+        GH --> CLN
+        CLN --> SCAN
+        SCAN --> TS
+        TS --> ENT
+        TS --> NX
     end
 
-    subgraph STORAGE["2. HYBRID STORAGE & KNOWLEDGE TOPOLOGY"]
-        ENT --> COHERE[Cohere 384-d Dense Embeddings]
-        COHERE --> QDRANT[(Qdrant Vector Database)]
-        NX --> GRAPH_STORE[(Topological Dependency Graph)]
+    subgraph STORAGE [2. Hybrid Storage and Knowledge Topology]
+        COHERE[Cohere 384-d Dense Embeddings]
+        QDRANT[(Qdrant Vector Database)]
+        GRAPH_STORE[(Topological Dependency Graph)]
+
+        COHERE --> QDRANT
     end
 
-    subgraph GUARDRAILS_IN["3. INPUT GUARDRAILS & OBSERVABILITY"]
-        DEV([Developer Query]) --> G_IN{Prompt Injection Guardrail}
-        G_IN -->|Malicious / Jailbreak| BLK([400 Blocked Alert])
-        G_IN -->|Sanitized Query| TRACE[Trace Span & Request-ID Middleware]
+    subgraph GUARDRAILS_IN [3. Input Guardrails and Observability]
+        DEV([Developer Query])
+        G_IN{Prompt Injection Guardrail}
+        BLK([400 Blocked Alert])
+        TRACE[Trace Span and Request-ID Middleware]
+
+        DEV --> G_IN
+        G_IN -->|Malicious Query| BLK
+        G_IN -->|Sanitized Query| TRACE
     end
 
-    subgraph ORCHESTRATION["4. LANGGRAPH MULTI-AGENT RUNTIME"]
-        TRACE --> ROUTER{Intent Router}
-        ROUTER -->|Architectural Queries| BFS[Graph Traverser BFS]
-        ROUTER -->|Semantic Logic| VEC[Dense Hybrid Retriever]
-        ROUTER -->|Security & Hygiene| AUDIT[CVE & Dead Code Engine]
-        
-        BFS --> SYNTH[Synthesizer Agent]
+    subgraph ORCHESTRATION [4. LangGraph Multi-Agent Runtime]
+        ROUTER{Intent Router}
+        BFS[Graph Traverser BFS]
+        VEC[Dense Hybrid Retriever]
+        AUDIT[CVE and Dead Code Engine]
+        SYNTH[Synthesizer Agent]
+
+        ROUTER -->|Architecture| BFS
+        ROUTER -->|Semantics| VEC
+        ROUTER -->|Security| AUDIT
+        BFS --> SYNTH
         VEC --> SYNTH
         AUDIT --> SYNTH
     end
 
-    subgraph GUARDRAILS_OUT["5. OUTPUT GUARDRAILS & EXPOSITION"]
-        SYNTH --> G_LEAK[Data Leakage & Secret Scrubber]
-        G_LEAK --> G_CIT[Citation Grounding Validator]
-        G_CIT --> PROM[(Prometheus Metrics /metrics)]
-        G_CIT --> SSE[Server-Sent Events Stream / REST]
+    subgraph GUARDRAILS_OUT [5. Output Guardrails and Exposition]
+        G_LEAK[Data Leakage and Secret Scrubber]
+        G_CIT[Citation Grounding Validator]
+        PROM[(Prometheus Metrics)]
+        SSE[Server-Sent Events Stream]
+
+        G_LEAK --> G_CIT
+        G_CIT --> PROM
+        G_CIT --> SSE
     end
 
-    subgraph EVALS["6. OFFLINE & CI/CD EVALS BENCHMARK"]
-        BENCH[(evals/dataset.json)] --> RET_EVAL[Retrieval Evals: Hit Rate@K & MRR]
-        BENCH --> LLM_EVAL[LLM Evals: Faithfulness & Grounding]
-        RET_EVAL --> REPORT[(evals_report.json)]
+    subgraph EVALS [6. Offline and CI/CD Evals Benchmark]
+        BENCH[(Evaluation Dataset)]
+        RET_EVAL[Retrieval Evals: Hit Rate and MRR]
+        LLM_EVAL[LLM Evals: Faithfulness and Grounding]
+        REPORT[(Evals Summary Report)]
+
+        BENCH --> RET_EVAL
+        BENCH --> LLM_EVAL
+        RET_EVAL --> REPORT
         LLM_EVAL --> REPORT
     end
 
-    SSE --> FE[Senior Developer Workstation UI]
+    FE[Senior Developer Workstation UI]
+
+    %% Root-Level Cross-Cluster Dataflow
+    ENT --> COHERE
+    NX --> GRAPH_STORE
+    TRACE --> ROUTER
+    SYNTH --> G_LEAK
+    SSE --> FE
 ```
 
 ---
