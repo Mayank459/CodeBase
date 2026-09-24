@@ -557,12 +557,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         {/* Content Body */}
                         <div className="space-y-3">
                           <div className="rounded-xl p-4 bg-[#121318] border border-white/[0.08] text-slate-200 text-sm leading-relaxed shadow-lg">
-                            <div className="whitespace-pre-wrap font-sans">
-                              {msg.content}
-                              {msg.isStreaming && (
-                                <span className="blinking-cursor" />
-                              )}
-                            </div>
+                            {!msg.content && msg.isStreaming ? (
+                              <div className="flex items-center gap-2 py-1">
+                                <div className="thinking-dot" />
+                                <div className="thinking-dot" />
+                                <div className="thinking-dot" />
+                                <span className="text-xs font-mono text-slate-400 ml-2">Reasoning...</span>
+                              </div>
+                            ) : (
+                              <div className="whitespace-pre-wrap font-sans">
+                                {msg.content}
+                                {msg.isStreaming && (
+                                  <span className="blinking-cursor" />
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {/* Source Evidence Pills in Cyan JetBrains Mono (Figma Version 5 Spec) */}

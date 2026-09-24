@@ -16,7 +16,7 @@ const CHIPS = [
 
 export function FeatureChipsStrip({ onSelectTab, onSendQuery }) {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto py-2 scrollbar-none border-b border-white/[0.06] mb-4">
+    <div className="flex items-center gap-2 overflow-x-auto py-2.5 px-3 rounded-2xl bg-[#0b101c]/60 border border-white/[0.08] backdrop-blur-md mb-5 scrollbar-none shadow-lg">
       <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5 pr-2">
         <Sparkles size={12} className="text-cyan-400" />
         Capabilities:
@@ -30,11 +30,11 @@ export function FeatureChipsStrip({ onSelectTab, onSendQuery }) {
             if (chip.tab) onSelectTab(chip.tab);
             if (chip.query && onSendQuery) onSendQuery(chip.query);
           }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0f1420] hover:bg-[#151c2e] border border-white/[0.08] hover:border-white/20 text-xs font-mono text-slate-300 hover:text-white transition-all whitespace-nowrap cursor-pointer shadow-sm group"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] hover:border-white/20 active:scale-[0.96] text-xs font-mono text-slate-300 hover:text-white transition-all whitespace-nowrap cursor-pointer shadow-sm group"
         >
           <span
-            className="h-1.5 w-1.5 rounded-full transition-transform group-hover:scale-125"
-            style={{ backgroundColor: chip.color, boxShadow: `0 0 8px ${chip.color}` }}
+            className="h-1.5 w-1.5 rounded-full transition-transform group-hover:scale-150"
+            style={{ backgroundColor: chip.color, boxShadow: `0 0 10px ${chip.color}` }}
           />
           <span>{chip.label}</span>
         </button>

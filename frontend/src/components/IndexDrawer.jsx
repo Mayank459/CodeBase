@@ -177,7 +177,7 @@ export function IndexDrawer({
 
       {/* Expandable Body */}
       {isOpen && (
-        <div className="px-5 pb-5 pt-2 border-t border-white/[0.06] space-y-4">
+        <div className="px-5 pb-5 pt-2 border-t border-white/[0.06] space-y-4 motion-expand-body">
           {/* Quick Presets */}
           <div className="flex items-center gap-2 flex-wrap text-xs">
             <span className="text-slate-400 font-mono text-[11px]">Quick Load:</span>

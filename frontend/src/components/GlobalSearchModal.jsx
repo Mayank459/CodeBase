@@ -74,10 +74,13 @@ export function GlobalSearchModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/80 backdrop-blur-md motion-modal-backdrop cursor-pointer"
+    >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl rounded-2xl bg-[#0a0e17] border border-white/15 shadow-2xl shadow-indigo-500/10 overflow-hidden flex flex-col"
+        className="w-full max-w-2xl rounded-2xl bg-[#0a0e17] border border-white/15 shadow-2xl shadow-indigo-500/10 overflow-hidden flex flex-col motion-modal-card cursor-default"
       >
         {/* Search Input Bar */}
         <div className="relative flex items-center px-4 py-3.5 border-b border-white/10 bg-white/[0.02]">

@@ -255,10 +255,38 @@ export function getMermaidLiveUrl(code) {
       updateDiagram: true,
     };
     const jsonStr = JSON.stringify(state);
-    const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+    const bytes = new TextEncoder().encode(jsonStr);
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const b64 = (typeof window !== 'undefined' ? window.btoa : (s) => Buffer.from(s, 'binary').toString('base64'))(binary);
     return `https://mermaid.live/edit#base64:${b64}`;
   } catch (err) {
     return `https://mermaid.live/edit`;
+  }
+}
+
+/**
+ * Generate a direct SVG / Image rendering URL via mermaid.ink
+ */
+export function getMermaidInkUrl(code, format = 'svg', theme = 'dark') {
+  if (!code) return null;
+  try {
+    const cleanCode = code.trim();
+    const bytes = new TextEncoder().encode(cleanCode);
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const b64 = (typeof window !== 'undefined' ? window.btoa : (s) => Buffer.from(s, 'binary').toString('base64'))(binary);
+    const endpoint = format === 'png' ? 'img' : 'svg';
+    const themeParam = theme ? `?theme=${theme}&bgColor=!07090e` : '?bgColor=!07090e';
+    return `https://mermaid.ink/${endpoint}/${b64}${themeParam}`;
+  } catch (err) {
+    return null;
   }
 }
 

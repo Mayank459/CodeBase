@@ -44,7 +44,7 @@ export function RetrievalEvidenceDrawer({ evidence, defaultExpanded = false }) {
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="p-4 space-y-4 text-xs border-t border-white/[0.06] bg-black/30">
+        <div className="p-4 space-y-4 text-xs border-t border-white/[0.06] bg-black/30 motion-expand-body">
           {/* 1. Retrieved AST Entities */}
           {semanticResults.length > 0 && (
             <div className="space-y-2">

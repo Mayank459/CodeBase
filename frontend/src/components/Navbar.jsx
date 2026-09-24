@@ -105,8 +105,8 @@ export function Navbar({
   const currentBase = getApiBase();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-[#080c14]/90 backdrop-blur-xl transition-all">
-      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-8 lg:px-12 h-16 sm:h-18 flex items-center justify-between gap-4 sm:gap-6">
+    <header className="sticky top-2 sm:top-4 z-40 w-full max-w-[1720px] mx-auto px-3 sm:px-6 transition-all">
+      <div className="w-full bg-[#0b101c]/80 border border-white/[0.1] rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/80 backdrop-blur-2xl px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between gap-4">
         
         {/* Left: Brand Logo (Interactive Click-to-Home) */}
         <div className="flex items-center gap-3">

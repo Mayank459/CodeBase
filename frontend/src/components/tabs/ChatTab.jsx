@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, Trash2, Bot, User, Sparkles, Terminal, ArrowRight, 
   CornerDownLeft, Shield, Network, Layers, GitBranch, Database,
-  Maximize2, Minimize2, X, Minus, Download
+  Maximize2, Minimize2, X, Minus, Download, Copy, Check, Share,
+  RefreshCw, MoreHorizontal, FileText
 } from 'lucide-react';
 import { apiPost, streamChatAgent, fetchDebugSearch } from '../../api';
 import { MarkdownView } from '../MarkdownView';
@@ -67,6 +68,103 @@ export function ChatTab({ activeRepo }) {
   const [activeAgent, setActiveAgent] = useState('Chat Agent');
   const [showPipeline, setShowPipeline] = useState(true);
   const [windowState, setWindowState] = useState('normal'); // 'normal' | 'maximized' | 'minimized' | 'closed'
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  const [activeMenuIndex, setActiveMenuIndex] = useState(null);
+  const [shareToastIndex, setShareToastIndex] = useState(null);
+  const menuContainerRef = useRef(null);
+
+  // Close dropdown menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(e.target)) {
+        setActiveMenuIndex(null);
+      }
+    };
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
+  }, []);
+
+  const handleCopyMessage = async (e, text, idx) => {
+    if (e) e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(idx);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (_) {}
+  };
+
+  const handleShareMessage = async (e, msg, idx) => {
+    if (e) e.stopPropagation();
+    try {
+      const filename = `Nexus_CodeBase_${activeRepo || 'AI'}_${Date.now()}.md`;
+      const blob = new Blob([msg.content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      const shareText = `--- NEXUS / CODEBASE-AI [${activeRepo || 'AST Grounded'}] ---\n\n${msg.content}\n\nGenerated with CodeBase Intelligence`;
+      await navigator.clipboard.writeText(shareText);
+
+      setShareToastIndex(idx);
+      setTimeout(() => setShareToastIndex(null), 2500);
+    } catch (_) {}
+  };
+
+  const handleRegenerate = async (e, assistantIndex) => {
+    if (e) e.stopPropagation();
+    if (loading) return;
+
+    let userQuery = '';
+    for (let i = assistantIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        userQuery = messages[i].content;
+        break;
+      }
+    }
+    if (!userQuery) return;
+
+    setMessages((prev) => prev.slice(0, assistantIndex));
+
+    setTimeout(() => {
+      handleSend(userQuery);
+    }, 60);
+  };
+
+  const handleToggleMenu = (e, idx) => {
+    if (e) {
+      e.stopPropagation();
+      if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+    }
+    setActiveMenuIndex((prev) => (prev === idx ? null : idx));
+  };
+
+  const handleCopyPlainText = async (e, content, idx) => {
+    if (e) e.stopPropagation();
+    const plain = content
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/#{1,6}\s+/g, '')
+      .replace(/(\*\*|__)(.*?)\1/g, '$2')
+      .replace(/(\*|_)(.*?)\1/g, '$2')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .trim();
+    try {
+      await navigator.clipboard.writeText(plain);
+      setCopiedIndex(idx);
+      setActiveMenuIndex(null);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (_) {}
+  };
+
+  const handleDeleteMessage = (e, idx) => {
+    if (e) e.stopPropagation();
+    setMessages((prev) => prev.filter((_, i) => i !== idx));
+    setActiveMenuIndex(null);
+  };
 
   // Press Esc to exit maximized mode
   useEffect(() => {
@@ -584,7 +682,55 @@ export function ChatTab({ activeRepo }) {
                 </div>
 
                 {isUser ? (
-                  <p className="font-tiempos text-[16px] sm:text-[17px] leading-[1.75] whitespace-pre-wrap font-normal text-indigo-50">{msg.content}</p>
+                  <div>
+                    <p className="font-tiempos text-[16px] sm:text-[17px] leading-[1.75] whitespace-pre-wrap font-normal text-indigo-50">{msg.content}</p>
+                    <div className="flex items-center justify-end gap-1 mt-2 text-indigo-300/60">
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyMessage(e, msg.content, index)}
+                        className="p-1 rounded hover:text-white hover:bg-indigo-500/20 transition-colors cursor-pointer text-xs flex items-center gap-1"
+                        title="Copy prompt"
+                      >
+                        {copiedIndex === index ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                ) : !msg.content && loading && index === messages.length - 1 ? (
+                  <div className="py-2 space-y-3 min-w-[280px] sm:min-w-[360px]">
+                    {/* Top status bar: Live Stage Badge & Harmonic Pulsing Dots */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                        </span>
+                        <span className="text-[11px] font-mono tracking-wide text-cyan-300 font-medium">
+                          {pipelineStep === 'router' && 'LangGraph Router Dispatch'}
+                          {pipelineStep === 'vector' && 'Vector Index Retrieval'}
+                          {pipelineStep === 'graph' && 'AST Knowledge Graph Traversal'}
+                          {pipelineStep === 'agent' && 'Context Synthesis Engine'}
+                          {(pipelineStep === 'llm' || pipelineStep === 'idle') && 'Synthesizing Response'}
+                        </span>
+                      </div>
+
+                      {/* Harmonic Wave Dots */}
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+                        <div className="thinking-dot" />
+                        <div className="thinking-dot" />
+                        <div className="thinking-dot" />
+                      </div>
+                    </div>
+
+                    {/* Dynamic Status Detail */}
+                    <div className="text-xs font-mono text-slate-300 leading-relaxed bg-[#060911]/80 rounded-lg px-3.5 py-2.5 border border-white/[0.06] shadow-inner">
+                      {pipelineStatus || 'Traversing AST call tree & semantic vector index...'}
+                    </div>
+
+                    {/* Luminous Shimmer Wave Bar */}
+                    <div className="shimmer-track">
+                      <div className="shimmer-beam" />
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <MarkdownView content={msg.content} />
@@ -593,24 +739,120 @@ export function ChatTab({ activeRepo }) {
                     )}
                     {/* Cyan JetBrains Mono Evidence Pills */}
                     <RetrievalEvidenceDrawer evidence={msg.evidence} />
+
+                    {/* ChatGPT-style Action Toolbar for Assistant Response */}
+                    {msg.content && (!loading || index !== messages.length - 1) && (
+                      <div className="flex items-center gap-1 mt-3 pt-2.5 border-t border-white/[0.06] text-slate-400">
+                        {/* 1. Copy */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyMessage(e, msg.content, index)}
+                          className="p-1.5 rounded-lg hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer relative group/btn"
+                          title="Copy response"
+                        >
+                          {copiedIndex === index ? (
+                            <Check size={14} className="text-emerald-400" />
+                          ) : (
+                            <Copy size={14} className="group-hover/btn:scale-105 transition-transform" />
+                          )}
+                          {copiedIndex === index && (
+                            <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono pointer-events-none whitespace-nowrap animate-in fade-in">
+                              Copied!
+                            </span>
+                          )}
+                        </button>
+
+                        {/* 2. Share / Export */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleShareMessage(e, msg, index)}
+                          className="p-1.5 rounded-lg hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer relative group/btn"
+                          title="Share & export response"
+                        >
+                          <Share size={14} className="group-hover/btn:scale-105 transition-transform" />
+                          {shareToastIndex === index && (
+                            <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono pointer-events-none whitespace-nowrap animate-in fade-in">
+                              Exported .md!
+                            </span>
+                          )}
+                        </button>
+
+                        {/* 3. Regenerate */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleRegenerate(e, index)}
+                          disabled={loading}
+                          className={`p-1.5 rounded-lg transition-colors relative group/btn ${
+                            loading ? 'opacity-30 cursor-not-allowed' : 'hover:text-white hover:bg-white/[0.08] cursor-pointer'
+                          }`}
+                          title="Regenerate response"
+                        >
+                          <RefreshCw size={14} className={`group-hover/btn:scale-105 transition-transform ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+
+                        {/* 4. More Options Menu (...) */}
+                        <div className="relative" ref={activeMenuIndex === index ? menuContainerRef : null}>
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleMenu(e, index)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              activeMenuIndex === index ? 'bg-white/[0.12] text-white' : 'hover:text-white hover:bg-white/[0.08]'
+                            }`}
+                            title="More options"
+                          >
+                            <MoreHorizontal size={14} />
+                          </button>
+
+                          {/* Dropdown Menu */}
+                          {activeMenuIndex === index && (
+                            <div 
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute left-0 bottom-full mb-2 w-48 rounded-xl bg-[#0a0e17] border border-white/[0.12] shadow-2xl backdrop-blur-2xl py-1.5 z-40 animate-in fade-in duration-150"
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => handleCopyMessage(e, msg.content, index)}
+                                className="w-full px-3 py-1.5 text-left text-xs font-mono text-slate-300 hover:text-white hover:bg-white/[0.06] flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <Copy size={13} className="text-indigo-400" />
+                                <span>Copy Raw Markdown</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleCopyPlainText(e, msg.content, index)}
+                                className="w-full px-3 py-1.5 text-left text-xs font-mono text-slate-300 hover:text-white hover:bg-white/[0.06] flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <FileText size={13} className="text-cyan-400" />
+                                <span>Copy Plain Text</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleShareMessage(e, msg, index)}
+                                className="w-full px-3 py-1.5 text-left text-xs font-mono text-slate-300 hover:text-white hover:bg-white/[0.06] flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <Download size={13} className="text-emerald-400" />
+                                <span>Download (.md)</span>
+                              </button>
+                              <div className="h-px bg-white/[0.08] my-1" />
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteMessage(e, index)}
+                                className="w-full px-3 py-1.5 text-left text-xs font-mono text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete Message</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
             </div>
           );
         })}
-
-        {loading && pipelineStep !== 'llm' && (
-          <div className="flex items-start gap-3">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mt-0.5 shadow-md">
-              <Sparkles size={13} className="animate-spin" />
-            </div>
-            <div className="bg-[#0f1420] border border-white/[0.08] rounded-xl px-4 py-3 text-xs text-slate-300 flex items-center gap-2 font-mono shadow-md">
-              <span className="h-2 w-2 rounded-full bg-indigo-400 animate-ping" />
-              <span>{pipelineStatus || 'Traversing AST call tree & semantic vector index...'}</span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 4. Categorized Quick Prompt Chips */}
