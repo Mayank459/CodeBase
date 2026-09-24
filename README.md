@@ -19,6 +19,10 @@
   <b>CodeBase</b> is an enterprise-grade developer intelligence platform engineered for full-stack codebase comprehension. By unifying deep abstract syntax tree (AST) decomposition, graph-theoretic topological call tracing, hybrid vector retrieval, enterprise safety guardrails, deep telemetry, and continuous RAG evaluation, CodeBase transforms sprawling repositories into an actionable, observable, queryable intelligence plane.
 </p>
 
+<p align="center">
+  <img src="docs/illustrations/codebase-master-overview.jpg" alt="CodeBase Developer Intelligence Platform Architecture Map" width="100%" />
+</p>
+
 [🌐 Live Deployment](https://code-base-self.vercel.app/) •
 [Explore Capabilities](#-capabilities-suite) •
 [Architecture Spec](#-system-architecture) •
@@ -120,6 +124,22 @@ flowchart TD
     SSE --> FE
 ```
 
+### 🎨 Architecture in Action (Illustrated)
+
+<div align="center">
+
+| **1. AST Parsing & Symbol Decomposition** | **2. Multi-Agent Intent Switchman** |
+|:---:|:---:|
+| <img src="docs/illustrations/ast-parsing.jpg" width="480" alt="AST Parsing" /> | <img src="docs/illustrations/agent-router.jpg" width="480" alt="Agent Router" /> |
+| *Pruning tangled code into clean Tree-sitter AST symbol trees.* | *LangGraph routing queries across Vector DB, Call Graph, & LLM.* |
+
+| **3. Enterprise Guardrails & Secret Scrubber** | **4. Topological Call Graph Traversal** |
+|:---:|:---:|
+| <img src="docs/illustrations/guardrails-safety.jpg" width="480" alt="Guardrails & Security" /> | <img src="docs/illustrations/call-graph-traversal.jpg" width="480" alt="Call Graph Traversal" /> |
+| *Real-time injection blocking & secret redaction for safe outputs.* | *Tracing execution call paths from API controllers to target functions.* |
+
+</div>
+
 ---
 
 ## ⚡ Capabilities Suite
@@ -147,6 +167,10 @@ CodeBase provides 9 core intelligence tools complemented by production-grade pla
 ## 🛡️ Enterprise Guardrails Engine
 
 The platform incorporates automated guardrail interceptors on both incoming prompts and synthesized outputs (`app/guardrails/`):
+
+<p align="center">
+  <img src="docs/illustrations/guardrails-safety.jpg" width="650" alt="Enterprise Guardrails & Secret Scrubber" />
+</p>
 
 1. **Prompt Injection & Jailbreak Defense (`PromptInjectionGuardrail`)**:
    - Detects and intercepts instruction override attempts (e.g., *"ignore previous instructions"*), role reversals, system prompt extraction, and raw delimiter injection (`<|im_start|>`).
