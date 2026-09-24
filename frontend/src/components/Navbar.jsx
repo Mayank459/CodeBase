@@ -311,6 +311,19 @@ export function Navbar({
             )}
           </div>
 
+          {/* Live Vercel App link button */}
+          <a
+            href="https://code-base-self.vercel.app/"
+            target="_blank"
+            rel="noreferrer"
+            className="px-2.5 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 hover:text-white hover:bg-indigo-500/20 transition-all hidden lg:flex items-center gap-1.5 text-xs font-mono font-medium shadow-sm"
+            title="Open Live Vercel App"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Live App</span>
+            <ExternalLink size={11} className="text-indigo-400/80" />
+          </a>
+
           {/* GitHub source icon button */}
           <a
             href="https://github.com/Mayank459/CodeBase"

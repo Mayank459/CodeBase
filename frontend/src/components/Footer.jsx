@@ -175,6 +175,17 @@ export function Footer({
                   <ExternalLink size={10} className="text-slate-500" />
                 </a>
               </li>
+              <li>
+                <a
+                  href="https://code-base-self.vercel.app/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white transition-colors inline-flex items-center gap-1 text-indigo-400 font-medium"
+                >
+                  <span>Live App (Vercel)</span>
+                  <ExternalLink size={10} className="text-indigo-400/70" />
+                </a>
+              </li>
             </ul>
           </div>
 

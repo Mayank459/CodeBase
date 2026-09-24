@@ -3,6 +3,7 @@
 # ⚡ CodeBase: Repository Intelligence Engine
 ### High-Performance AST Parsing • Topological Call Graph Traversal • Multi-Agent RAG • Enterprise Guardrails • Observability & Evals
 
+[![Live App](https://img.shields.io/badge/Live_App-code--base--self.vercel.app-000000.svg?style=flat-square&logo=vercel&logoColor=white)](https://code-base-self.vercel.app/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React 19](https://img.shields.io/badge/React-19.0-61DAFB.svg?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
@@ -18,6 +19,7 @@
   <b>CodeBase</b> is an enterprise-grade developer intelligence platform engineered for full-stack codebase comprehension. By unifying deep abstract syntax tree (AST) decomposition, graph-theoretic topological call tracing, hybrid vector retrieval, enterprise safety guardrails, deep telemetry, and continuous RAG evaluation, CodeBase transforms sprawling repositories into an actionable, observable, queryable intelligence plane.
 </p>
 
+[🌐 Live Deployment](https://code-base-self.vercel.app/) •
 [Explore Capabilities](#-capabilities-suite) •
 [Architecture Spec](#-system-architecture) •
 [Guardrails & Safety](#-enterprise-guardrails-engine) •
@@ -225,6 +227,9 @@ The repository includes production deployment configurations and automated pipel
 ---
 
 ## 🚀 Quickstart Guide
+
+### 0. Live Cloud Deployment
+Access the hosted production application: **[https://code-base-self.vercel.app/](https://code-base-self.vercel.app/)**
 
 ### 1. Prerequisites
 - **Python 3.11+**
