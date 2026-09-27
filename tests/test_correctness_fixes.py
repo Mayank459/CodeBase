@@ -270,3 +270,14 @@ def test_diagram_agent_picks_the_diagram_kind_from_the_question():
     finally:
         repository_registry.repositories.pop("zz_diagram_demo", None)
     assert arch.startswith("graph TB") and dep.startswith("graph LR")
+
+
+def test_large_repositories_are_drawn_at_package_level():
+    from app.uml.architecture_diagram import ArchitectureDiagramGenerator
+    files = {f"svc/pkg{i}/mod{j}.py": (f"from svc.pkg{(i + 1) % 6}.mod0 import f\n" if j == 0 else "") + "def f():\n    return 1\n"
+             for i in range(6) for j in range(10)}  # 60 modules in 6 packages
+    gen = ArchitectureDiagramGenerator(build(files)[0])
+    for kind in ("architecture", "dependencies"):
+        d = gen.generate(kind)
+        assert "svc/pkg0/ · 10 files" in d
+        assert "mod3.py" not in d  # no per-file boxes

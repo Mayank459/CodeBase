@@ -133,6 +133,11 @@ class ArchitectureDiagramGenerator:
         return deps, external
 
     def _label(self, path, all_paths):
+        sizes = getattr(self, "_group_sizes", None)
+        if sizes:  # package-level diagram: show the directory and how many modules it holds
+            n = sizes.get(path, 0)
+            where = "(repo root)" if path in (".", "") else f"{path}/"
+            return self._escape_label(f"{where} · {n} {'file' if n == 1 else 'files'}")
         name = path.rsplit("/", 1)[-1]
         same = [p for p in all_paths if p.rsplit("/", 1)[-1] == name]
         if len(same) > 1:  # disambiguate e.g. several __init__.py
@@ -151,10 +156,43 @@ class ArchitectureDiagramGenerator:
 
     # ------------------------------------------------------------ diagrams
 
+    # Above this many modules a file-level picture is a wall of boxes; group by package
+    MAX_FILE_NODES = 40
+    MAX_GROUPS = 30
+
+    def _grouped(self, deps, external):
+        """Collapse files into their directories (packages), summing edge weights."""
+        dirs = {f: (os.path.dirname(f) or ".") for f in deps.nodes()}
+        depth = max(len(d.split("/")) for d in dirs.values())
+        while len(set(dirs.values())) > self.MAX_GROUPS and depth > 1:
+            depth -= 1
+            dirs = {f: "/".join(d.split("/")[:depth]) for f, d in dirs.items()}
+        grouped = nx.DiGraph()
+        sizes = defaultdict(int)
+        for f, g in dirs.items():
+            sizes[g] += 1
+            grouped.add_node(g)
+        for a, b, d in deps.edges(data=True):
+            ga, gb = dirs[a], dirs[b]
+            if ga == gb:
+                continue
+            if grouped.has_edge(ga, gb):
+                grouped[ga][gb]["weight"] += d["weight"]
+            else:
+                grouped.add_edge(ga, gb, weight=d["weight"], kinds=set(d["kinds"]))
+        ext = defaultdict(set)
+        for f, pkgs in external.items():
+            ext[dirs.get(f, f)] |= pkgs
+        self._group_sizes = dict(sizes)
+        return grouped, ext
+
     def generate(self, kind="architecture"):
         deps, external = self._dependency_graph()
         if deps.number_of_nodes() == 0:
             return "graph TB\n  empty[\"No source modules found\"]"
+        self._group_sizes = None
+        if deps.number_of_nodes() > self.MAX_FILE_NODES:
+            deps, external = self._grouped(deps, external)
         if kind == "dependencies":
             return self._dependencies(deps, external)
         return self._architecture(deps)
@@ -185,7 +223,7 @@ class ArchitectureDiagramGenerator:
                 titles[idx] = title
 
         paths = list(deps.nodes())
-        ids = {f: f"m_{self._clean_id(f)}" for f in paths}
+        ids = {f: f"m_{self._clean_id(f) or 'root'}" for f in paths}
         lines = ["graph TB", ""]
         for idx in sorted(layers):
             lines.append(f'  subgraph L{idx} ["{titles[idx]}"]')
@@ -224,7 +262,7 @@ class ArchitectureDiagramGenerator:
         connected = [n for n in deps.nodes() if deps.degree(n) > 0 or external.get(n)]
         sub = deps.subgraph(connected)
         paths = list(sub.nodes())
-        ids = {f: f"m_{self._clean_id(f)}" for f in paths}
+        ids = {f: f"m_{self._clean_id(f) or 'root'}" for f in paths}
 
         by_dir = defaultdict(list)
         for f in paths:
