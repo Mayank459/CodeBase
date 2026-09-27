@@ -17,4 +17,8 @@ class ComparisonRequest(BaseModel):
 
 class EvolutionRequest(BaseModel):
     old_repository: str
-    new_repository: str
+    new_repository: str
+class DocstringRequest(BaseModel):
+    repository_name: str
+    symbol_id: str          # e.g. "src/requests/sessions.py::Session::send"
+    style: str = "google"   # "google" or "numpy"

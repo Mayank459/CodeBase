@@ -45,6 +45,43 @@ def _unwrap(node):
     return definition, node, decorators
 
 
+def _string_value(node):
+    """Python value of a string literal node ('\'\'\'...\'\'\'', r"...", etc.)."""
+    import ast
+    import inspect
+    text = node.text.decode("utf8", errors="replace")
+    try:
+        value = ast.literal_eval(text)
+    except Exception:
+        value = text.strip("rRuUbBfF").strip("\"'")
+    return inspect.cleandoc(value) if isinstance(value, str) else ""
+
+
+def _docstring(block):
+    """Docstring of a module/class/function body: its first statement, if a string."""
+    if block is None:
+        return ""
+    for child in block.named_children:
+        if child.type == "comment":
+            continue
+        if child.type == "expression_statement" and child.named_children and child.named_children[0].type == "string":
+            return _string_value(child.named_children[0])
+        return ""
+    return ""
+
+
+def _api(node):
+    """Signature pieces of a function_definition: parameters, return annotation, async."""
+    params = node.child_by_field_name("parameters")
+    ret = node.child_by_field_name("return_type")
+    return {
+        "signature": params.text.decode("utf8", errors="replace") if params else "()",
+        "return_type": ret.text.decode("utf8", errors="replace") if ret else "",
+        "docstring": _docstring(node.child_by_field_name("body")),
+        "is_async": any(c.type == "async" for c in node.children),
+    }
+
+
 def extract_python_file(
     file_path: str,
     source_code: str
@@ -65,6 +102,7 @@ def extract_python_file(
     tree = parser.parse(source_bytes)
 
     root = tree.root_node
+    parsed_file.module_docstring = _docstring(root)
 
     for top in root.children:
 
@@ -88,7 +126,8 @@ def extract_python_file(
                     end_line=outer.end_point[0] + 1,
                     code=code_of(outer),
                     calls=extract_calls(node),
-                    decorators=decorators
+                    decorators=decorators,
+                    **_api(node)
                 )
             )
 
@@ -130,7 +169,8 @@ def extract_python_file(
                 end_line=outer.end_point[0] + 1,
                 code=code_of(outer),
                 methods=[],
-                bases=bases
+                bases=bases,
+                docstring=_docstring(node.child_by_field_name("body"))
             )
 
             for child in node.children:
@@ -156,7 +196,8 @@ def extract_python_file(
                                     end_line=item_outer.end_point[0] + 1,
                                     code=code_of(item_outer),
                                     calls=extract_calls(item),
-                                    decorators=item_decorators
+                                    decorators=item_decorators,
+                                    **_api(item)
                                 )
                             )
 

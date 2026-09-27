@@ -1,6 +1,7 @@
 """Documentation agent module."""
-from app.documentation.repository_docs import RepositoryDocumentationGenerator
+from app.documentation.api_reference import build_reference, reference_to_markdown
 from app.storage.repository_registry import repository_registry
+
 
 def documentation_node(
     state
@@ -12,8 +13,8 @@ def documentation_node(
         state["answer"] = "Repository not indexed."
         return state
 
-    generator = RepositoryDocumentationGenerator()
-    
-    state["answer"] = generator.generate(repository)
+    # A chat answer gets the coverage summary; the Docs tab fetches the full
+    # reference from /repository/docs.
+    state["answer"] = reference_to_markdown(build_reference(repository), compact=True)
 
     return state

@@ -20,3 +20,5 @@ class ParsedFile:
     variables: list[ParsedVariable] = field(default_factory=list)
 
     source_code: str = ""
+
+    module_docstring: str = ""

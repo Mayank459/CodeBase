@@ -230,3 +230,63 @@ def reindex_stream(request: RepositoryRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post("/docs")
+def api_reference(request: RepositoryNameRequest):
+    """Structured API reference: public modules, classes and functions with
+    their signatures, docstrings and documentation coverage."""
+    from fastapi import HTTPException
+    from app.storage.repository_registry import repository_registry
+    from app.documentation.api_reference import build_reference, reference_to_markdown
+
+    repository = repository_registry.get(request.repository_name)
+    if not repository:
+        raise HTTPException(status_code=404, detail=f"Repository '{request.repository_name}' is not indexed.")
+    ref = build_reference(repository)
+    ref["markdown"] = reference_to_markdown(ref)
+    return ref
+
+
+from app.api.schemas.repository import DocstringRequest
+
+
+@router.post("/docstring")
+def draft_docstring(request: DocstringRequest):
+    """Draft a docstring for one symbol from its own code."""
+    from fastapi import HTTPException
+    from app.storage.repository_registry import repository_registry
+    from app.documentation.api_reference import find_symbol
+    from app.chat.llm_provider import LLMProvider
+
+    repository = repository_registry.get(request.repository_name)
+    if not repository:
+        raise HTTPException(status_code=404, detail=f"Repository '{request.repository_name}' is not indexed.")
+    code, kind = find_symbol(repository, request.symbol_id, with_kind=True)
+    if not code:
+        raise HTTPException(status_code=404, detail=f"Symbol '{request.symbol_id}' not found.")
+    style = "NumPy" if request.style.lower().startswith("numpy") else "Google"
+    if kind == "class":
+        what = (
+            "a class. Summarise what the class is for and list its main public methods in one line each. "
+            "Document constructor arguments only if the class defines __init__; never list a method's "
+            "parameters as the class's arguments."
+        )
+    else:
+        what = (
+            f"a {kind}. Name every parameter in its signature (types if annotated), the return value, "
+            "and any exception it raises explicitly."
+        )
+    prompt = (
+        f"Write a {style}-style Python docstring for {what}\n"
+        "Describe only what this code visibly does; do not invent behaviour, callers or examples. "
+        "Return only the docstring text, without the surrounding triple quotes.\n\n"
+        f"```python\n{code[:6000]}\n```"
+    )
+    text = LLMProvider().generate(prompt, task_type="documentation", temperature=0.2, max_tokens=700)
+    text = (text or "").strip().strip('`').strip()
+    if text.startswith(('"""', "'''")):
+        text = text[3:]
+    if text.endswith(('"""', "'''")):
+        text = text[:-3]
+    return {"symbol_id": request.symbol_id, "style": style.lower(), "docstring": text.strip()}

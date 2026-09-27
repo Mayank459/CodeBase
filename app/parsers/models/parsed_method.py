@@ -9,3 +9,7 @@ class ParsedMethod:
     code: str
     calls: list[ParsedCall] = field(default_factory=list)
     decorators: list[str] = field(default_factory=list)
+    signature: str = ""
+    return_type: str = ""
+    docstring: str = ""
+    is_async: bool = False

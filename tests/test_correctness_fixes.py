@@ -281,3 +281,58 @@ def test_large_repositories_are_drawn_at_package_level():
         d = gen.generate(kind)
         assert "svc/pkg0/ · 10 files" in d
         assert "mod3.py" not in d  # no per-file boxes
+
+
+# ------------------------------------------------------------------ docs
+
+def test_api_reference_lists_public_api_with_signatures_and_coverage():
+    from app.documentation.api_reference import build_reference, find_symbol, reference_to_markdown
+    idx, _ = build({
+        "src/pkg/__init__.py": '"""Demo package."""\nfrom .client import Client\n',
+        "src/pkg/client.py": (
+            "class Client(Base):\n"
+            "    '''Talks to the server.'''\n"
+            "    def __init__(self, url: str, timeout: float = 3.0):\n        self.url = url\n"
+            "    def send(self, data) -> bytes:\n        '''Send data.'''\n        return b''\n"
+            "    @property\n    def ready(self):\n        return True\n"
+            "    def _private(self):\n        pass\n\n"
+            "async def fetch(\n    url,\n    retries=2,\n):\n    return None\n"
+        ),
+        "tests/test_client.py": "def test_x():\n    pass\n",
+    })
+    ref = build_reference(idx)
+    assert [m["module"] for m in ref["modules"]] == ["pkg", "pkg.client"]
+    client = ref["modules"][1]["classes"][0]
+    assert client["signature"] == "(url: str, timeout: float = 3.0)"      # from __init__, self removed
+    assert client["docstring"] == "Talks to the server."
+    methods = {m["name"]: m for m in client["methods"]}
+    assert set(methods) == {"send", "ready"}                               # private and __init__ hidden
+    assert methods["send"]["return_type"] == "bytes" and methods["ready"]["kind"] == "property"
+    fetch = ref["modules"][1]["functions"][0]
+    assert fetch["is_async"] and fetch["signature"] == "(url, retries=2)"  # one line
+    assert ref["stats"] == {"modules": 2, "public_symbols": 4, "documented": 2, "coverage_pct": 50}
+    assert "def send" in find_symbol(idx, "src/pkg/client.py::Client::send")
+    md = reference_to_markdown(ref)
+    assert "## `pkg.client`" in md and "_No docstring._" in md and "tests" not in md
+
+
+def test_docs_endpoint_returns_reference_and_404_for_unknown_repo():
+    from fastapi.testclient import TestClient
+    from main import app
+    from app.storage.repository_registry import repository_registry
+    idx, _ = build({"lib/mod.py": "def f():\n    '''Doc.'''\n    return 1\n"})
+    repository_registry.repositories["zz_docs_demo"] = {"index": idx, "timestamp": 0}
+    try:
+        client = TestClient(app)
+        ok = client.post("/repository/docs", json={"repository_name": "zz_docs_demo"})
+        missing = client.post("/repository/docs", json={"repository_name": "zz_does_not_exist_repo"})
+    finally:
+        repository_registry.repositories.pop("zz_docs_demo", None)
+    assert ok.status_code == 200 and ok.json()["stats"]["coverage_pct"] == 100 and "markdown" in ok.json()
+    assert missing.status_code == 404
+
+
+def test_module_docstring_drops_a_rest_title_block():
+    from app.documentation.api_reference import _clean_doc
+    assert _clean_doc("requests.sessions\n~~~~~~~~~~~~~~~~~\n\nThis module provides a Session.") == "This module provides a Session."
+    assert _clean_doc("Plain summary.\n\nMore.") == "Plain summary.\n\nMore."
