@@ -290,3 +290,17 @@ def draft_docstring(request: DocstringRequest):
     if text.endswith(('"""', "'''")):
         text = text[:-3]
     return {"symbol_id": request.symbol_id, "style": style.lower(), "docstring": text.strip()}
+
+
+from app.api.schemas.repository import ComparisonRequest
+
+
+@router.post("/compare")
+def compare(request: ComparisonRequest):
+    """Structured side-by-side comparison. Repositories that are not indexed
+    come back under `missing`, so the client can index them and ask again."""
+    from app.comparison.profile import compare_repositories, comparison_markdown
+
+    result = compare_repositories(request.repositories)
+    result["markdown"] = comparison_markdown(result)
+    return result

@@ -1,6 +1,17 @@
 """Symbol table module."""
 from collections import defaultdict
 
+# Methods of built-in types that receiver calls (`obj.name()`) usually mean
+COMMON_METHOD_NAMES = frozenset({
+    "get", "set", "items", "keys", "values", "pop", "update", "setdefault", "clear", "copy",
+    "append", "extend", "insert", "remove", "sort", "index", "count",
+    "add", "discard", "union", "intersection", "difference",
+    "join", "split", "rsplit", "strip", "lstrip", "rstrip", "replace", "format", "encode", "decode",
+    "startswith", "endswith", "lower", "upper", "find", "splitlines",
+    "read", "write", "readline", "readlines", "close", "flush", "seek", "open",
+    "match", "search", "sub", "group", "exists", "mkdir",
+})
+
 
 class SymbolTable:
 
@@ -63,6 +74,11 @@ class SymbolTable:
                 if own in self.node_ids:
                     return [own]
         last = raw.split(".")[-1].split("(")[0]
+        # `x.get()` on an unknown receiver is almost always a dict, str, list or
+        # file method; linking it to the repo's own `get` methods invented
+        # hundreds of callers (e.g. flask's _AppCtxGlobals.get "called" 213 times).
+        if "." in raw and last in COMMON_METHOD_NAMES:
+            return []
         candidates = self.by_name.get(last, [])
         if not candidates:
             return []

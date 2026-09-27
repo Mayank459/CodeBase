@@ -176,6 +176,17 @@ class ArchitectureAnalyzer:
                 if top_parts:
                     all_imports.add(top_parts[0])
 
+        # A repository importing its own package (flask's tests import flask) is
+        # that framework, not a user of it.
+        own_packages = set()
+        for p in self.repository_index.parsed_files:
+            parts = p.file_path.replace("\\", "/").split("/")
+            if parts and parts[0] in ("src", "lib"):
+                parts = parts[1:]
+            if len(parts) >= 2 and parts[-1] == "__init__.py":
+                own_packages.add(parts[0].lower())
+        all_imports -= own_packages
+
         for imp_name, (name, category, role, color) in FRAMEWORK_REGISTRY.items():
             if imp_name.lower() in all_imports and imp_name.lower() not in detected:
                 detected[imp_name.lower()] = {
@@ -367,6 +378,9 @@ class ArchitectureAnalyzer:
         for node, data in self.graph.nodes(data=True):
             if data.get("type") not in code_types:
                 continue
+            path = "/" + node.split("::")[0].replace("\\", "/")
+            if "/tests/" in path or "/test/" in path or path.rsplit("/", 1)[-1].startswith("test_"):
+                continue  # test helpers are not part of the architecture
             total = callers[node] + callees[node]
             if total:
                 scored.append((node, callers[node], callees[node], total))
