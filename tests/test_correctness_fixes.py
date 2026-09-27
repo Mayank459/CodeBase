@@ -225,3 +225,48 @@ def test_security_report_with_no_findings_makes_no_grade_claims(monkeypatch):
         repository_registry.repositories.pop("zz_security_demo", None)
     assert "A+" not in state["answer"] and "100 / 100" not in state["answer"]
     assert "not proof" in state["answer"]
+
+
+# ------------------------------------------------------------- diagrams
+
+def _diagram_repo():
+    return build({
+        "src/pkg/__init__.py": "from .api import get\n",
+        "src/pkg/api.py": "from .core import run\nimport urllib3\n\ndef get():\n    return run()\n",
+        "src/pkg/core.py": "from . import util\nfrom pkg.util import helper\n\ndef run():\n    return helper()\n",
+        "src/pkg/util.py": "import os\n\ndef helper():\n    return 1\n",
+        "README.md": "# demo\n",
+        "tests/test_api.py": "from pkg.api import get\n",
+    })[0]
+
+
+def test_diagram_dependencies_resolve_relative_and_absolute_imports():
+    from app.uml.architecture_diagram import ArchitectureDiagramGenerator
+    deps, external = ArchitectureDiagramGenerator(_diagram_repo())._dependency_graph()
+    assert deps.has_edge("src/pkg/api.py", "src/pkg/core.py")       # from .core import run
+    assert deps.has_edge("src/pkg/core.py", "src/pkg/util.py")      # from pkg.util import helper
+    assert "README.md" not in deps and "tests/test_api.py" not in deps
+    assert external["src/pkg/api.py"] == {"urllib3"}                # third-party, not os (stdlib)
+
+
+def test_architecture_and_dependency_diagrams_differ_and_use_paper_styling():
+    from app.uml.architecture_diagram import ArchitectureDiagramGenerator
+    gen = ArchitectureDiagramGenerator(_diagram_repo())
+    arch, dep = gen.generate("architecture"), gen.generate("dependencies")
+    assert arch != dep
+    assert arch.startswith("graph TB") and "Foundation" in arch and "Entry" in arch
+    assert dep.startswith("graph LR") and "Third-party packages" in dep and "urllib3" in dep
+    for d in (arch, dep):
+        assert "#0f172a" not in d and "file_content" not in d and "README" not in d
+
+
+def test_diagram_agent_picks_the_diagram_kind_from_the_question():
+    from app.storage.repository_registry import repository_registry
+    from app.agents.architecture_diagram_agent import architecture_diagram_node
+    repository_registry.repositories["zz_diagram_demo"] = {"index": _diagram_repo(), "timestamp": 0}
+    try:
+        arch = architecture_diagram_node({"repository_name": "zz_diagram_demo", "question": "generate architecture diagram uml"})["answer"]
+        dep = architecture_diagram_node({"repository_name": "zz_diagram_demo", "question": "generate dependency diagram uml"})["answer"]
+    finally:
+        repository_registry.repositories.pop("zz_diagram_demo", None)
+    assert arch.startswith("graph TB") and dep.startswith("graph LR")
