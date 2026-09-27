@@ -34,6 +34,8 @@ class SparseDocument:
     repository_name: str
     entity_type: str = "symbol"
     tokens: List[str] = field(default_factory=list)
+    start_line: Optional[int] = None
+    end_line: Optional[int] = None
 
 
 @dataclass
@@ -67,7 +69,9 @@ class BM25Retriever:
         file_path: str,
         content: str,
         repository_name: str,
-        entity_type: str = "symbol"
+        entity_type: str = "symbol",
+        start_line: Optional[int] = None,
+        end_line: Optional[int] = None
     ):
         """Add a single entity document to the BM25 index."""
         # Index name with higher weight by repeating tokens
@@ -84,10 +88,13 @@ class BM25Retriever:
             content=content,
             repository_name=repository_name,
             entity_type=entity_type,
-            tokens=all_tokens
+            tokens=all_tokens,
+            start_line=start_line,
+            end_line=end_line
         )
         self.documents[doc_id] = doc
-        self.repo_doc_ids[repository_name.lower()].append(doc_id)
+        from app.storage.repository_registry import normalize_repo_name
+        self.repo_doc_ids[normalize_repo_name(repository_name).lower()].append(doc_id)
 
         term_counts = Counter(all_tokens)
         self.doc_term_freqs[doc_id] = term_counts
@@ -102,7 +109,8 @@ class BM25Retriever:
     def index_entities(self, repository_name: str, entities: List[Any]):
         """Index a batch of extracted entities for a repository."""
         # Clean existing repository entries if re-indexing
-        repo_key = repository_name.lower()
+        from app.storage.repository_registry import normalize_repo_name
+        repo_key = normalize_repo_name(repository_name).lower()
         if repo_key in self.repo_doc_ids:
             for old_id in self.repo_doc_ids[repo_key]:
                 self.documents.pop(old_id, None)
@@ -116,15 +124,20 @@ class BM25Retriever:
                     self.inverted_index[term].append(d_id)
 
         for entity in entities:
-            doc_id = str(getattr(entity, "id", f"{getattr(entity, 'file_path', '')}::{getattr(entity, 'name', '')}"))
+            # Repository-scoped id: entity ids restart at 1 per repository, so a bare
+            # id let one repository's documents overwrite another's.
+            node_id = getattr(entity, "graph_node_id", None) or f"{getattr(entity, 'file_path', '')}::{getattr(entity, 'name', '')}"
+            doc_id = f"{repo_key}::{node_id}"
             self.add_document(
                 doc_id=doc_id,
-                graph_node_id=getattr(entity, "graph_node_id", doc_id),
+                graph_node_id=node_id,
                 name=getattr(entity, "name", ""),
                 file_path=getattr(entity, "file_path", ""),
                 content=getattr(entity, "content", "") or getattr(entity, "code", ""),
                 repository_name=repository_name,
-                entity_type=getattr(entity, "entity_type", "symbol")
+                entity_type=getattr(entity, "entity_type", "symbol"),
+                start_line=getattr(entity, "start_line", None),
+                end_line=getattr(entity, "end_line", None)
             )
 
     def search(
@@ -146,7 +159,8 @@ class BM25Retriever:
 
         target_doc_ids = None
         if repository_name:
-            target_doc_ids = set(self.repo_doc_ids.get(repository_name.lower(), []))
+            from app.storage.repository_registry import normalize_repo_name
+            target_doc_ids = set(self.repo_doc_ids.get(normalize_repo_name(repository_name).lower(), []))
             if not target_doc_ids:
                 return []
 
@@ -192,7 +206,9 @@ class BM25Retriever:
                         "name": doc.name,
                         "file_path": doc.file_path,
                         "content": doc.content,
-                        "entity_type": doc.entity_type
+                        "entity_type": doc.entity_type,
+                        "start_line": doc.start_line,
+                        "end_line": doc.end_line
                     }
                 )
             )

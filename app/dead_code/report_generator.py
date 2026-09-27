@@ -1,4 +1,7 @@
 """Dead code report generator."""
+from collections import defaultdict
+
+
 class DeadCodeReportGenerator:
 
     def generate(
@@ -7,33 +10,30 @@ class DeadCodeReportGenerator:
     ):
 
         if not findings:
-
             return (
-                "No dead code found."
+                "# Dead code\n\n"
+                "No unreferenced functions or methods were found. Every function and method "
+                "either has a caller, is referenced by name somewhere, or is invoked by the "
+                "runtime or a framework (dunder methods, decorated handlers, tests)."
             )
 
-        lines = []
+        counts = defaultdict(int)
+        for f in findings:
+            counts[f.confidence] += 1
 
-        lines.append(
-            "# Dead Code Report\n"
-        )
+        lines = [
+            "# Dead code",
+            "",
+            f"{len(findings)} unreferenced symbols: "
+            f"{counts['high']} high confidence (private), "
+            f"{counts['medium']} medium (public, may be used by importers), "
+            f"{counts['low']} low (may override an inherited method).",
+            "",
+            "| Confidence | Symbol | Where |",
+            "| --- | --- | --- |",
+        ]
+        for f in findings:
+            where = f"`{f.file_path}`" + (f":{f.start_line}" if f.start_line else "")
+            lines.append(f"| {f.confidence} | `{f.name or f.node_id}` ({f.node_type}) | {where} |")
 
-        for finding in findings:
-
-            lines.append(
-                f"- {finding.node_type}"
-            )
-
-            lines.append(
-                f"  {finding.node_id}"
-            )
-
-            lines.append(
-                f"  {finding.reason}"
-            )
-
-            lines.append("")
-            
-        return "\n".join(
-            lines
-        )
+        return "\n".join(lines)

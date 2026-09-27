@@ -8,3 +8,4 @@ class ParsedMethod:
     end_line: int
     code: str
     calls: list[ParsedCall] = field(default_factory=list)
+    decorators: list[str] = field(default_factory=list)

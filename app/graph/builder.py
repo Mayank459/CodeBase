@@ -64,7 +64,8 @@ class RepositoryGraphBuilder:
                 name=function.name,
                 file_path=file_node,
                 start_line=function.start_line,
-                end_line=function.end_line
+                end_line=function.end_line,
+                decorators=getattr(function, "decorators", [])
             )
             self.graph.add_edge(
                 file_node,
@@ -81,28 +82,7 @@ class RepositoryGraphBuilder:
                 edge_type=EdgeType.DEFINES.value
             )
 
-            for call in function.calls:
-                resolved = self.symbol_table.functions.get(call.name)
-                if resolved:
-                    self.graph.add_edge(
-                        function_node,
-                        resolved,
-                        key=f"{function_node}->calls->{resolved}",
-                        relation=EdgeType.CALLS.value,
-                        edge_type=EdgeType.CALLS.value,
-                        is_external=False
-                    )
-                else:
-                    call_node = f"CALL::{call.name}"
-                    self.graph.add_node(call_node, type=NodeType.CALL.value, name=call.name)
-                    self.graph.add_edge(
-                        function_node,
-                        call_node,
-                        key=f"{function_node}->calls->{call_node}",
-                        relation=EdgeType.CALLS.value,
-                        edge_type=EdgeType.CALLS.value,
-                        is_external=True
-                    )
+            self._add_calls(function_node, function.calls, file_node)
 
         # -----------------------------
         # Classes & Methods + Inheritance
@@ -162,7 +142,10 @@ class RepositoryGraphBuilder:
                     type="method",
                     name=method.name,
                     class_name=cls.name,
-                    file_path=file_node
+                    file_path=file_node,
+                    start_line=method.start_line,
+                    end_line=method.end_line,
+                    decorators=getattr(method, "decorators", [])
                 )
                 self.graph.add_edge(
                     class_node,
@@ -179,31 +162,33 @@ class RepositoryGraphBuilder:
                     edge_type=EdgeType.DEFINES.value
                 )
 
-                for call in method.calls:
-                    resolved = (
-                        self.symbol_table.methods.get(call.name)
-                        or self.symbol_table.functions.get(call.name)
+                self._add_calls(method_node, method.calls, file_node, caller_class=class_node)
+
+    def _add_calls(self, caller_node, calls, file_node, caller_class=None):
+        for call in calls:
+            targets = self.symbol_table.resolve_call(call.name, caller_file=file_node, caller_class=caller_class)
+            targets = [t for t in targets if t != caller_node]  # direct recursion is not a caller
+            if targets:
+                for resolved in targets:
+                    self.graph.add_edge(
+                        caller_node,
+                        resolved,
+                        key=f"{caller_node}->calls->{resolved}",
+                        relation=EdgeType.CALLS.value,
+                        edge_type=EdgeType.CALLS.value,
+                        is_external=False
                     )
-                    if resolved:
-                        self.graph.add_edge(
-                            method_node,
-                            resolved,
-                            key=f"{method_node}->calls->{resolved}",
-                            relation=EdgeType.CALLS.value,
-                            edge_type=EdgeType.CALLS.value,
-                            is_external=False
-                        )
-                    else:
-                        call_node = f"CALL::{call.name}"
-                        self.graph.add_node(call_node, type=NodeType.CALL.value, name=call.name)
-                        self.graph.add_edge(
-                            method_node,
-                            call_node,
-                            key=f"{method_node}->calls->{call_node}",
-                            relation=EdgeType.CALLS.value,
-                            edge_type=EdgeType.CALLS.value,
-                            is_external=True
-                        )
+            else:
+                call_node = f"CALL::{call.name}"
+                self.graph.add_node(call_node, type=NodeType.CALL.value, name=call.name)
+                self.graph.add_edge(
+                    caller_node,
+                    call_node,
+                    key=f"{caller_node}->calls->{call_node}",
+                    relation=EdgeType.CALLS.value,
+                    edge_type=EdgeType.CALLS.value,
+                    is_external=True
+                )
 
     def get_graph(self):
         return self.graph

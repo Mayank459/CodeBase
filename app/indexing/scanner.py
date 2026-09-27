@@ -5,7 +5,7 @@ IGNORE_DIRS = {
     ".git", ".svn", ".hg",
     ".venv", "venv", "env", ".env",
     "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache",
-    ".tox", ".eggs", "*.egg-info",
+    ".tox", ".eggs",
     "node_modules", ".yarn", ".pnpm-store",
     "dist", "build", "out", "target",
     "coverage", ".coverage", "htmlcov",
@@ -31,16 +31,28 @@ SKIP_EXTENSIONS = {
 MAX_FILE_SIZE = 100 * 1024   # 100 KB
 
 
+def _ignored_dir(part: str) -> bool:
+    # Hidden directories (.git, .github, .venv...) and known build/vendor dirs
+    return part.startswith(".") or part in IGNORE_DIRS or part.endswith(".egg-info")
+
+
 def scan_repository(repo_path: str) -> list:
     """
     Return a list of Path objects for all indexable source files under repo_path.
     Applies directory exclusions, extension filtering, and a file-size cap.
     """
     files = []
+    root = Path(repo_path)
 
-    for path in Path(repo_path).rglob("*"):
-        # Skip ignored directories
-        if any(part in IGNORE_DIRS for part in path.parts):
+    for path in root.rglob("*"):
+        # Judge only the part of the path inside the repository: checking the
+        # absolute path skipped everything when the clone lived under a folder
+        # named e.g. "build" or "env".
+        rel_parts = path.relative_to(root).parts
+        if any(_ignored_dir(part) for part in rel_parts[:-1]):
+            continue
+        # Dotfiles (.readthedocs.yaml, .pre-commit-config.yaml...) are config, not code
+        if rel_parts and rel_parts[-1].startswith("."):
             continue
 
         if not path.is_file():
@@ -61,4 +73,4 @@ def scan_repository(repo_path: str) -> list:
 
         files.append(path)
 
-    return files
+    return files

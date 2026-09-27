@@ -212,68 +212,47 @@ class ArchitectureAnalyzer:
         return list(detected.values())
 
     def classify_layers(self):
+        # Match whole path segments (directory names and the file stem), never
+        # substrings: "api" must not match "src/requests/api.py"'s neighbours by
+        # accident, and "hooks.py" in a Python library is not client state.
         layers_def = [
-            (
-                "Presentation & UI Layer",
-                "Frontend",
-                ["components", "pages", "views", "ui", "styles", "layouts", ".jsx", ".tsx", ".html", ".css", ".scss"],
-                ["backend", "server", "controllers"],
-                "User-facing components, views, layouts, and style definitions.",
-                "#06b6d4"
-            ),
-            (
-                "API Gateway & Routing Layer",
-                "Routing",
-                ["routes", "api", "controllers", "endpoints", "router"],
-                [],
-                "HTTP request routing, URL dispatching, and controller endpoints.",
-                "#6366f1"
-            ),
-            (
-                "Business Logic & Services",
-                "Core Logic",
-                ["services", "agents", "core", "domain", "workflows", "utils", "helpers", "analysis", "evals"],
-                [],
-                "Domain workflows, processing algorithms, and business logic execution.",
-                "#10b981"
-            ),
-            (
-                "Data & Persistence Layer",
-                "Persistence",
-                ["models", "schemas", "db", "database", "storage", "indexing", "repositories", "entities"],
-                [],
-                "Data models, database connections, schemas, and persistence operations.",
-                "#f59e0b"
-            ),
-            (
-                "State & Client Store",
-                "State",
-                ["context", "hooks", "store", "redux", "reducers", "zustand"],
-                [],
-                "Client-side state management, custom React hooks, and shared contexts.",
-                "#ec4899"
-            ),
-            (
-                "Build, DevOps & Config",
-                "Infrastructure",
-                ["docker", "vite.config", "package.json", "requirements", "tsconfig", "eslint", "vercel.json", "webpack"],
-                [],
-                "Project configuration, dependency manifests, and build tooling.",
-                "#8b5cf6"
-            )
+            ("Presentation & UI Layer", "Frontend",
+             {"components", "pages", "views", "ui", "styles", "layouts", "templates"},
+             {".jsx", ".tsx", ".html", ".css", ".scss", ".vue", ".svelte"}, None,
+             "User-facing components, views, layouts, and style definitions.", "#06b6d4"),
+            ("API & Routing Layer", "Routing",
+             {"routes", "routers", "controllers", "endpoints", "router", "views"}, set(), None,
+             "HTTP request routing, URL dispatching, and controller endpoints.", "#6366f1"),
+            ("Business Logic & Services", "Core Logic",
+             {"services", "agents", "core", "domain", "workflows", "analysis", "logic"}, set(), None,
+             "Domain workflows, processing algorithms, and business logic execution.", "#10b981"),
+            ("Data & Persistence Layer", "Persistence",
+             {"models", "schemas", "db", "database", "storage", "repositories", "entities", "migrations"}, set(), None,
+             "Data models, database connections, schemas, and persistence operations.", "#f59e0b"),
+            ("State & Client Store", "State",
+             {"context", "contexts", "hooks", "store", "stores", "redux", "reducers"}, set(),
+             {".js", ".jsx", ".ts", ".tsx"},
+             "Client-side state management, hooks, and shared contexts.", "#ec4899"),
+            ("Tests", "Tests",
+             {"tests", "test", "testing", "spec", "__tests__"}, set(), None,
+             "Automated tests and test fixtures.", "#64748b"),
+            ("Build, DevOps & Config", "Infrastructure",
+             {"docker", "dockerfile", "requirements", "setup", "pyproject", "tsconfig", "package", "vite.config", "webpack.config"}, set(), None,
+             "Project configuration, dependency manifests, and build tooling.", "#8b5cf6"),
         ]
 
         total_files = len(self.repository_index.parsed_files)
         matched_layers = []
 
-        for l_name, l_cat, positive_kw, negative_kw, desc, color in layers_def:
+        for l_name, l_cat, segments, extensions, only_ext, desc, color in layers_def:
             matching_files = []
             for p in self.repository_index.parsed_files:
-                path_lower = p.file_path.lower().replace("\\", "/")
-                # Check negative exclusions
-                if negative_kw and any(neg in path_lower for neg in negative_kw):
+                path = p.file_path.replace("\\", "/").lower()
+                parts = path.split("/")
+                stem, ext = Path(parts[-1]).stem, Path(parts[-1]).suffix
+                if only_ext and ext not in only_ext:
                     continue
-                if any(pos in path_lower for pos in positive_kw):
+                if ext in extensions or stem in segments or any(d in segments for d in parts[:-1]):
                     matching_files.append(p.file_path)
 
             if matching_files:
@@ -328,6 +307,30 @@ class ArchitectureAnalyzer:
         ]
 
         seen_paths = set()
+
+        # Python conventions, which the path lists above miss for most repositories
+        for actual_path, parsed in file_paths.items():
+            name = actual_path.rsplit("/", 1)[-1]
+            src = getattr(parsed, "source_code", "") or ""
+            if name == "__main__.py":
+                entry_points.append({"path": actual_path, "type": "Module Entry (python -m)",
+                                     "description": "Runs when the package is executed with python -m."})
+                seen_paths.add(actual_path)
+            elif re.search(r"if\s+__name__\s*==\s*[\"']__main__[\"']", src):
+                entry_points.append({"path": actual_path, "type": "Script Entry",
+                                     "description": "Has an if __name__ == \"__main__\" block, so it can be run directly."})
+                seen_paths.add(actual_path)
+
+        # The shallowest package __init__ outside tests is the public import surface
+        inits = sorted(
+            (p for p in file_paths if p.endswith("__init__.py") and not re.search(r"(^|/)(tests?|docs)/", p)),
+            key=lambda p: p.count("/"),
+        )
+        if inits and inits[0] not in seen_paths:
+            entry_points.append({"path": inits[0], "type": "Package Public API",
+                                 "description": "What `import` exposes; the names users of this package call."})
+            seen_paths.add(inits[0])
+
         for candidates in [server_candidates, client_candidates, root_ui_candidates, job_candidates]:
             for rel_path, entry_type, desc in candidates:
                 for actual_path in file_paths:
@@ -342,26 +345,39 @@ class ArchitectureAnalyzer:
 
         return entry_points
 
+    def _internal_calls(self):
+        return [
+            (u, v) for u, v, d in self.graph.edges(data=True)
+            if d.get("relation") == "calls" and not d.get("is_external")
+        ]
+
     def get_centrality_hubs(self, limit=6):
+        """Functions, methods and classes with the most resolved call edges.
+
+        Raw degree counted structural `contains`/`defines` edges, so files and
+        import nodes topped the list (e.g. docs/conf.py) and a module everything
+        imports showed zero incoming dependencies."""
+        from collections import Counter
+        callers, callees = Counter(), Counter()
+        for u, v in self._internal_calls():
+            callees[u] += 1   # u calls out to v
+            callers[v] += 1   # v is called by u
+        code_types = {"function", "method", "class"}
+        scored = []
+        for node, data in self.graph.nodes(data=True):
+            if data.get("type") not in code_types:
+                continue
+            total = callers[node] + callees[node]
+            if total:
+                scored.append((node, callers[node], callees[node], total))
+        scored.sort(key=lambda x: (x[3], x[1]), reverse=True)
+
         hubs = []
-        if self.graph.number_of_nodes() == 0:
-            return hubs
-
-        node_scores = []
-        for node in self.graph.nodes():
-            in_deg = self.graph.in_degree(node) if hasattr(self.graph, "in_degree") else 0
-            out_deg = self.graph.out_degree(node) if hasattr(self.graph, "out_degree") else 0
-            total = in_deg + out_deg
-            node_scores.append((node, in_deg, out_deg, total))
-
-        node_scores.sort(key=lambda x: x[3], reverse=True)
-
-        for node, in_deg, out_deg, total in node_scores[:limit]:
+        for node, in_deg, out_deg, total in scored[:limit]:
             if in_deg >= out_deg:
-                role = f"High Afferent Coupling — Depended on by {in_deg} components"
+                role = f"Called from {in_deg} places — a shared dependency"
             else:
-                role = f"High Efferent Coupling — Coordinates {out_deg} downstream dependencies"
-
+                role = f"Calls {out_deg} other functions — a coordinator"
             hubs.append({
                 "node": str(node),
                 "in_degree": in_deg,
@@ -369,46 +385,48 @@ class ArchitectureAnalyzer:
                 "total_degree": total,
                 "role": role
             })
-
         return hubs
 
-    def detect_pattern(self):
+    def detect_pattern(self, frameworks=None):
+        """Architecture pattern from the frameworks the code actually imports.
+
+        The old heuristic called any repository with "agent" anywhere in a path
+        a multi-agent system, which is how psf/requests got that label."""
+        frameworks = frameworks if frameworks is not None else self.detect_frameworks()
+        cats = {f.get("category", "") for f in frameworks}
+        names = {f.get("name", "") for f in frameworks}
         file_paths = [p.file_path.lower().replace("\\", "/") for p in self.repository_index.parsed_files]
 
-        has_frontend = any("frontend/" in fp or "src/components" in fp for fp in file_paths)
-        has_backend = any("backend/" in fp or "server/" in fp or "api/" in fp for fp in file_paths)
-        has_agents = any("agent" in fp or "workflow" in fp for fp in file_paths)
+        has_frontend = any(c in cats for c in ("Frontend & UI", "Full-Stack Framework"))
+        has_backend = any(c in cats for c in ("Backend & API", "Full-Stack Backend", "Full-Stack Framework"))
+        has_agents = "LangGraph" in names or "Multi-Agent Orchestration" in cats
+        is_package = any(fp.endswith(("setup.py", "pyproject.toml", "setup.cfg")) for fp in file_paths) or any(
+            fp.endswith("__init__.py") for fp in file_paths
+        )
 
+        if has_agents and has_backend:
+            return {"pattern": "Agent Service",
+                    "summary": "An HTTP service whose requests run through an agent orchestration graph (LangGraph).",
+                    "badge": "Agents + API"}
         if has_frontend and has_backend:
-            return {
-                "pattern": "Decoupled Full-Stack Architecture",
-                "summary": "Separated client-side single page application (SPA) and backend API service tier communicating over HTTP REST/JSON endpoints, enabling independent deployment and isolated state persistence.",
-                "badge": "Full-Stack Distributed"
-            }
-        elif has_agents:
-            return {
-                "pattern": "Multi-Agent Cognitive & Graph Architecture",
-                "summary": "Graph-orchestrated multi-agent architecture utilizing directed stateful pipelines, AST code graph indexing, and semantic vector retrieval.",
-                "badge": "Agentic Graph Pipeline"
-            }
-        elif has_frontend:
-            return {
-                "pattern": "Client-Side Single Page Application (SPA)",
-                "summary": "Modern component-driven frontend architecture with client-side routing, virtual DOM reactivity, and dynamic component styling.",
-                "badge": "Frontend SPA"
-            }
-        elif has_backend:
-            return {
-                "pattern": "Layered Modular Service Architecture",
-                "summary": "Modular service architecture organizing endpoints into routes, business logic services, and persistence layers.",
-                "badge": "Modular Backend"
-            }
-        else:
-            return {
-                "pattern": "Modular Component Architecture",
-                "summary": "Standard modular software architecture partitioned into self-contained source units and utility modules.",
-                "badge": "Modular Library"
-            }
+            return {"pattern": "Full-Stack Application",
+                    "summary": "A client application and a backend API in one repository, talking over HTTP.",
+                    "badge": "Frontend + API"}
+        if has_backend:
+            return {"pattern": "Web Service",
+                    "summary": "A backend organised around HTTP routes, with supporting services and data access.",
+                    "badge": "Backend"}
+        if has_frontend:
+            return {"pattern": "Client Application",
+                    "summary": "A component-based frontend application.",
+                    "badge": "Frontend"}
+        if is_package:
+            return {"pattern": "Library",
+                    "summary": "An importable package: its public API is what other code calls; there is no server of its own.",
+                    "badge": "Library"}
+        return {"pattern": "Modular Codebase",
+                "summary": "Source files organised into modules without a detected framework.",
+                "badge": "Modules"}
 
     def compute_loc(self):
         total_loc = 0
@@ -433,13 +451,18 @@ class ArchitectureAnalyzer:
         graph_nodes = self.graph.number_of_nodes()
         graph_edges = self.graph.number_of_edges()
 
-        # Modularity index (ratio of nodes to edges, normalized)
-        density = round(graph_edges / max(graph_nodes, 1), 2)
-        modularity_score = max(min(round(100 - (density * 15)), 96), 65)
+        # Coupling: resolved calls per function/method/class.
+        # Modularity: share of those calls that stay inside the caller's own file.
+        # (The old score was a formula clamped to 65-96, so it never measured anything.)
+        calls = self._internal_calls()
+        code_nodes = sum(1 for _, d in self.graph.nodes(data=True) if d.get("type") in ("function", "method", "class"))
+        density = round(len(calls) / max(code_nodes, 1), 2)
+        same_file = sum(1 for u, v in calls if u.split("::")[0] == v.split("::")[0])
+        modularity_score = round(100 * same_file / len(calls)) if calls else 0
 
-        pattern_info = self.detect_pattern()
-        languages_info = self.detect_languages()
         frameworks = self.detect_frameworks()
+        pattern_info = self.detect_pattern(frameworks)
+        languages_info = self.detect_languages()
         layers = self.classify_layers()
         entry_points = self.detect_entry_points()
         centrality_hubs = self.get_centrality_hubs()

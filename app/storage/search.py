@@ -15,8 +15,10 @@ def search(query: str, top_k: int = 5, repository_name: Optional[str] = None):
 
     query_filter = None
     if repository_name:
-        # Case-insensitive repository name match or exact match
-        clean_repo = str(repository_name).strip()
+        # Vector filters match exactly and case-sensitively, so map whatever the
+        # caller sent ("psf/requests", "Requests") to the stored name first.
+        from app.storage.repository_registry import repository_registry
+        clean_repo = repository_registry.resolve(repository_name)
         query_filter = Filter(
             must=[
                 FieldCondition(

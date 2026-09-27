@@ -26,27 +26,21 @@ def security_node(state):
     llm = LLMProvider()
     
     if not findings:
-        prompt = f"""
-You are a Principal Security Architect performing an official security evaluation of the '{repository.repository_name}' repository.
+        # State what was checked and nothing more. The old prompt hard-coded
+        # "PASSED (Grade A+), 100/100" and asked the model to praise security
+        # patterns it had never seen; a pattern scan cannot prove code is secure.
+        from app.security.patterns import SECURITY_RULES
+        categories = sorted({r.get("category", "") for r in SECURITY_RULES if r.get("category")})
+        state["answer"] = (
+            f"# Security scan: {repository.repository_name}\n\n"
+            f"No matches for the scanner's {len(SECURITY_RULES)} rules across {total_files} files.\n\n"
+            f"**Rules checked:** {', '.join(categories)}.\n\n"
+            "This is a static pattern scan of source text. It finds known risky constructs such as "
+            "hard-coded secrets, `eval`/`exec`, shell calls and string-built SQL. It does not check "
+            "dependency CVEs, authentication logic or data flow, so no findings is not proof the code is secure."
+        )
+        return state
 
-The automated static scanner evaluated {total_files} source files and detected 0 security vulnerabilities or exposed credentials.
-
-Write a clean, professional, executive-grade Security Audit Report using the following clear sections:
-1. **Executive Summary**:
-   - Status: **PASSED (Grade A+)**
-   - Security Health Score: **100 / 100**
-   - Repository: `{repository.repository_name}` ({total_files} files evaluated)
-   - Summary: State clearly that the codebase successfully passed all security vulnerability checks with zero detected risks.
-2. **Verified Security Controls & Hygiene**:
-   - Highlight positive security patterns observed in the codebase (e.g. environment variable encapsulation via process.env / import.meta.env, absence of dangerous evaluation sinks, clean module separation).
-3. **Security Control Matrix**:
-   - Provide a markdown table showing all tested vulnerability domains (Hardcoded Secrets & API Keys, Remote Code Execution, SQL Injection, Shell Command Injection, Insecure Deserialization, Cryptographic Flaws) with Status: `✅ PASSED`.
-4. **Hardening Recommendations for Production**:
-   - 2-3 proactive best practice tips for production readiness (e.g. CI/CD secret scanning in GitHub Actions, branch protection rules, automated dependency vulnerability alerts).
-
-Scanner Telemetry:
-{report}
-"""
     else:
         prompt = f"""
 You are a Principal Security Architect performing an official security evaluation of the '{repository.repository_name}' repository.

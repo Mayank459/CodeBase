@@ -5,7 +5,7 @@ from typing import Callable, Optional, List, Dict, Any
 import subprocess
 import threading
 
-from app.indexing.repository_loader import clone_repository
+from app.indexing.repository_loader import clone_repository, remove_tree
 from app.indexing.scanner import scan_repository
 from app.parsers.parser_registry import PARSER_REGISTRY
 from app.indexing.index_builder import IndexBuilder
@@ -14,8 +14,8 @@ from app.embeddings.embedding_service import EmbeddingService
 from app.storage.vector_store import create_collection, store_entities
 from app.storage.db import db_manager
 
-# Cap source code sent to parser/embedder (characters)
-MAX_SOURCE_CHARS = 8_000
+# Files are already capped at 100 KB by the scanner; parsing the whole file keeps
+# every symbol (the old 8,000-character cut silently dropped the rest of each file).
 
 
 def _safe_print(msg: str) -> None:
@@ -77,9 +77,8 @@ class RepositoryIndexer:
                 on_progress(payload)
 
         t0 = time.time()
-        repo_name = repo_url.rstrip("/").split("/")[-1]
-        if repo_name.endswith(".git"):
-            repo_name = repo_name[:-4]
+        from app.storage.repository_registry import normalize_repo_name
+        repo_name = normalize_repo_name(repo_url)
 
         # -- 0. Cache Check ---------------------------------------------------
         from app.storage.repository_registry import repository_registry
@@ -100,15 +99,6 @@ class RepositoryIndexer:
             emit("done", "Loaded from cache successfully!", progress=100, **result)
             return result
 
-        # If force=True, delete old embeddings first for a clean slate
-        if force and repository_registry.contains(repo_name):
-            emit("cleanup_old", f"Deleting old embeddings for {repo_name} (force re-index)...", progress=5)
-            from app.storage.vector_store import delete_repository
-            try:
-                delete_repository(repo_name)
-                emit("cleanup_old_done", f"Old embeddings deleted successfully", progress=10)
-            except Exception as e:
-                emit("cleanup_old_warn", f"Warning: could not delete old embeddings: {e}", progress=10)
 
         # -- 1. Clone ---------------------------------------------------------
         emit("clone", f"Cloning {repo_url} ...", progress=15)
@@ -135,8 +125,6 @@ class RepositoryIndexer:
                 continue
             try:
                 source_code = file.read_text(encoding="utf8", errors="ignore")
-                if len(source_code) > MAX_SOURCE_CHARS:
-                    source_code = source_code[:MAX_SOURCE_CHARS]
 
                 rel_path = file.relative_to(repo_path).as_posix()
                 parsed = parser(rel_path, source_code)
@@ -184,7 +172,11 @@ class RepositoryIndexer:
         t4 = time.time()
         emit("store", "Storing vectors in Qdrant ...", progress=92)
         create_collection()
-        store_entities(repository_index.repository_name, entities, embedded_entities)
+        # Always clear this repository's old vectors first: after a restart the
+        # registry is empty, so stale points from an earlier run would survive.
+        from app.storage.vector_store import delete_repository
+        delete_repository(repository_index.repository_name)
+        store_entities(repository_index.repository_name, entities, embedded_entities, source_url=repo_url)
         emit("store_done", f"Stored in {time.time()-t4:.1f}s", progress=95)
 
         # -- 8. Register ------------------------------------------------------
@@ -192,6 +184,7 @@ class RepositoryIndexer:
         repository_registry.register(
             repository_index.repository_name,
             repository_index,
+            entities=entities,
         )
         if commit_sha:
             db_manager.save_repository_metadata(
@@ -203,10 +196,9 @@ class RepositoryIndexer:
             )
 
         # -- 9. Cleanup Raw Files ---------------------------------------------
-        import shutil
         try:
             emit("cleanup", f"Cleaning up temporary cloned files...", progress=98)
-            shutil.rmtree(repo_path, ignore_errors=True)
+            remove_tree(repo_path)
         except Exception as e:
             _safe_print(f"[indexer] Cleanup failed: {e}")
 
@@ -223,3 +215,31 @@ class RepositoryIndexer:
         }
         emit("done", f"Indexing complete in {total:.1f}s", progress=100, **result)
         return result
+
+
+def rebuild_graph(repo_url: str):
+    """Clone, parse and rebuild the graph and entities for a repository without
+    embedding anything. Used to restore a repository whose vectors are still in
+    Qdrant after the server restarted and lost its in-memory registry."""
+    repo_path = clone_repository(repo_url)
+    try:
+        parsed_files = []
+        for file in scan_repository(repo_path):
+            parser = PARSER_REGISTRY.get(file.suffix)
+            if parser is None:
+                continue
+            try:
+                source_code = file.read_text(encoding="utf8", errors="ignore")
+                parsed = parser(file.relative_to(repo_path).as_posix(), source_code)
+                parsed.source_code = source_code
+                parsed_files.append(parsed)
+            except Exception as e:
+                _safe_print(f"[indexer] Parse error {file}: {e}")
+        repository_index = IndexBuilder().build(
+            repository_name=Path(repo_path).name,
+            parsed_files=parsed_files,
+        )
+        entities = EntityExtractor().extract_entities(parsed_files)
+        return repository_index, entities
+    finally:
+        remove_tree(repo_path)

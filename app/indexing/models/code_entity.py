@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -15,3 +16,7 @@ class CodeEntity:
     file_path: str
 
     content: str
+
+    start_line: Optional[int] = None
+
+    end_line: Optional[int] = None

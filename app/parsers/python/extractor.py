@@ -27,6 +27,24 @@ def clean_import(import_text: str):
     return import_text
 
 
+def _unwrap(node):
+    """Return (definition_node, outer_node, decorators).
+
+    `@decorator` wraps a definition in a `decorated_definition` node; without
+    unwrapping, every decorated function, method and class was skipped. The
+    outer node keeps the decorators in the stored code and line span.
+    """
+    if node.type != "decorated_definition":
+        return node, node, []
+    definition = node.child_by_field_name("definition")
+    decorators = [
+        child.text.decode("utf8", errors="replace").lstrip("@").strip()
+        for child in node.children
+        if child.type == "decorator"
+    ]
+    return definition, node, decorators
+
+
 def extract_python_file(
     file_path: str,
     source_code: str
@@ -37,13 +55,22 @@ def extract_python_file(
         source_code=source_code
     )
 
-    tree = parser.parse(
-        bytes(source_code, "utf8")
-    )
+    # tree-sitter offsets are byte offsets into the UTF-8 encoding; slicing the
+    # str with them shifts or garbles snippets in any file with non-ASCII text.
+    source_bytes = bytes(source_code, "utf8")
+
+    def code_of(node):
+        return source_bytes[node.start_byte:node.end_byte].decode("utf8", errors="replace")
+
+    tree = parser.parse(source_bytes)
 
     root = tree.root_node
 
-    for node in root.children:
+    for top in root.children:
+
+        node, outer, decorators = _unwrap(top)
+        if node is None:
+            continue
 
         # -------------------------
         # Functions
@@ -57,12 +84,11 @@ def extract_python_file(
             parsed_file.functions.append(
                 ParsedFunction(
                     name=name_node.text.decode(),
-                    start_line=node.start_point[0] + 1,
-                    end_line=node.end_point[0] + 1,
-                    code=source_code[
-                        node.start_byte:node.end_byte
-                    ],
-                    calls=extract_calls(node)
+                    start_line=outer.start_point[0] + 1,
+                    end_line=outer.end_point[0] + 1,
+                    code=code_of(outer),
+                    calls=extract_calls(node),
+                    decorators=decorators
                 )
             )
 
@@ -100,23 +126,22 @@ def extract_python_file(
 
             parsed_class = ParsedClass(
                 name=name_node.text.decode(),
-                start_line=node.start_point[0] + 1,
-                end_line=node.end_point[0] + 1,
-                code=source_code[
-                    node.start_byte:node.end_byte
-                ],
+                start_line=outer.start_point[0] + 1,
+                end_line=outer.end_point[0] + 1,
+                code=code_of(outer),
                 methods=[],
                 bases=bases
             )
-
 
             for child in node.children:
 
                 if child.type == "block":
 
-                    for item in child.children:
+                    for raw_item in child.children:
 
-                        if item.type == "function_definition":
+                        item, item_outer, item_decorators = _unwrap(raw_item)
+
+                        if item is not None and item.type == "function_definition":
 
                             method_name = (
                                 item.child_by_field_name(
@@ -127,12 +152,11 @@ def extract_python_file(
                             parsed_class.methods.append(
                                 ParsedMethod(
                                     name=method_name.text.decode(),
-                                    start_line=item.start_point[0] + 1,
-                                    end_line=item.end_point[0] + 1,
-                                    code=source_code[
-                                        item.start_byte:item.end_byte
-                                    ],
-                                    calls=extract_calls(item)
+                                    start_line=item_outer.start_point[0] + 1,
+                                    end_line=item_outer.end_point[0] + 1,
+                                    code=code_of(item_outer),
+                                    calls=extract_calls(item),
+                                    decorators=item_decorators
                                 )
                             )
 

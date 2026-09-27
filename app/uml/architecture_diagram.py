@@ -16,11 +16,15 @@ class ArchitectureDiagramGenerator:
         return "".join(c if c.isalnum() else "_" for c in name).strip("_")
 
     def _is_noise(self, path):
-        low = path.lower()
-        noise_exts = ('.md', '.yaml', '.yml', '.toml', '.json', '.txt', '.lock', '.rst')
+        # Judge the file part of a node id: "README.md::file_content" used to pass
+        # because the whole id does not end in ".md", producing the diagram hairball.
+        low = path.split("::")[0].lower().replace("\\", "/")
+        noise_exts = ('.md', '.yaml', '.yml', '.toml', '.json', '.txt', '.lock', '.rst', '.cfg', '.ini', '.html', '.css')
         if any(low.endswith(ext) for ext in noise_exts):
             return True
-        if 'test' in low or 'conf.py' in low or 'setup.py' in low:
+        parts = low.split("/")
+        name = parts[-1]
+        if any(p in ("tests", "test", "docs") for p in parts[:-1]) or name.startswith("test_") or name in ("conf.py", "setup.py", "conftest.py"):
             return True
         return False
 
@@ -49,11 +53,11 @@ class ArchitectureDiagramGenerator:
         # Build subgraphs by directory / layer
         for dir_name, files in modules.items():
             clean_dir = dir_name.replace("/", " / ").replace("\\", " / ")
-            lines.append(f'  subgraph sub_{subgraph_idx} ["📂 {self._escape_label(clean_dir)}"]')
+            lines.append(f'  subgraph sub_{subgraph_idx} ["{self._escape_label(clean_dir)}"]')
             for file_path, base_name in files:
                 nid = f"m_{self._clean_id(file_path)}"
                 node_id_map[file_path] = nid
-                lines.append(f'    {nid}["📄 {self._escape_label(base_name)}"]')
+                lines.append(f'    {nid}["{self._escape_label(base_name)}"]')
             lines.append("  end")
             lines.append("")
             subgraph_idx += 1

@@ -14,3 +14,6 @@ class AgentState(TypedDict):
     history: list
     routing: dict
     secondary_intents: List[str]
+    # LangGraph drops keys a TypedDict state does not declare
+    dead_code: List[dict]
+    security_patches: list

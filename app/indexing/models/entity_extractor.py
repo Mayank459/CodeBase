@@ -23,7 +23,9 @@ class EntityExtractor:
                         entity_type="function",
                         name=function.name,
                         file_path=parsed_file.file_path,
-                        content=function.code
+                        content=function.code,
+                        start_line=function.start_line,
+                        end_line=function.end_line
                     )
                 )
         
@@ -36,7 +38,9 @@ class EntityExtractor:
                         entity_type="class",
                         name=cls.name,
                         file_path=parsed_file.file_path,
-                        content=cls.code
+                        content=cls.code,
+                        start_line=cls.start_line,
+                        end_line=cls.end_line
                     )
                 )
             
@@ -49,7 +53,9 @@ class EntityExtractor:
                             entity_type="method",
                             name=method.name,
                             file_path=parsed_file.file_path,
-                            content=method.code
+                            content=method.code,
+                            start_line=method.start_line,
+                            end_line=method.end_line
                         )
                     )
             
@@ -62,7 +68,9 @@ class EntityExtractor:
                         entity_type="variable",
                         name=variable.name,
                         file_path=parsed_file.file_path,
-                        content=variable.value or ""
+                        content=variable.value or "",
+                        start_line=getattr(variable, "start_line", None),
+                        end_line=getattr(variable, "end_line", None)
                     )
                 )
         return entities

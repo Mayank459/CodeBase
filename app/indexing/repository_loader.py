@@ -108,6 +108,47 @@ def normalize_repo_url(repo_url: str) -> str:
     raise ValueError(f"Unrecognized or invalid repository identifier: '{repo_url}'")
 
 
+def remove_tree(path) -> None:
+    """Delete a directory tree, including git's read-only object files.
+
+    `shutil.rmtree(..., ignore_errors=True)` silently leaves `.git` behind on
+    Windows, and the next clone then reused that husk as if it were a checkout.
+    """
+    import os
+    import stat
+
+    def _retry_writable(func, target, _exc):
+        try:
+            os.chmod(target, stat.S_IWRITE)
+            func(target)
+        except Exception:
+            pass
+
+    import time
+    # ponytail: three short retries cover transient locks (antivirus, sync clients); beyond that the
+    # directory is left and clone_repository's checkout check refuses to reuse it.
+    for attempt in range(3):
+        if not Path(path).exists():
+            return
+        shutil.rmtree(path, onerror=_retry_writable)
+        if Path(path).exists():
+            time.sleep(0.2 * (attempt + 1))
+
+
+def _is_checkout_of(destination: Path, url: str) -> bool:
+    """True when `destination` holds a working tree cloned from `url`."""
+    if not (destination / ".git").exists():
+        return False
+    if not any(p.name != ".git" for p in destination.iterdir()):
+        return False  # only .git left: a half-deleted clone
+    try:
+        remote = Repo(destination).remotes.origin.url
+    except Exception:
+        return False
+    norm = lambda u: u.rstrip("/").removesuffix(".git").lower()
+    return norm(remote) == norm(url)
+
+
 def clone_repository(repo_url: str) -> str:
     """Clone a repository (shallow, depth=1) to local storage.
 
@@ -127,15 +168,13 @@ def clone_repository(repo_url: str) -> str:
     if not destination.is_relative_to(storage_root) or destination == storage_root:
         raise ValueError(f"Path traversal detected: destination '{destination}' is outside storage root.")
 
-    # Check if a valid, non-empty repository already exists
+    # Reuse an existing clone only if it is a real checkout of this same remote:
+    # two owners' "requests" share a directory name, and a failed cleanup can
+    # leave a folder holding nothing but .git.
     if destination.exists():
-        if any(destination.iterdir()):
+        if _is_checkout_of(destination, valid_url):
             return str(destination)
-        # Clean up empty remnant directory from previous failed clone
-        try:
-            shutil.rmtree(destination, ignore_errors=True)
-        except Exception:
-            pass
+        remove_tree(destination)
 
     # depth=1 → only the latest snapshot, skip full history
     try:
@@ -148,8 +187,8 @@ def clone_repository(repo_url: str) -> str:
         )
     except GitCommandError as e:
         # If directory was left empty after error, clean it up
-        if destination.exists() and not any(destination.iterdir()):
-            shutil.rmtree(destination, ignore_errors=True)
+        if destination.exists():
+            remove_tree(destination)
         raw_err = e.stderr.strip() if e.stderr else str(e)
         if "could not read Username" in raw_err or "Authentication failed" in raw_err or "terminal prompts disabled" in raw_err:
             hint = " The repository either does not exist on GitHub (404) or is private. Please verify the URL and ensure the repo is public."
@@ -160,4 +199,4 @@ def clone_repository(repo_url: str) -> str:
         ) from e
 
     return str(destination)
-
+
