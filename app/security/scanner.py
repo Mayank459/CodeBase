@@ -10,6 +10,24 @@ from app.security.patterns import (
     PLACEHOLDER_REGEX
 )
 
+def _string_and_comment_spans(source):
+    """{line_number: [(start_col, end_col), ...]} covered by string or comment
+    tokens. Empty when the file does not tokenize (the scan then stays regex-only)."""
+    import io
+    import tokenize
+    spans = {}
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(source).readline):
+            if tok.type not in (tokenize.STRING, tokenize.COMMENT) and tok.type != getattr(tokenize, "FSTRING_MIDDLE", -1):
+                continue
+            (sl, sc), (el, ec) = tok.start, tok.end
+            for ln in range(sl, el + 1):
+                spans.setdefault(ln, []).append((sc if ln == sl else 0, ec if ln == el else 10 ** 6))
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return {}
+    return spans
+
+
 class SecurityScanner:
     def should_skip_file(self, file_path: str) -> bool:
         if not file_path:
@@ -42,6 +60,7 @@ class SecurityScanner:
             return findings
 
         lines = content.splitlines()
+        inert = _string_and_comment_spans(content) if file_path.endswith(".py") else {}
 
         for line_number, line in enumerate(lines, start=1):
             stripped = line.strip()
@@ -55,6 +74,13 @@ class SecurityScanner:
             # 2. Evaluate high-precision security rules
             for rule in SECURITY_RULES:
                 match = rule["regex"].search(line)
+                # A match that starts inside a string or comment is text about the
+                # risky call (docs, rule tables, the scanner itself), not the call.
+                if match and any(a <= match.start() < b for a, b in inert.get(line_number, ())):
+                    continue
+                # hashlib.md5(..., usedforsecurity=False) declares a non-security use (e.g. HTTP Digest)
+                if match and rule["type"] == "weak_cryptography" and "usedforsecurity=False" in line:
+                    continue
                 if match:
                     # Apply specific filter (e.g. check that secret is not a placeholder)
                     if rule["filter"](match):

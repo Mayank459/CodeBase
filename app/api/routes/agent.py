@@ -193,6 +193,8 @@ async def repository_evolution(
 class ApproveRequest(BaseModel):
     request_id: str
     approved: bool
+    # ids of the fixes to keep (default: all that were shown)
+    selected: list[str] | None = None
 
 
 @router.post("/approve")
@@ -216,7 +218,7 @@ async def approve_action(
     config = {"configurable": {"thread_id": request.request_id}}
     try:
         result = graph.invoke(
-            Command(resume={"approved": request.approved}),
+            Command(resume={"approved": request.approved, "selected": request.selected}),
             config=config,
         )
     except Exception as exc:

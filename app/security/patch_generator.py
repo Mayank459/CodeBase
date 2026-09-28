@@ -49,10 +49,11 @@ class PatchGenerator:
             secret_pattern = re.compile(r'(\b[a-zA-Z0-9_]+\b)\s*([:=])\s*["\']([^"\']+)["\']')
             match = secret_pattern.search(original_code)
             if match:
-                var_name = match.group(1)
-                delimiter = match.group(2)
-                env_key = var_name.upper()
-                return secret_pattern.sub(f'{var_name} {delimiter} os.getenv("{env_key}", "")', original_code)
+                # Replace only the quoted value; keep the name and spacing as written
+                env_key = match.group(1).upper()
+                value_start = match.start(3) - 1  # include the opening quote
+                value_end = match.end(3) + 1      # and the closing one
+                return original_code[:value_start] + f'os.getenv("{env_key}", "")' + original_code[value_end:]
 
         # 5. Pickle Loads -> json.loads
         if ftype in ("insecure_deserialization", "pickle_loads") and "pickle.loads(" in original_code:

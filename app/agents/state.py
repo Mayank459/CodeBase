@@ -17,3 +17,4 @@ class AgentState(TypedDict):
     # LangGraph drops keys a TypedDict state does not declare
     dead_code: List[dict]
     security_patches: list
+    pr: dict

@@ -304,3 +304,31 @@ def compare(request: ComparisonRequest):
     result = compare_repositories(request.repositories)
     result["markdown"] = comparison_markdown(result)
     return result
+
+
+from app.api.schemas.repository import RefsRequest, VersionCompareRequest
+
+
+@router.post("/refs")
+def repository_refs(request: RefsRequest):
+    """Tags (newest first) and branches of a repository, read with git ls-remote."""
+    from fastapi import HTTPException
+    from app.evolution.history import list_refs, EvolutionError
+    try:
+        return list_refs(request.repo_url)
+    except (EvolutionError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/evolution")
+def repository_evolution(request: VersionCompareRequest):
+    """What changed between two versions: public API (breaking, added, moved,
+    changed signatures), files, third-party packages and commits."""
+    from fastapi import HTTPException
+    from app.evolution.history import compare_refs, evolution_markdown, EvolutionError
+    try:
+        result = compare_refs(request.repo_url, request.base, request.head)
+    except (EvolutionError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    result["markdown"] = evolution_markdown(result)
+    return result

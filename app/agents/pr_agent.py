@@ -1,9 +1,7 @@
-"""Secure PR Agent with patch validation, AST static checks, revision revalidation, and audit logging."""
+"""PR agent: real diffs, human approval (LangGraph interrupt), then a patch
+and pull-request text built only from the fixes the reviewer selected."""
 from app.security.scanner import SecurityScanner
-from app.security.patch_generator import PatchGenerator
-from app.pr_generator.diff_generator import DiffGenerator
-from app.pr_generator.pr_description_generator import PRDescriptionGenerator
-from app.pr_generator.report_generator import PullRequestReportGenerator
+from app.pr_generator.patch_builder import build_changes, pull_request_text
 from app.storage.repository_registry import repository_registry
 from app.storage.db import db_manager
 from langgraph.types import interrupt
@@ -16,73 +14,57 @@ def pr_node(state):
         state["answer"] = "Repository not indexed."
         return state
 
-    # Step 1: Scan for security findings
-    scanner = SecurityScanner()
-    findings = scanner.scan_repository(repository.parsed_files)
+    findings = SecurityScanner().scan_repository(repository.parsed_files)
     if not findings:
-        state["answer"] = "No security vulnerabilities detected. No PR patches needed."
+        state["answer"] = "The security scan found nothing to fix, so there is no patch to review."
+        state["pr"] = {"files": [], "manual": []}
         return state
 
-    # Step 2: Generate patches
-    patch_generator = PatchGenerator()
-    raw_patches = []
-    for finding in findings:
-        patch = patch_generator.generate_patch(finding)
-        if patch:
-            raw_patches.append(patch)
-
-    # Step 3: Validate diffs & run static syntax checks
-    diff_gen = DiffGenerator()
-    valid_patches = []
-    validation_warnings = []
-
-    for patch in raw_patches:
-        is_valid, error = diff_gen.validate_patch(patch)
-        if is_valid:
-            valid_patches.append(patch)
-        else:
-            validation_warnings.append(error)
-
-    if not valid_patches:
-        state["answer"] = f"Patch generation aborted: All candidate patches failed validation checks.\n" + "\n".join(validation_warnings)
+    files, manual = build_changes(repository, findings)
+    if not files:
+        state["answer"] = (
+            f"{len(manual)} finding{'s' if len(manual) != 1 else ''} found, but none has a safe automatic fix. "
+            "They need a manual change:\n\n" + "\n".join(f"- `{m['file']}:{m['line']}` {m['rule']}: {m['reason']}" for m in manual)
+        )
+        state["pr"] = {"files": [], "manual": manual}
         return state
 
-    # Record initial commit SHA snapshot
     meta = db_manager.get_repository_metadata(repo_name) or {}
     expected_sha = meta.get("commit_sha")
 
-    # Step 4: Request Human-In-The-Loop (HITL) approval with validated diffs
-    approval = interrupt(
-        {
-            "type": "pull_request",
-            "message": f"Approve {len(valid_patches)} verified patches to create PR for repository '{repo_name}'?",
-            "findings": [{"file": f.file_path, "type": f.finding_type} for f in findings],
-            "commit_sha": expected_sha,
-            "validation_warnings": validation_warnings
-        }
-    )
+    # Human-in-the-loop: the reviewer sees every diff and picks which fixes to keep
+    approval = interrupt({
+        "type": "pull_request",
+        "repository": repository.repository_name,
+        "message": f"Review {sum(len(f['changes']) for f in files)} fixes in {len(files)} files for '{repository.repository_name}'.",
+        "commit_sha": expected_sha,
+        "files": files,
+        "manual": manual,
+        "findings": [{"file": f.file_path, "line": f.line_number, "type": f.finding_type, "severity": f.severity} for f in findings],
+    })
 
     if not approval or not approval.get("approved"):
-        state["answer"] = "PR generation rejected by reviewer."
+        state["answer"] = "Rejected by the reviewer. No patch was produced."
+        state["pr"] = {"files": [], "manual": manual, "rejected": True}
         return state
 
-    # Step 5: Revalidate Repository Revision to prevent drift
-    current_meta = db_manager.get_repository_metadata(repo_name) or {}
-    current_sha = current_meta.get("commit_sha")
+    current_sha = (db_manager.get_repository_metadata(repo_name) or {}).get("commit_sha")
     if expected_sha and current_sha and current_sha != expected_sha:
         state["answer"] = (
-            f"PR Generation Aborted: Repository revision drift detected! "
-            f"Original SHA: {expected_sha[:8]}, Current SHA: {current_sha[:8]}. "
-            f"Please re-index the repository and re-run security review."
+            f"Stopped: the repository changed since the review (was {expected_sha[:8]}, now {current_sha[:8]}). "
+            "Re-index it and review the fixes again."
         )
         return state
 
-    # Step 6: Generate PR description, unified diff report, and persist audit record
-    desc_gen = PRDescriptionGenerator()
-    draft = desc_gen.generate(valid_patches)
+    selected = approval.get("selected")
+    if selected is not None:
+        files, manual = build_changes(repository, findings, only_ids=set(selected))
+    if not files:
+        state["answer"] = "No fixes were selected, so no patch was produced."
+        state["pr"] = {"files": [], "manual": manual}
+        return state
 
-    report_gen = PullRequestReportGenerator()
-    report = report_gen.generate(draft)
-
-    state["answer"] = report
+    pr = pull_request_text(repository.repository_name, files, manual)
+    state["pr"] = {**pr, "diffs": files, "manual": manual}
+    state["answer"] = f"# {pr['title']}\n\n{pr['body']}"
     return state

@@ -22,3 +22,11 @@ class DocstringRequest(BaseModel):
     repository_name: str
     symbol_id: str          # e.g. "src/requests/sessions.py::Session::send"
     style: str = "google"   # "google" or "numpy"
+
+class RefsRequest(BaseModel):
+    repo_url: str
+
+class VersionCompareRequest(BaseModel):
+    repo_url: str
+    base: str       # older tag or branch
+    head: str       # newer tag or branch ("HEAD" = default branch)
