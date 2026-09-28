@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  GitBranch, Play, RefreshCw, Terminal, CheckCircle2, AlertCircle, 
-  ChevronDown, ChevronUp, Copy, Check, Sparkles, Clock, Layers, Network, FileCode
-} from 'lucide-react';
+import { GitBranch, Play, RefreshCw, ChevronDown, Copy, Check } from 'lucide-react';
 import { streamIndexRepo } from '../api';
 import confetti from 'canvas-confetti';
+import { Procession } from './Procession';
 
 export function normalizeRepoUrl(url) {
   const trimmed = (url || '').trim();
@@ -19,370 +17,208 @@ export function normalizeRepoUrl(url) {
     django: 'https://github.com/django/django',
     codebase: 'https://github.com/Mayank459/CodeBase',
   };
-  if (known[trimmed.toLowerCase()]) {
-    return known[trimmed.toLowerCase()];
-  }
-  if (trimmed.includes('/')) {
-    return `https://github.com/${trimmed}`;
-  }
+  if (known[trimmed.toLowerCase()]) return known[trimmed.toLowerCase()];
+  if (trimmed.includes('/')) return `https://github.com/${trimmed}`;
   return `https://github.com/${trimmed}/${trimmed}`;
 }
 
-export function IndexDrawer({ 
-  activeRepo, 
-  onRepoIndexed, 
-  indexStats, 
-  isOpen, 
-  onToggle 
-}) {
+const PRESETS = [
+  { label: 'psf/requests', url: 'https://github.com/psf/requests' },
+  { label: 'fastapi/fastapi', url: 'https://github.com/fastapi/fastapi' },
+  { label: 'pallets/flask', url: 'https://github.com/pallets/flask' },
+  { label: 'This repository', url: 'https://github.com/Mayank459/CodeBase' },
+];
+
+// Stations are marked done when the SSE log mentions them.
+const STATIONS = [
+  { label: 'Clone', test: (l) => l.some((x) => x.includes('Cloning') || x.includes('Clone done')) },
+  { label: 'Scan', test: (l) => l.some((x) => x.includes('Scanning') || x.includes('Found')) },
+  { label: 'Parse', test: (l) => l.some((x) => x.includes('Parsing') || x.includes('Parsed')) },
+  { label: 'Graph', test: (l) => l.some((x) => x.includes('graph') || x.includes('entities')) },
+  { label: 'Embed', test: (l) => l.some((x) => x.includes('Embedding') || x.includes('embedded')) },
+  { label: 'Store', test: (l) => l.some((x) => x.includes('Storing') || x.includes('complete') || x.includes('Loaded from cache')) },
+];
+
+function Figure({ label, value }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="font-mono text-ink tabular-nums">{value ?? '—'}</span>
+      <span className="strip !text-[10px] text-ash">{label}</span>
+    </div>
+  );
+}
+
+export function IndexDrawer({ activeRepo, onRepoIndexed, indexStats, isOpen, onToggle, keepAlive }) {
   const [repoUrl, setRepoUrl] = useState(() => normalizeRepoUrl(activeRepo || 'https://github.com/psf/requests'));
   const [force, setForce] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
   const [logs, setLogs] = useState([]);
   const [error, setError] = useState(null);
-  const [copiedLogs, setCopiedLogs] = useState(false);
-  const [autoScroll, setAutoScroll] = useState(true);
-  const terminalContainerRef = useRef(null);
+  const [copied, setCopied] = useState(false);
+  const logRef = useRef(null);
 
-  // Sync when activeRepo changes
-  useEffect(() => {
-    if (activeRepo) {
-      setRepoUrl(normalizeRepoUrl(activeRepo));
-    }
-  }, [activeRepo]);
-
-  // Quick repository presets
-  const presets = [
-    { label: 'Requests', url: 'https://github.com/psf/requests' },
-    { label: 'FastAPI', url: 'https://github.com/fastapi/fastapi' },
-    { label: 'Flask', url: 'https://github.com/pallets/flask' },
-    { label: 'This Repository', url: 'https://github.com/Mayank459/CodeBase' },
-  ];
-
-  useEffect(() => {
-    if (autoScroll && terminalContainerRef.current) {
-      terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
-    }
-  }, [logs, autoScroll]);
+  useEffect(() => { if (activeRepo) setRepoUrl(normalizeRepoUrl(activeRepo)); }, [activeRepo]);
+  useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [logs]);
 
   const handleIndex = async () => {
     const validUrl = normalizeRepoUrl(repoUrl);
     if (!validUrl || isIndexing) return;
-
     setRepoUrl(validUrl);
     setIsIndexing(true);
     setError(null);
     setLogs([
-      `[client] Initiating index pipeline for: ${validUrl}`,
-      `[client] Connection mode: Server-Sent Events (SSE) stream`,
-      `[client] Bypass cache: ${force ? 'YES (force rebuild)' : 'NO (24h cache enabled)'}`,
+      `[client] Indexing ${validUrl}`,
+      `[client] Streaming progress over server-sent events`,
+      `[client] Cache: ${force ? 'bypassed, full rebuild' : 'used if indexed in the last 24h'}`,
     ]);
 
     await streamIndexRepo({
       repoUrl: validUrl,
       force,
-
       onEvent: (event) => {
         const msg = event.message || event.step || JSON.stringify(event);
         setLogs((prev) => [...prev, `[indexer] ${msg}`]);
       },
       onError: (err) => {
         setError(err);
-        setLogs((prev) => [...prev, `[error] ❌ ${err}`]);
+        setLogs((prev) => [...prev, `[error] ${err}`]);
         setIsIndexing(false);
       },
       onComplete: (result) => {
         setLogs((prev) => [
           ...prev,
-          `[success] ✅ Indexing completed in ${result.index_time_seconds || '?'}s`,
-          `[summary] ${result.files_parsed || 0} files | ${result.entities || 0} entities | ${result.graph_nodes || 0} nodes | ${result.graph_edges || 0} edges`
+          `[done] Indexed in ${result.index_time_seconds || '?'}s`,
+          `[done] ${result.files_parsed || 0} files · ${result.entities || 0} entities · ${result.graph_nodes || 0} nodes · ${result.graph_edges || 0} edges`,
         ]);
         setIsIndexing(false);
         onRepoIndexed(result.repository || repoUrl.trim(), result);
-        
-        // Trigger celebratory confetti for senior dev delight
         try {
-          confetti({
-            particleCount: 50,
-            spread: 60,
-            origin: { y: 0.8 },
-            colors: ['#6366f1', '#06b6d4', '#10b981']
-          });
+          confetti({ particleCount: 60, spread: 70, origin: { y: 0.3 }, shapes: ['square'], colors: ['#b3262d', '#f2ece1', '#2a2724', '#d6ccbc'] });
         } catch (_) {}
-      }
+      },
     });
   };
 
-  const copyTerminalLogs = async () => {
+  const copyLogs = async () => {
     try {
       await navigator.clipboard.writeText(logs.join('\n'));
-      setCopiedLogs(true);
-      setTimeout(() => setCopiedLogs(false), 2000);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (_) {}
   };
 
+  const s = indexStats || {};
+  const online = keepAlive?.online;
+  const lamp = online ? 'active' : keepAlive?.checking ? 'idle' : 'offline';
+
   return (
-    <div className="w-full glass-panel overflow-hidden border border-white/[0.08] mb-6">
-      {/* Drawer Header / Summary Bar */}
-      <div 
-        onClick={onToggle}
-        className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition-colors select-none"
-      >
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <GitBranch size={16} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-semibold text-white">Repository Ingestion & Vector Index</h3>
-              {activeRepo ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="badge badge-success text-[10px]">
-                    Active: {activeRepo}
-                  </span>
-                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-[10px]">
-                    <span>AST ✓</span>
-                    <span>Graph ✓</span>
-                    <span>Embeddings ✓</span>
-                    <span className="text-emerald-400 font-bold">Ready</span>
-                  </span>
-                </div>
-              ) : (
-                <span className="badge badge-warning text-[10px]">
-                  No Repository Indexed
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-slate-400">
-              Tree-sitter AST parsing • Cohere 384-dim embeddings • Qdrant vector storage • NetworkX graph
-            </p>
+    <section className="paper slotted" aria-label="Repository">
+      {/* Repo bar */}
+      <div className="px-5 sm:px-6 py-4 flex flex-wrap items-center gap-x-8 gap-y-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <GitBranch size={18} className="text-ink-2 shrink-0" aria-hidden="true" />
+          <div className="min-w-0">
+            <div className="strip !text-[10px] text-ash">Repository</div>
+            <div className="font-mono font-semibold text-ink truncate">{activeRepo || 'Nothing indexed yet'}</div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {indexStats && indexStats.files_parsed && (
-            <div className="hidden md:flex items-center gap-3 text-xs font-mono text-slate-400 pr-2 border-r border-white/10">
-              <span>{indexStats.files_parsed} files</span>
-              <span>•</span>
-              <span>{indexStats.graph_nodes} nodes</span>
-              <span>•</span>
-              <span>{indexStats.index_time_seconds}s</span>
-            </div>
-          )}
-          <button className="btn btn-ghost btn-sm text-slate-400">
-            {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+          {!(s.entities_indexed ?? s.entities) && <span className="text-sm text-ink-2">Not indexed in this browser yet. Index it to fill every tool.</span>}
+          {(s.entities_indexed ?? s.entities) ? <Figure label="entities" value={(s.entities_indexed ?? s.entities).toLocaleString()} /> : null}
+          {(s.edges_count ?? s.graph_edges) ? <Figure label="call edges" value={(s.edges_count ?? s.graph_edges).toLocaleString()} /> : null}
+          {s.files_parsed ? <Figure label="files" value={s.files_parsed} /> : null}
+          {s.index_time_seconds ? <Figure label="to index" value={`${s.index_time_seconds}s`} /> : null}
         </div>
+
+        <div className="flex items-center gap-2 text-sm text-ink-2">
+          <span className={`status-dot ${lamp}`} aria-hidden="true" />
+          <span>{online ? `Backend up${keepAlive?.latency != null ? ` · ${keepAlive.latency} ms` : ''}` : keepAlive?.checking ? 'Waking backend (free tier, up to a minute)' : 'Backend unreachable'}</span>
+        </div>
+
+        <button type="button" onClick={onToggle} aria-expanded={isOpen} className="ml-auto btn btn-secondary btn-sm">
+          {isOpen ? 'Close' : 'Index a repo'}
+          <ChevronDown size={14} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+        </button>
       </div>
 
-      {/* Expandable Body */}
       {isOpen && (
-        <div className="px-5 pb-5 pt-2 border-t border-white/[0.06] space-y-4 motion-expand-body">
-          {/* Quick Presets */}
-          <div className="flex items-center gap-2 flex-wrap text-xs">
-            <span className="text-slate-400 font-mono text-[11px]">Quick Load:</span>
-            {presets.map((p, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setRepoUrl(p.url)}
-                className="px-2.5 py-1 rounded bg-white/[0.04] border border-white/[0.06] hover:border-indigo-500/40 hover:bg-indigo-500/10 text-slate-300 hover:text-indigo-300 text-xs transition-colors"
-              >
+        <div className="px-5 sm:px-6 pb-6 pt-5 rule-t space-y-5 motion-expand-body">
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+            <label className="relative flex-1">
+              <span className="sr-only">GitHub repository URL</span>
+              <GitBranch size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ash pointer-events-none" aria-hidden="true" />
+              <input
+                type="text"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleIndex()}
+                placeholder="https://github.com/owner/repository or owner/repository"
+                className="input-field has-icon-left font-mono !text-[13px]"
+                disabled={isIndexing}
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-ink-2 select-none">
+              <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} disabled={isIndexing} className="accent-[#b3262d] w-4 h-4" />
+              Rebuild, ignore cache
+            </label>
+            <button type="button" onClick={handleIndex} disabled={isIndexing || !repoUrl.trim()} className="btn btn-primary">
+              {isIndexing ? <RefreshCw size={14} className="animate-spin" aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
+              {isIndexing ? 'Indexing' : 'Index repository'}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-ash">Try:</span>
+            {PRESETS.map((p) => (
+              <button key={p.url} type="button" onClick={() => setRepoUrl(p.url)} disabled={isIndexing}
+                className={`px-2.5 py-1 rounded-sm font-mono text-[12px] transition-colors ${normalizeRepoUrl(repoUrl) === p.url ? 'bg-ink text-pulp' : 'bg-pulp-2 text-ink hover:bg-paper-grey shadow-[inset_0_0_0_1px_var(--rule)]'}`}>
                 {p.label}
               </button>
             ))}
           </div>
 
-          {/* Form Input + Action */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                placeholder="https://github.com/organization/repository"
-                className="input-field pl-10 font-mono text-xs has-icon-left"
-                disabled={isIndexing}
-              />
-              <GitBranch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
-
-            <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none px-2">
-              <input
-                type="checkbox"
-                checked={force}
-                onChange={(e) => setForce(e.target.checked)}
-                disabled={isIndexing}
-                className="rounded bg-[#080c14] border-white/20 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span>Force Re-index (Bypass Cache)</span>
-            </label>
-
-            <button
-              onClick={handleIndex}
-              disabled={isIndexing || !repoUrl.trim()}
-              className="btn btn-primary btn-md gap-2"
-            >
-              {isIndexing ? (
-                <>
-                  <RefreshCw size={14} className="animate-spin" />
-                  <span>Processing...</span>
-                </>
-              ) : (
-                <>
-                  <Play size={14} />
-                  <span>Index Repository</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Statistics Grid (when available) */}
-          {indexStats && indexStats.files_parsed && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
-              <div className="metric-tile">
-                <div className="flex items-center justify-between">
-                  <span className="metric-label">Parsed Files</span>
-                  <FileCode size={14} className="text-indigo-400" />
-                </div>
-                <div className="metric-value">{indexStats.files_parsed}</div>
-              </div>
-              <div className="metric-tile">
-                <div className="flex items-center justify-between">
-                  <span className="metric-label">Code Entities</span>
-                  <Layers size={14} className="text-cyan-400" />
-                </div>
-                <div className="metric-value">{indexStats.entities || '—'}</div>
-              </div>
-              <div className="metric-tile">
-                <div className="flex items-center justify-between">
-                  <span className="metric-label">Graph Nodes</span>
-                  <Network size={14} className="text-emerald-400" />
-                </div>
-                <div className="metric-value">{indexStats.graph_nodes || '—'}</div>
-              </div>
-              <div className="metric-tile">
-                <div className="flex items-center justify-between">
-                  <span className="metric-label">Graph Edges</span>
-                  <Network size={14} className="text-amber-400" />
-                </div>
-                <div className="metric-value">{indexStats.graph_edges || '—'}</div>
-              </div>
-              <div className="metric-tile">
-                <div className="flex items-center justify-between">
-                  <span className="metric-label">Duration</span>
-                  <Clock size={14} className="text-rose-400" />
-                </div>
-                <div className="metric-value">{indexStats.index_time_seconds ? `${indexStats.index_time_seconds}s` : '—'}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Visual Ingestion Pipeline Stepper */}
           {(isIndexing || logs.length > 0) && (
-            <div className="p-3 rounded-xl bg-[#070a12] border border-white/[0.08] space-y-2">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-300 font-semibold flex items-center gap-1.5">
-                  <Sparkles size={12} className="text-cyan-400" />
-                  <span>Real-Time Indexing Pipeline</span>
-                </span>
-                <span className="text-[10px] text-indigo-400">
-                  {isIndexing ? 'Active SSE Stream' : 'Pipeline Execution Complete'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-1 text-[11px] font-mono">
-                {[
-                  { step: 'clone', label: '1. Clone Repo', test: (l) => l.some(x => x.includes('Cloning') || x.includes('Clone done')) },
-                  { step: 'scan', label: '2. Scan Files', test: (l) => l.some(x => x.includes('Scanning') || x.includes('Found')) },
-                  { step: 'parse', label: '3. AST Parse', test: (l) => l.some(x => x.includes('Parsing') || x.includes('Parsed')) },
-                  { step: 'graph', label: '4. Build Graph', test: (l) => l.some(x => x.includes('graph') || x.includes('entities')) },
-                  { step: 'embed', label: '5. Embeddings', test: (l) => l.some(x => x.includes('Embedding') || x.includes('embedded')) },
-                  { step: 'store', label: '6. Qdrant Store', test: (l) => l.some(x => x.includes('Storing') || x.includes('complete') || x.includes('Loaded from cache')) },
-                ].map((item, idx) => {
-                  const isDone = item.test(logs);
-                  return (
-                    <div
-                      key={idx}
-                      className={`p-2 rounded-lg border text-center transition-all ${
-                        isDone
-                          ? 'bg-emerald-500/[0.08] border-emerald-500/30 text-emerald-300 font-semibold'
-                          : isIndexing
-                          ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
-                          : 'bg-white/[0.02] border-white/[0.05] text-slate-500'
-                      }`}
-                    >
-                      <div className="text-[10px] truncate">{item.label}</div>
-                      <div className="text-[9px] opacity-70 mt-0.5">
-                        {isDone ? '✓ Done' : isIndexing ? 'Processing...' : 'Pending'}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* SSE Terminal Console */}
-          {logs.length > 0 && (
-            <div className="rounded-lg overflow-hidden border border-white/10 bg-[#04060a] shadow-2xl">
-              <div className="px-3 py-2 bg-white/[0.03] border-b border-white/[0.06] flex items-center justify-between text-xs font-mono text-slate-400">
-                <div className="flex items-center gap-2">
-                  <Terminal size={13} className="text-indigo-400" />
-                  <span>Pipeline Console</span>
-                  {isIndexing && (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-indigo-300">
-                      <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-ping" />
-                      Streaming
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <label className="flex items-center gap-1 text-[11px] text-slate-400 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={autoScroll}
-                      onChange={(e) => setAutoScroll(e.target.checked)}
-                      className="rounded text-indigo-500"
+            <div className="space-y-3">
+              {/* The same procession as the home page, driven by the live log */}
+              {(() => {
+                const doneIds = STATIONS.filter((st) => st.test(logs)).map((st) => st.label);
+                const firstOpen = STATIONS.findIndex((st) => !st.test(logs));
+                return (
+                  <div className="overflow-x-auto">
+                    <Procession
+                      compact
+                      className="max-w-[760px]"
+                      items={STATIONS.map((st) => ({ id: st.label, label: st.label }))}
+                      pos={isIndexing ? firstOpen : -1}
+                      done={doneIds}
                     />
-                    <span>Auto-scroll</span>
-                  </label>
+                  </div>
+                );
+              })()}
 
-                  <button
-                    onClick={copyTerminalLogs}
-                    className="btn btn-ghost btn-sm py-0.5 px-2 text-xs"
-                    title="Copy console output"
-                  >
-                    {copiedLogs ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-                    <span>{copiedLogs ? 'Copied' : 'Copy'}</span>
-                  </button>
-                  <button
-                    onClick={() => setLogs([])}
-                    className="btn btn-ghost btn-sm py-0.5 px-2 text-xs text-slate-400 hover:text-white"
-                  >
-                    Clear
-                  </button>
+              <div className="ink-plate overflow-hidden">
+                <div className="px-3 py-2 bg-plate-2 flex items-center justify-between text-[12px] font-mono text-plate-dim">
+                  <span>{isIndexing ? 'Streaming…' : error ? 'Stopped with an error' : 'Log'}</span>
+                  <span className="flex items-center gap-1">
+                    <button type="button" onClick={copyLogs} className="px-2 py-0.5 rounded-sm hover:bg-plate hover:text-plate-ink inline-flex items-center gap-1">
+                      {copied ? <Check size={11} aria-hidden="true" /> : <Copy size={11} aria-hidden="true" />}{copied ? 'Copied' : 'Copy'}
+                    </button>
+                    <button type="button" onClick={() => setLogs([])} disabled={isIndexing} className="px-2 py-0.5 rounded-sm hover:bg-plate hover:text-plate-ink">Clear</button>
+                  </span>
                 </div>
-              </div>
-
-              <div ref={terminalContainerRef} className="p-3 max-h-56 overflow-y-auto font-mono text-xs text-slate-300 space-y-1">
-                {logs.map((log, index) => {
-                  let colorClass = 'text-slate-300';
-                  if (log.includes('[error]')) colorClass = 'text-rose-400 font-semibold';
-                  else if (log.includes('[success]')) colorClass = 'text-emerald-400 font-semibold';
-                  else if (log.includes('[client]')) colorClass = 'text-indigo-300';
-                  return (
-                    <div key={index} className={`leading-relaxed ${colorClass}`}>
+                <div ref={logRef} className="p-3 max-h-56 overflow-y-auto font-mono text-[12px] leading-relaxed" role="log" aria-live="polite">
+                  {logs.map((log, i) => (
+                    <div key={i} className={log.startsWith('[error]') ? 'text-[#f08a8f]' : log.startsWith('[done]') ? 'text-[#a9d39f]' : log.startsWith('[client]') ? 'text-plate-dim' : 'text-plate-ink'}>
                       {log}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </div>
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }

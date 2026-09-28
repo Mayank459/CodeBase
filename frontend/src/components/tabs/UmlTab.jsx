@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Workflow, ExternalLink, Copy, Check, Play, AlertCircle, Code, Eye, 
-  Sparkles, ZoomIn, ZoomOut, RotateCcw, Download, Filter, Layers, 
-  Boxes, Network, ArrowRight, ShieldCheck, RefreshCw, Image as ImageIcon, Move,
-  ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Minus, Maximize2, Minimize2
+import {
+  Workflow, ExternalLink, Copy, Check, Play, AlertCircle, Code, Eye,
+  ZoomIn, ZoomOut, RotateCcw, Download, Layers, Boxes, Network, RefreshCw,
+  Image as ImageIcon, Move, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
+  X, Minus, Maximize2, Minimize2
 } from 'lucide-react';
-import { apiPost, extractMermaidCode, getMermaidLiveUrl, getMermaidInkUrl } from '../../api';
+import { apiPost, extractMermaidCode, getMermaidLiveUrl } from '../../api';
+import { MermaidDiagram, downloadMermaidSvg, downloadMermaidPng } from '../MermaidDiagram';
 
 const DIAGRAM_TYPES = [
   { id: 'class', label: 'Class Diagram', shortLabel: 'Class', desc: 'Domain models, OOP hierarchies, and inheritance', icon: Boxes },
@@ -55,6 +56,7 @@ function cleanAndEnhanceMermaid(rawCode, diagramType, excludeTests = true) {
       cleanedLines.push('    +send_request()');
       cleanedLines.push('  }');
       cleanedLines.push('  ServiceClient --> CoreModule : interacts');
+      cleanedLines.push(SAMPLE_TAG.trim());
     }
 
     return cleanedLines.join('\n');
@@ -65,23 +67,23 @@ function cleanAndEnhanceMermaid(rawCode, diagramType, excludeTests = true) {
     // If it has massive raw file_content hairball edges like n1[".readthedocs.yaml"] --> n2["file_content"]
     if (code.includes('file_content') || code.includes('README.md') || code.includes('.readthedocs.yaml')) {
       return `graph TD
-  subgraph API ["🌐 API & Public Entrypoints"]
+  subgraph API ["API & Public Entrypoints"]
     api["api.py / Request Handlers"]
     session["sessions.py / Session Orchestrator"]
   end
 
-  subgraph Core ["⚡ Core Business Logic & Models"]
+  subgraph Core ["Core Business Logic & Models"]
     models["models.py / Request & Response"]
     auth["auth.py / Authentication & Security"]
     cookies["cookies.py / State & Headers"]
   end
 
-  subgraph Transport ["🔌 Transport & Network Adapters"]
+  subgraph Transport ["Transport & Network Adapters"]
     adapters["adapters.py / HTTP Transport"]
     hooks["hooks.py / Lifecycle Hooks"]
   end
 
-  subgraph Utils ["🛠️ Utilities & Support"]
+  subgraph Utils ["Utilities & Support"]
     utils["utils.py / Encoding & Mime"]
     exceptions["exceptions.py / Error Hierarchy"]
   end
@@ -94,15 +96,15 @@ function cleanAndEnhanceMermaid(rawCode, diagramType, excludeTests = true) {
   adapters --> utils
   models --> exceptions
 
-  classDef api fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-  classDef core fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-  classDef transport fill:#701a75,stroke:#f472b6,stroke-width:2px,color:#f8fafc;
-  classDef utils fill:#0f172a,stroke:#64748b,stroke-width:1.5px,color:#94a3b8;
+  classDef api fill:#f2ece1,stroke:#2a2724,stroke-width:1.5px,color:#2a2724;
+  classDef core fill:#e8e0d2,stroke:#2a2724,stroke-width:1.25px,color:#2a2724;
+  classDef transport fill:#d6ccbc,stroke:#4a443d,stroke-width:1.25px,color:#2a2724;
+  classDef utils fill:#fbf8f2,stroke:#6b645b,stroke-width:1px,color:#4a443d;
 
   class api,session api;
   class models,auth,cookies core;
   class adapters,hooks transport;
-  class utils,exceptions utils;`;
+  class utils,exceptions utils;` + SAMPLE_TAG;
     }
   }
 
@@ -112,7 +114,15 @@ function cleanAndEnhanceMermaid(rawCode, diagramType, excludeTests = true) {
 /**
  * Generate fallback diagrams from repository architecture data
  */
+// Hand-drawn diagrams are tagged with a Mermaid comment so the UI can label them honestly.
+const SAMPLE_TAG = '\n%% sample';
+const markSample = (code) => (code && !code.includes(SAMPLE_TAG) ? code + SAMPLE_TAG : code);
+
 function synthesizeDiagramFromArch(archData, diagramType, activeRepo) {
+  return markSample(drawSampleDiagram(archData, diagramType, activeRepo));
+}
+
+function drawSampleDiagram(archData, diagramType, activeRepo) {
   const repoName = activeRepo || 'Repository';
   const modules = archData?.modules || {};
   const topNodes = archData?.top_nodes || [];
@@ -211,23 +221,23 @@ function synthesizeDiagramFromArch(archData, diagramType, activeRepo) {
 
   // Layered Architecture or Component Coupling
   return `graph TD
-  subgraph Entrypoints ["🌐 Public API & Entrypoints"]
+  subgraph Entrypoints ["Public API & Entrypoints"]
     api["api.py<br/>(get, post, put, delete)"]
     session["sessions.py<br/>(Session, SessionRedirectMixin)"]
   end
 
-  subgraph Core_Logic ["⚡ Domain Logic & Models"]
+  subgraph Core_Logic ["Domain Logic & Models"]
     models["models.py<br/>(Request, PreparedRequest, Response)"]
     auth["auth.py<br/>(AuthBase, HTTPBasicAuth, HTTPDigestAuth)"]
     cookies["cookies.py<br/>(RequestsCookieJar)"]
   end
 
-  subgraph Adapters ["🔌 Transport Adapters"]
+  subgraph Adapters ["Transport Adapters"]
     adapter["adapters.py<br/>(BaseAdapter, HTTPAdapter)"]
     hooks["hooks.py<br/>(Response Event Hooks)"]
   end
 
-  subgraph Foundations ["🛠️ Exceptions & Compatibility"]
+  subgraph Foundations ["Exceptions & Compatibility"]
     exceptions["exceptions.py<br/>(RequestException, HTTPError)"]
     compat["compat.py<br/>(Python 3.x Compatibility)"]
     utils["utils.py<br/>(Encoding & Network Helpers)"]
@@ -242,10 +252,10 @@ function synthesizeDiagramFromArch(archData, diagramType, activeRepo) {
   models --> exceptions
   session --> hooks
 
-  classDef entry fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-  classDef core fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-  classDef transport fill:#701a75,stroke:#f472b6,stroke-width:2px,color:#f8fafc;
-  classDef base fill:#0f172a,stroke:#64748b,stroke-width:1.5px,color:#94a3b8;
+  classDef entry fill:#f2ece1,stroke:#2a2724,stroke-width:1.5px,color:#2a2724;
+  classDef core fill:#e8e0d2,stroke:#2a2724,stroke-width:1.25px,color:#2a2724;
+  classDef transport fill:#d6ccbc,stroke:#4a443d,stroke-width:1.25px,color:#2a2724;
+  classDef base fill:#fbf8f2,stroke:#6b645b,stroke-width:1px,color:#4a443d;
 
   class api,session entry;
   class models,auth,cookies core;
@@ -467,81 +477,37 @@ export function UmlTab({ activeRepo }) {
     } catch (_) {}
   };
 
+  const exportName = (ext) => `${(activeRepo || 'codebase').replace(/[^a-zA-Z0-9_-]/g, '_')}_${selectedType}_diagram.${ext}`;
+
   const handleDownloadSvg = async () => {
     if (!mermaidCode) return;
     try {
-      const url = getMermaidInkUrl(mermaidCode, 'svg', 'dark');
-      const res = await fetch(url);
-      const content = await res.text();
-      const blob = new Blob([content], { type: 'image/svg+xml;charset=utf-8' });
-      const dlUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = dlUrl;
-      a.download = `${(activeRepo || 'codebase').replace(/[^a-zA-Z0-9_-]/g, '_')}_${selectedType}_diagram.svg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(dlUrl);
+      await downloadMermaidSvg(mermaidCode, exportName('svg'));
     } catch (err) {
       console.error('Download SVG failed:', err);
     }
   };
 
-  const handleDownloadPng = () => {
+  const handleDownloadPng = async () => {
     if (!mermaidCode) return;
-    const pngUrl = getMermaidInkUrl(mermaidCode, 'png', 'dark');
-    if (!pngUrl) return;
-    const a = document.createElement('a');
-    a.href = pngUrl;
-    a.download = `${(activeRepo || 'codebase').replace(/[^a-zA-Z0-9_-]/g, '_')}_${selectedType}_diagram.png`;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      await downloadMermaidPng(mermaidCode, exportName('png'));
+    } catch (err) {
+      console.error('Download PNG failed:', err);
+    }
   };
 
   const liveUrl = mermaidCode ? getMermaidLiveUrl(mermaidCode) : null;
-  const inkSvgUrl = mermaidCode ? getMermaidInkUrl(mermaidCode, 'svg', 'dark') : null;
+
+  const typeLabel = DIAGRAM_TYPES.find(t => t.id === selectedType)?.label || 'Diagram';
+  const seg = (on) => `btn btn-sm ${on ? 'bg-ink text-pulp shadow-lift-1' : 'btn-secondary'}`;
+  const tool = 'btn btn-secondary btn-sm';
 
   return (
-    <div className="space-y-6">
-      {/* Header & Controls Panel */}
-      <div className="glass-panel p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Workflow size={20} className="text-cyan-400" />
-              <h3 className="text-lg font-bold text-white tracking-tight">
-                Architectural & UML Visualization Engine
-              </h3>
-              <span className="badge badge-primary text-[10px]">Mermaid AST</span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Synthesizes high-fidelity class hierarchies, layered subsystem clusters, and runtime sequence flows.
-            </p>
-          </div>
-
-          <button
-            onClick={() => handleGenerate()}
-            disabled={loading || !activeRepo}
-            className="btn btn-primary gap-2 text-xs shadow-lg shadow-indigo-500/25 cursor-pointer"
-          >
-            {loading ? (
-              <>
-                <RefreshCw size={14} className="animate-spin" />
-                <span>Synthesizing Diagram...</span>
-              </>
-            ) : (
-              <>
-                <Play size={14} />
-                <span>Generate Diagram</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* 4 Specialized Diagram Type Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-white/[0.06]">
+    <div className="space-y-4">
+      {/* Toolbar: diagram type, filter, generate */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Diagram type">
           {DIAGRAM_TYPES.map((type) => {
             const Icon = type.icon;
             const isSelected = selectedType === type.id;
@@ -549,183 +515,101 @@ export function UmlTab({ activeRepo }) {
               <button
                 key={type.id}
                 type="button"
+                aria-pressed={isSelected}
+                title={`${type.label}: ${type.desc}`}
                 onClick={() => {
                   setSelectedType(type.id);
                   handleGenerate(type.id);
                 }}
-                className={`p-3.5 rounded-xl text-left transition-all border flex flex-col justify-between group cursor-pointer ${
-                  isSelected
-                    ? 'bg-indigo-600/20 border-indigo-500/50 shadow-md shadow-indigo-500/15'
-                    : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/20'
-                }`}
+                className={seg(isSelected)}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Icon size={16} className={isSelected ? 'text-cyan-400' : 'text-slate-400 group-hover:text-indigo-400'} />
-                    <span className="text-xs font-bold text-white">{type.label}</span>
-                  </div>
-                  <span className={`h-2 w-2 rounded-full ${isSelected ? 'bg-cyan-400 ring-4 ring-cyan-400/20' : 'bg-transparent'}`} />
-                </div>
-                <p className="text-[11px] text-slate-400 leading-tight">
-                  {type.desc}
-                </p>
+                <Icon size={14} strokeWidth={2} />
+                <span>{type.shortLabel}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Filter & Options Toolbar */}
-        <div className="flex items-center justify-between pt-3 border-t border-white/[0.06] flex-wrap gap-3 text-xs">
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={excludeTests}
-                onChange={handleToggleExcludeTests}
-                className="rounded border-white/20 bg-white/5 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
-              />
-              <span className="text-xs font-mono">Exclude Test Suites & Fixtures</span>
-            </label>
-            <span className="text-slate-600 hidden sm:inline">•</span>
-            <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
-              Target: <span className="text-indigo-300 font-semibold">{activeRepo || 'No repo'}</span>
-            </span>
-          </div>
+        <label className="flex items-center gap-2 text-sm text-ink-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={excludeTests}
+            onChange={handleToggleExcludeTests}
+            className="h-3.5 w-3.5 accent-crimson"
+          />
+          <span>Exclude tests and fixtures</span>
+        </label>
 
-          <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
-            <Sparkles size={11} className="text-cyan-400" />
-            <span>High-Contrast Obsidian SVG Canvas</span>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => handleGenerate()}
+          disabled={loading || !activeRepo}
+          className="btn btn-primary sm:ml-auto"
+        >
+          {loading ? <RefreshCw size={14} strokeWidth={2} className="animate-spin" /> : <Play size={14} strokeWidth={2} />}
+          <span>{loading ? 'Generating diagram' : 'Generate diagram'}</span>
+        </button>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle size={15} />
-          <span>{error}</span>
+        <div className="paper-flat p-4 text-sm" role="alert">
+          <p className="flex items-center gap-2 font-semibold text-crimson">
+            <AlertCircle size={16} strokeWidth={2} />
+            <span>No diagram generated</span>
+          </p>
+          <p className="mt-1 text-ink-2">{error}</p>
         </div>
       )}
 
       {/* Render Canvas */}
       {mermaidCode && (
         windowState === 'closed' ? (
-          <div className="p-8 rounded-2xl bg-[#090d16]/90 border border-white/[0.08] text-center space-y-4 shadow-xl">
-            <div className="h-12 w-12 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-              <Network size={22} />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-white font-mono">UML Diagram Canvas Closed</h4>
-              <p className="text-xs text-slate-400">You can reopen the interactive architectural UML canvas at any time.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setWindowState('normal')}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold inline-flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
-            >
-              <Sparkles size={14} />
-              <span>Reopen UML Canvas</span>
+          <div className="paper-flat p-6 text-center space-y-3">
+            <p className="text-sm text-ink-2">The diagram is closed. Reopen it to keep working.</p>
+            <button type="button" onClick={() => setWindowState('normal')} className={tool}>
+              <Eye size={14} strokeWidth={2} />
+              <span>Reopen diagram</span>
             </button>
           </div>
         ) : windowState === 'minimized' ? (
-          <div className="rounded-2xl border border-white/[0.1] bg-[#090d16] p-4 shadow-2xl flex items-center justify-between transition-all duration-300 hover:border-indigo-500/40">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setWindowState('closed')}
-                  className="h-3.5 w-3.5 rounded-full bg-[#ff5f56] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                  title="Close diagram"
-                >
-                  <X size={8} className="text-[#450000] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setWindowState('normal')}
-                  className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                  title="Restore diagram"
-                >
-                  <Minus size={8} className="text-[#4e3200] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setWindowState('maximized')}
-                  className="h-3.5 w-3.5 rounded-full bg-[#27c93f] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                  title="Maximize diagram to full screen"
-                >
-                  <Maximize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                </button>
-              </div>
-              <div className="h-4 w-px bg-white/10 mx-1" />
-              <span className="text-xs font-mono font-bold text-white">
-                {DIAGRAM_TYPES.find(t => t.id === selectedType)?.label || 'Diagram'}
-              </span>
-              <span className="text-[11px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-                Minimized • {activeRepo || 'Obsidian Canvas'}
-              </span>
+          <div className="paper-flat px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="strip text-ash">Minimized</span>
+              <span className="font-semibold text-ink">{typeLabel}</span>
+              {activeRepo && <span className="text-sm font-mono text-ash truncate">{activeRepo}</span>}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => setWindowState('normal')} className={tool}>
+                Restore
+              </button>
               <button
                 type="button"
-                onClick={() => setWindowState('normal')}
-                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                onClick={() => setWindowState('maximized')}
+                className={tool}
+                aria-label="Open diagram full screen"
+                title="Open diagram full screen"
               >
-                <span>Restore Window</span>
-                <Maximize2 size={13} />
+                <Maximize2 size={14} strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setWindowState('closed')}
+                className="btn btn-ghost btn-sm"
+                aria-label="Close diagram"
+                title="Close diagram"
+              >
+                <X size={14} strokeWidth={2} />
               </button>
             </div>
           </div>
         ) : (
-          <div
-            className={
-              isMax
-                ? 'fixed inset-0 z-[999] bg-[#07090e]/98 backdrop-blur-2xl p-2 sm:p-4 w-screen h-screen flex flex-col overflow-hidden animate-in fade-in duration-200'
-                : 'glass-panel p-5 space-y-4'
-            }
-          >
-            <div className={isMax ? 'flex flex-col h-full rounded-2xl bg-[#070a12] overflow-hidden border border-white/[0.12] shadow-2xl relative' : 'space-y-4'}>
-              {/* Clean Single-Row Studio Header */}
-              <div className={`flex items-center justify-between border-b border-white/[0.08] flex-nowrap gap-3 min-w-0 flex-shrink-0 ${
-                isMax ? 'px-4 sm:px-6 py-3 bg-[#090d18]' : 'pb-3'
-              }`}>
-                {/* Left: Window Controls, Diagram Type Switcher & Repo Context */}
-                <div className="flex items-center gap-3 min-w-0 flex-shrink">
-                  {/* Interactive macOS window traffic lights */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setWindowState('closed')}
-                      className="h-3.5 w-3.5 rounded-full bg-[#ff5f56] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                      title="Close diagram window"
-                    >
-                      <X size={8} className="text-[#450000] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWindowState('minimized')}
-                      className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                      title="Minimize diagram to dock"
-                    >
-                      <Minus size={8} className="text-[#4e3200] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWindowState(isMax ? 'normal' : 'maximized')}
-                      className="h-3.5 w-3.5 rounded-full bg-[#27c93f] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                      title={isMax ? 'Exit Fullscreen (Esc)' : 'Maximize to full screen'}
-                    >
-                      {isMax ? (
-                        <Minimize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                      ) : (
-                        <Maximize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="h-4 w-px bg-white/10 mx-0.5 flex-shrink-0" />
-
-                  {/* Interactive Diagram Type Switcher in Fullscreen */}
+          <div className={isMax ? 'fixed inset-0 z-[999] bg-kraft p-2 sm:p-4 flex flex-col' : ''}>
+            <div className={isMax ? 'paper flex flex-col h-full overflow-hidden p-3 sm:p-4 gap-3' : 'space-y-3'}>
+              {/* Diagram header: title or type switcher, view mode, exports, window */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 rule-b flex-shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
                   {isMax ? (
-                    <div className="flex items-center bg-white/[0.04] p-0.5 rounded-lg border border-white/[0.08] overflow-x-auto">
+                    <div className="flex items-center gap-1 overflow-x-auto" role="group" aria-label="Diagram type">
                       {DIAGRAM_TYPES.map((t, idx) => {
                         const Icon = t.icon;
                         const isSel = selectedType === t.id;
@@ -733,292 +617,221 @@ export function UmlTab({ activeRepo }) {
                           <button
                             key={t.id}
                             type="button"
+                            aria-pressed={isSel}
                             onClick={() => {
                               setSelectedType(t.id);
                               handleGenerate(t.id);
                             }}
-                            className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
-                              isSel
-                                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
-                                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-                            }`}
-                            title={`Switch to ${t.label} (Press ${idx + 1})`}
+                            className={seg(isSel)}
+                            title={`Switch to ${t.label} (press ${idx + 1})`}
                           >
-                            <Icon size={12} className={isSel ? 'text-white' : 'text-slate-400'} />
+                            <Icon size={14} strokeWidth={2} />
                             <span>{t.shortLabel || t.label}</span>
-                            <kbd className="hidden lg:inline-block px-1 py-0.2 text-[9px] rounded bg-white/10 text-slate-300 font-mono">
-                              {idx + 1}
-                            </kbd>
+                            <kbd className="hidden lg:inline font-mono text-[10px] opacity-70">{idx + 1}</kbd>
                           </button>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="badge badge-primary font-mono text-xs whitespace-nowrap">
-                        {DIAGRAM_TYPES.find(t => t.id === selectedType)?.label || 'Diagram'}
-                      </span>
-                      <span className="text-xs font-mono text-slate-400 truncate max-w-[200px] hidden sm:inline">
-                        Active Repository: {activeRepo}
-                      </span>
-                    </div>
+                    <h4 className="font-cond font-bold text-ink text-lg whitespace-nowrap">{typeLabel}</h4>
                   )}
-
-                  {isMax && (
-                    <div className="hidden xl:flex items-center gap-1.5 text-xs font-mono text-slate-400 bg-white/[0.02] px-2.5 py-1 rounded-lg border border-white/[0.06] flex-shrink-0">
-                      <span className="text-slate-500">repo:</span>
-                      <span className="text-indigo-300 font-semibold truncate max-w-[160px]">{activeRepo || 'codebase'}</span>
-                    </div>
+                  {activeRepo && (
+                    <span className="text-sm font-mono text-ash truncate max-w-[200px] hidden sm:inline">{activeRepo}</span>
                   )}
                 </div>
 
-                {/* Right: View Mode, Exports, Copy, Live, Exit Fullscreen */}
-                <div className="flex items-center gap-2 flex-nowrap flex-shrink-0">
-                  {/* View Mode Toggle: Diagram vs Source */}
-                  <div className="flex items-center bg-white/[0.04] p-0.5 rounded-lg border border-white/[0.08] text-xs">
+                <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex items-center gap-1" role="group" aria-label="View mode">
                     <button
                       type="button"
                       onClick={() => setViewMode('diagram')}
-                      className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer ${
-                        viewMode === 'diagram'
-                          ? 'bg-indigo-600 text-white font-semibold shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                      title="View Vector Diagram (D)"
+                      aria-pressed={viewMode === 'diagram'}
+                      aria-label="Show diagram"
+                      className={seg(viewMode === 'diagram')}
+                      title="Show diagram (D)"
                     >
-                      <Eye size={12} />
+                      <Eye size={14} strokeWidth={2} />
                       <span className="hidden sm:inline">Diagram</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setViewMode('source')}
-                      className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer ${
-                        viewMode === 'source'
-                          ? 'bg-indigo-600 text-white font-semibold shadow-sm'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                      title="View Mermaid DSL Source (S)"
+                      aria-pressed={viewMode === 'source'}
+                      aria-label="Show Mermaid source"
+                      className={seg(viewMode === 'source')}
+                      title="Show Mermaid source (S)"
                     >
-                      <Code size={12} />
+                      <Code size={14} strokeWidth={2} />
                       <span className="hidden sm:inline">Source</span>
                     </button>
                   </div>
 
-                  {/* Exports */}
                   {viewMode === 'diagram' && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={handleDownloadSvg}
-                        className="px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer border border-white/[0.06]"
-                        title="Export diagram as SVG image"
-                      >
-                        <Download size={12} />
+                    <>
+                      <button type="button" onClick={handleDownloadSvg} className={tool} title="Export as SVG">
+                        <Download size={14} strokeWidth={2} />
                         <span>SVG</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={handleDownloadPng}
-                        className="px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer border border-white/[0.06]"
-                        title="Export high-resolution PNG image"
-                      >
-                        <ImageIcon size={12} />
+                      <button type="button" onClick={handleDownloadPng} className={tool} title="Export as PNG">
+                        <ImageIcon size={14} strokeWidth={2} />
                         <span>PNG</span>
                       </button>
-                    </div>
+                    </>
                   )}
 
-                  {/* Copy Code */}
                   <button
                     type="button"
                     onClick={handleCopyCode}
-                    className="px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer border border-white/[0.06]"
-                    title="Copy Mermaid source code"
+                    className={tool}
+                    aria-label={copied ? 'Copied Mermaid source' : 'Copy Mermaid source'}
+                    title="Copy Mermaid source"
                   >
-                    {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                    {copied ? <Check size={14} strokeWidth={2} className="text-forest" /> : <Copy size={14} strokeWidth={2} />}
                     <span className="hidden md:inline">{copied ? 'Copied' : 'Copy'}</span>
                   </button>
 
-                  {/* Open in Mermaid Live */}
                   {liveUrl && (
                     <a
                       href={liveUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 hover:text-white flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer border border-indigo-500/30"
-                      title="Open live editor in new tab"
+                      className={tool}
+                      aria-label="Open in Mermaid Live editor"
+                      title="Open in Mermaid Live editor"
                     >
-                      <ExternalLink size={12} />
+                      <ExternalLink size={14} strokeWidth={2} />
                       <span className="hidden sm:inline">Live</span>
                     </a>
                   )}
 
-                  <div className="h-4 w-px bg-white/10 mx-0.5" />
-
-                  {/* Exit Fullscreen or Fullscreen Toggle Button */}
                   <button
                     type="button"
                     onClick={() => setWindowState(isMax ? 'normal' : 'maximized')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
-                      isMax
-                        ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30'
-                        : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                    }`}
-                    title={isMax ? 'Exit Fullscreen (Esc)' : 'Maximize diagram to full screen'}
+                    className={tool}
+                    title={isMax ? 'Exit full screen (Esc)' : 'Full screen'}
                   >
-                    {isMax ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-                    <span>{isMax ? 'Exit (Esc)' : 'Fullscreen'}</span>
+                    {isMax ? <Minimize2 size={14} strokeWidth={2} /> : <Maximize2 size={14} strokeWidth={2} />}
+                    <span>{isMax ? 'Exit (Esc)' : 'Full screen'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWindowState('minimized')}
+                    className="btn btn-ghost btn-sm"
+                    aria-label="Minimize diagram"
+                    title="Minimize diagram"
+                  >
+                    <Minus size={14} strokeWidth={2} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWindowState('closed')}
+                    className="btn btn-ghost btn-sm"
+                    aria-label="Close diagram"
+                    title="Close diagram"
+                  >
+                    <X size={14} strokeWidth={2} />
                   </button>
                 </div>
               </div>
 
-              {/* Viewport and Canvas Container */}
-              <div className={`relative flex-1 w-full overflow-hidden flex flex-col ${isMax ? 'min-h-0' : ''}`}>
+              {/* Viewport */}
+              <div className={`relative w-full flex flex-col ${isMax ? 'flex-1 min-h-0' : ''}`}>
                 {viewMode === 'diagram' ? (
-                  <div 
-                    ref={viewportRef}
-                    tabIndex={0}
-                    onKeyDown={handleKeyDown}
-                    onPointerDown={handlePointerDown}
-                    onDoubleClick={handleResetZoom}
-                    style={{ touchAction: 'none' }}
-                    className={`w-full flex items-center justify-center relative select-none outline-none ${
-                      isMax 
-                        ? 'flex-1 h-full min-h-0 bg-[#060910]' 
-                        : 'rounded-2xl border border-white/[0.08] bg-[#060910] p-4 sm:p-6 h-[580px] max-h-[75vh]'
-                    } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-                  >
-                    {loading && (
-                      <div className="absolute inset-0 bg-[#060910]/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3 pointer-events-none">
-                        <RefreshCw size={24} className="text-indigo-400 animate-spin" />
-                        <span className="text-xs font-mono text-slate-300">Synthesizing architectural model...</span>
-                      </div>
-                    )}
-
-                    {/* Canvas scaling & panning wrapper */}
-                    <div 
-                      className="origin-center flex items-center justify-center w-full h-full select-none"
-                      style={{ 
-                        transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
-                        transition: isDragging ? 'none' : 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)',
-                        willChange: 'transform'
-                      }}
+                  <>
+                    <div
+                      ref={viewportRef}
+                      tabIndex={0}
+                      onKeyDown={handleKeyDown}
+                      onPointerDown={handlePointerDown}
+                      onDoubleClick={handleResetZoom}
+                      style={{ touchAction: 'none' }}
+                      aria-label={`${typeLabel} canvas. Drag or use arrow keys to pan.`}
+                      className={`paper-flat bg-[#fbf8f2] w-full flex items-center justify-center relative overflow-hidden select-none ${
+                        isMax ? 'flex-1 min-h-0' : 'p-4 sm:p-6 h-[580px] max-h-[75vh]'
+                      } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                     >
-                      <img
-                        src={inkSvgUrl}
-                        alt={`${selectedType} architectural diagram`}
-                        className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-2xl pointer-events-none select-none"
-                        draggable={false}
-                      />
-                    </div>
-
-                    {/* Momentary Google-Maps-Style Scroll-to-Zoom Hint Toast */}
-                    {showScrollHint && !isMax && (
-                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-30 flex items-center justify-center pointer-events-none animate-in fade-in duration-150">
-                        <div className="px-4 py-2 rounded-xl bg-[#090d16]/95 border border-indigo-500/40 text-white text-xs font-mono shadow-2xl flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                            {modKeyText}
-                          </span>
-                          <span>+ Scroll to zoom diagram</span>
+                      {loading && (
+                        <div className="absolute inset-0 z-20 bg-pulp/90 flex items-center justify-center gap-3 pointer-events-none">
+                          <div className="flex items-center gap-1">
+                            <span className="thinking-dot" />
+                            <span className="thinking-dot" />
+                            <span className="thinking-dot" />
+                          </div>
+                          <span className="text-sm text-ink-2">Generating diagram from the repository</span>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Floating Interactive Canvas Controls Dock */}
-                    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 p-1.5 rounded-2xl bg-[#090d18]/90 border border-white/[0.12] shadow-2xl backdrop-blur-xl pointer-events-auto">
-                      {/* Zoom Controls */}
-                      <div className="flex items-center gap-0.5 bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.06]">
-                        <button
-                          type="button"
-                          onClick={handleZoomOut}
-                          disabled={zoom <= 0.4}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                          title="Zoom Out (-)"
-                        >
-                          <ZoomOut size={13} />
+                      {/* Canvas scaling & panning wrapper */}
+                      <div
+                        className="origin-center flex items-center justify-center w-full h-full select-none"
+                        style={{
+                          transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+                          transition: isDragging ? 'none' : 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)',
+                          willChange: 'transform'
+                        }}
+                      >
+                        <MermaidDiagram
+                          code={mermaidCode}
+                          label={`${selectedType} diagram`}
+                          className="max-w-full max-h-full pointer-events-none select-none"
+                        />
+                      </div>
+
+                      {/* Momentary scroll-to-zoom hint */}
+                      {showScrollHint && !isMax && (
+                        <div className="absolute inset-x-0 top-3 z-30 flex justify-center pointer-events-none">
+                          <div className="paper px-3 py-1.5 text-sm text-ink flex items-center gap-2">
+                            <kbd className="font-mono text-xs px-1.5 py-0.5 rounded-sm bg-pulp-2 border border-rule">{modKeyText}</kbd>
+                            <span>+ scroll to zoom</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Zoom and pan controls */}
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 pointer-events-auto">
+                        <button type="button" onClick={handleZoomOut} disabled={zoom <= 0.4} className={tool} aria-label="Zoom out" title="Zoom out (-)">
+                          <ZoomOut size={14} strokeWidth={2} />
                         </button>
-                        <button
-                          type="button"
-                          onClick={handleResetZoom}
-                          className="px-2.5 py-1 text-xs font-mono font-bold text-indigo-300 hover:text-white transition-colors cursor-pointer"
-                          title="Reset Zoom to 100% (R / 0)"
-                        >
+                        <button type="button" onClick={handleResetZoom} className={`${tool} font-mono tabular-nums`} aria-label="Reset zoom to 100%" title="Reset zoom (R / 0)">
                           {Math.round(zoom * 100)}%
                         </button>
-                        <button
-                          type="button"
-                          onClick={handleZoomIn}
-                          disabled={zoom >= 4}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                          title="Zoom In (+)"
-                        >
-                          <ZoomIn size={13} />
+                        <button type="button" onClick={handleZoomIn} disabled={zoom >= 4} className={tool} aria-label="Zoom in" title="Zoom in (+)">
+                          <ZoomIn size={14} strokeWidth={2} />
                         </button>
-                      </div>
-
-                      {/* Pan Directional Buttons */}
-                      <div className="flex items-center gap-0.5 bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.06]">
-                        <button
-                          type="button"
-                          onClick={() => handlePan(60, 0)}
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-                          title="Pan Left (←)"
-                        >
-                          <ChevronLeft size={13} />
+                        <span className="w-2" aria-hidden="true" />
+                        <button type="button" onClick={() => handlePan(60, 0)} className={tool} aria-label="Pan left" title="Pan left">
+                          <ChevronLeft size={14} strokeWidth={2} />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handlePan(0, 60)}
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-                          title="Pan Up (↑)"
-                        >
-                          <ChevronUp size={13} />
+                        <button type="button" onClick={() => handlePan(0, 60)} className={tool} aria-label="Pan up" title="Pan up">
+                          <ChevronUp size={14} strokeWidth={2} />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handlePan(0, -60)}
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-                          title="Pan Down (↓)"
-                        >
-                          <ChevronDown size={13} />
+                        <button type="button" onClick={() => handlePan(0, -60)} className={tool} aria-label="Pan down" title="Pan down">
+                          <ChevronDown size={14} strokeWidth={2} />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handlePan(-60, 0)}
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-                          title="Pan Right (→)"
-                        >
-                          <ChevronRight size={13} />
+                        <button type="button" onClick={() => handlePan(-60, 0)} className={tool} aria-label="Pan right" title="Pan right">
+                          <ChevronRight size={14} strokeWidth={2} />
                         </button>
-                      </div>
-
-                      {/* Center View */}
-                      <button
-                        type="button"
-                        onClick={handleResetZoom}
-                        className="px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs font-mono text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors border border-white/[0.06] cursor-pointer"
-                        title="Center & Reset View (Double-click or R)"
-                      >
-                        <RotateCcw size={12} />
-                        <span className="hidden sm:inline">Center</span>
-                      </button>
-
-                      {/* Floating Guidance Badge */}
-                      <div className="hidden md:flex items-center gap-2 border-l border-white/10 pl-2.5 text-[11px] font-mono text-slate-400">
-                        <span className="flex items-center gap-1 text-indigo-300">
-                          <Move size={11} />
-                          <span>Drag or arrows</span>
-                        </span>
-                        <span className="text-slate-600">•</span>
-                        <span>{isMax ? 'Scroll to zoom' : `${modKeyText} + Scroll to zoom`}</span>
-                        <span className="text-slate-600">•</span>
-                        <span>Double-click reset</span>
+                        <span className="w-2" aria-hidden="true" />
+                        <button type="button" onClick={handleResetZoom} className={tool} aria-label="Center and reset view" title="Center and reset view (double-click or R)">
+                          <RotateCcw size={14} strokeWidth={2} />
+                          <span className="hidden sm:inline">Center</span>
+                        </button>
                       </div>
                     </div>
-                  </div>
+
+                    {mermaidCode?.includes(SAMPLE_TAG.trim()) && (
+                      <p className="pt-2 text-sm text-ochre">
+                        Sample diagram drawn by hand, not generated from this index. The backend has not returned a diagram{activeRepo ? ` for ${activeRepo}` : ''} yet; press Generate to try.
+                      </p>
+                    )}
+                    <p className="hidden md:flex items-center gap-2 pt-2 text-xs text-ash flex-shrink-0">
+                      <Move size={14} strokeWidth={2} />
+                      <span>Drag or use arrow keys to pan · {isMax ? 'Scroll' : `${modKeyText} + scroll`} to zoom · Double-click to reset</span>
+                    </p>
+                  </>
                 ) : (
-                  <div className={`overflow-hidden border border-white/10 bg-[#060910] ${isMax ? 'flex-1 h-full min-h-0' : 'rounded-xl'}`}>
-                    <pre className="p-4 font-mono text-xs text-slate-200 overflow-x-auto whitespace-pre h-full max-h-[650px]">
+                  <div className={`ink-plate overflow-auto ${isMax ? 'flex-1 min-h-0' : 'max-h-[650px]'}`}>
+                    <pre className="p-4 font-mono text-[12.5px] whitespace-pre">
                       <code>{mermaidCode}</code>
                     </pre>
                   </div>

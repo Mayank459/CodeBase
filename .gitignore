@@ -27,3 +27,7 @@ dist/
 .vite/
 scratch/
 brag-output/
+
+# Impeccable working files (screenshots, decision page)
+.impeccable/review/
+.impeccable/questions/

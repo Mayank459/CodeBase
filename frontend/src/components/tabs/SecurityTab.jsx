@@ -1,8 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  ShieldAlert, ShieldCheck, Wrench, AlertTriangle, Play, ArrowRight, 
-  Search, Filter, CheckCircle2, FileCode, ExternalLink, Zap, Shield, Bug
-} from 'lucide-react';
+import { Wrench, Search, GitPullRequest, Shield } from 'lucide-react';
 import { apiPost } from '../../api';
 import { MarkdownView } from '../MarkdownView';
 
@@ -206,340 +203,192 @@ export function SecurityTab({ activeRepo, onNavigateToPr }) {
     });
   }, [parsedFindings, selectedSeverity, searchQuery]);
 
+  const busy = loadingScan || loadingFixes;
+  const total = criticalCount + highCount + mediumCount + lowCount;
+  const segments = [
+    { key: 'CRITICAL', label: 'Critical', count: criticalCount, fill: 'bg-crimson' },
+    { key: 'HIGH', label: 'High', count: highCount, fill: 'bg-rust' },
+    { key: 'MEDIUM', label: 'Medium', count: mediumCount, fill: 'bg-ochre' },
+    { key: 'LOW', label: 'Low', count: lowCount, fill: 'bg-paper-grey' },
+  ];
+  const severityBadge = (sev) =>
+    sev === 'CRITICAL' ? 'badge badge-danger'
+      : sev === 'HIGH' ? 'badge !bg-[var(--rust-wash)] !text-rust'
+      : sev === 'MEDIUM' ? 'badge badge-warning'
+      : 'badge';
+  const toggleClass = (on) => `btn btn-sm ${on ? 'bg-ink text-pulp' : 'btn-ghost'}`;
+
   return (
     <div className="space-y-6">
-      {/* Header & Controls */}
-      <div className="glass-panel p-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <ShieldAlert size={20} className="text-rose-400" />
-              <h3 className="text-base font-semibold text-white">Security Command Center</h3>
-              <span className="badge badge-warning text-[10px]">Static AST + Vulnerability Scanner</span>
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button onClick={handleScan} disabled={busy || !activeRepo} className="btn btn-primary">
+          <Shield size={14} strokeWidth={2} />
+          <span>{loadingScan ? 'Auditing…' : 'Run security audit'}</span>
+        </button>
+        <button onClick={handleFixes} disabled={busy || !activeRepo} className="btn btn-secondary">
+          <Wrench size={14} strokeWidth={2} />
+          <span>{loadingFixes ? 'Writing fixes…' : 'Generate fixes'}</span>
+        </button>
+        {busy && (
+          <div className="flex items-center gap-2 text-sm text-ink-2" role="status">
+            <div className="flex items-end gap-1">
+              <div className="thinking-dot" />
+              <div className="thinking-dot" />
+              <div className="thinking-dot" />
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Scans AST call sinks and tokens for hardcoded secrets, SQL injection risks, and CVE patterns.
-            </p>
+            <span>{loadingScan ? 'Scanning call sinks and tokens…' : 'Drafting remediation patches…'}</span>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleScan}
-              disabled={loadingScan || loadingFixes || !activeRepo}
-              className="btn btn-secondary gap-2 text-xs"
-            >
-              {loadingScan ? (
-                <>
-                  <ShieldAlert size={14} className="animate-spin text-rose-400" />
-                  <span>Auditing Codebase...</span>
-                </>
-              ) : (
-                <>
-                  <Shield size={14} className="text-rose-400" />
-                  <span>Run Security Audit</span>
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleFixes}
-              disabled={loadingScan || loadingFixes || !activeRepo}
-              className="btn btn-primary gap-2 text-xs shadow-lg shadow-indigo-500/20"
-            >
-              {loadingFixes ? (
-                <>
-                  <Wrench size={14} className="animate-spin" />
-                  <span>Formulating Fixes...</span>
-                </>
-              ) : (
-                <>
-                  <Wrench size={14} />
-                  <span>Generate Fixes</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-          <AlertTriangle size={16} className="flex-shrink-0" />
-          <span>{error}</span>
+        <div className="paper-flat p-4 text-sm">
+          <p className="text-crimson font-semibold">{error}</p>
+          <p className="text-ink-2 mt-1">Check that the repository is indexed, then run the audit again.</p>
         </div>
       )}
 
-      {/* Security Health Score & Severity Matrix */}
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
-        {/* Score Dial Tile */}
-        <div className="sm:col-span-2 glass-panel p-5 flex items-center justify-between border-white/[0.08]">
-          <div className="space-y-1">
-            <span className="metric-label">Security Health Index</span>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-3xl font-extrabold font-mono ${
-                score >= 85 ? 'text-emerald-400' : score >= 70 ? 'text-amber-400' : 'text-rose-400'
-              }`}>
-                {scanResult ? `${score}/100` : '-- / 100'}
-              </span>
-              <span className="text-xs font-mono text-slate-400">
-                {scanResult ? grade : 'Pending Scan'}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              {scanResult ? 'Weighted score derived from AST vulnerability severity.' : 'Run a security scan to calculate health.'}
-            </p>
+      {/* Score + severity strip */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-6 rule-b pb-6">
+        <div className="shrink-0">
+          <div className="strip text-ash">Health score</div>
+          <div className="flex items-baseline gap-2 mt-1">
+            {scanResult ? (
+              <>
+                <span className="font-matrixtype-display text-5xl text-ink tabular-nums leading-none">{score}</span>
+                <span className="font-mono text-sm text-ash tabular-nums">/ 100</span>
+              </>
+            ) : (
+              <span className="font-cond font-semibold text-2xl text-ash leading-none">No score yet</span>
+            )}
           </div>
-
-          <div className={`h-16 w-16 rounded-full border-4 flex items-center justify-center font-mono font-bold text-sm ${
-            score >= 85 
-              ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300' 
-              : score >= 70
-              ? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
-              : 'border-rose-500/50 bg-rose-500/10 text-rose-300'
-          }`}>
-            {score}%
-          </div>
+          <p className="text-sm text-ink-2 mt-2">
+            {scanResult ? grade : `Run an audit to score ${activeRepo || 'your repository'}`}
+          </p>
         </div>
 
-        {/* Severity Counters */}
-        <div className="sm:col-span-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div 
-            onClick={() => setSelectedSeverity('CRITICAL')}
-            className={`metric-tile cursor-pointer transition-all ${
-              selectedSeverity === 'CRITICAL' ? 'border-rose-500 bg-rose-500/10' : ''
-            }`}
-          >
-            <span className="text-[10px] font-mono uppercase text-rose-400 font-bold">Critical</span>
-            <div className="text-2xl font-bold font-mono text-rose-400 mt-1">{criticalCount}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex h-3 w-full overflow-hidden rounded-sm bg-paper-grey divide-x divide-pulp" aria-hidden="true">
+            {total > 0 && segments.map((s) => s.count > 0 && (
+              <div key={s.key} className={s.fill} style={{ flexGrow: s.count, flexBasis: 0 }} />
+            ))}
           </div>
-
-          <div 
-            onClick={() => setSelectedSeverity('HIGH')}
-            className={`metric-tile cursor-pointer transition-all ${
-              selectedSeverity === 'HIGH' ? 'border-amber-500 bg-amber-500/10' : ''
-            }`}
-          >
-            <span className="text-[10px] font-mono uppercase text-amber-400 font-bold">High</span>
-            <div className="text-2xl font-bold font-mono text-amber-400 mt-1">{highCount}</div>
-          </div>
-
-          <div 
-            onClick={() => setSelectedSeverity('MEDIUM')}
-            className={`metric-tile cursor-pointer transition-all ${
-              selectedSeverity === 'MEDIUM' ? 'border-indigo-500 bg-indigo-500/10' : ''
-            }`}
-          >
-            <span className="text-[10px] font-mono uppercase text-indigo-400 font-bold">Medium</span>
-            <div className="text-2xl font-bold font-mono text-indigo-300 mt-1">{mediumCount}</div>
-          </div>
-
-          <div 
-            onClick={() => setSelectedSeverity('LOW')}
-            className={`metric-tile cursor-pointer transition-all ${
-              selectedSeverity === 'LOW' ? 'border-emerald-500 bg-emerald-500/10' : ''
-            }`}
-          >
-            <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold">Low</span>
-            <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">{lowCount}</div>
+          <div className="grid grid-cols-4 gap-2 mt-2">
+            {segments.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setSelectedSeverity(s.key)}
+                aria-pressed={selectedSeverity === s.key}
+                className={`text-left rounded-sm px-1.5 py-1 transition-colors hover:bg-pulp-2 ${
+                  selectedSeverity === s.key ? 'bg-pulp-2 shadow-[inset_0_-2px_0_var(--crimson)]' : ''
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className={`inline-block w-2 h-2 rounded-sm ${s.fill} shadow-[inset_0_0_0_1px_var(--rule)]`} />
+                  <span className="strip text-ash">{s.label}</span>
+                </div>
+                <div className="font-mono tabular-nums text-ink text-lg mt-0.5">{s.count}</div>
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Filter and search */}
       {scanResult && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          {/* Severity Filter Chips */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs text-slate-400 font-mono mr-1">Filter:</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="strip text-ash mr-1">Filter</span>
             {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((sev) => (
-              <button
-                key={sev}
-                onClick={() => setSelectedSeverity(sev)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-mono transition-all ${
-                  selectedSeverity === sev
-                    ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/20'
-                    : 'bg-white/[0.04] text-slate-400 hover:text-white border border-white/[0.06]'
-                }`}
-              >
+              <button key={sev} onClick={() => setSelectedSeverity(sev)} className={toggleClass(selectedSeverity === sev)}>
                 {sev}
               </button>
             ))}
           </div>
 
-          {/* Search Input & View Toggle */}
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              <Search size={14} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-ash pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search findings or files..."
+                placeholder="Search findings or files"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="input-field pl-10 py-1.5 text-xs font-mono has-icon-left"
+                className="input-field py-1.5 text-sm has-icon-left"
               />
             </div>
-
-            <div className="flex items-center rounded-lg border border-white/10 bg-white/[0.02] p-0.5 text-xs">
-              <button
-                onClick={() => setViewMode('cards')}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
-                  viewMode === 'cards' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Cards
-              </button>
-              <button
-                onClick={() => setViewMode('markdown')}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
-                  viewMode === 'markdown' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Report
-              </button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setViewMode('cards')} className={toggleClass(viewMode === 'cards')}>Findings</button>
+              <button onClick={() => setViewMode('markdown')} className={toggleClass(viewMode === 'markdown')}>Report</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Main Content Area */}
+      {/* Results */}
       {scanResult ? (
         viewMode === 'cards' ? (
-          <div className="space-y-3.5">
-            {filteredFindings.length > 0 ? (
-              filteredFindings.map((finding) => {
-                const isCrit = finding.severity === 'CRITICAL';
-                const isHigh = finding.severity === 'HIGH';
-                const isMed = finding.severity === 'MEDIUM';
-
-                return (
-                  <div
-                    key={finding.id}
-                    className={`glass-panel p-5 border-l-4 transition-all hover:border-white/20 ${
-                      isCrit
-                        ? 'border-l-rose-500 bg-rose-500/[0.02]'
-                        : isHigh
-                        ? 'border-l-amber-500 bg-amber-500/[0.02]'
-                        : isMed
-                        ? 'border-l-indigo-500'
-                        : 'border-l-emerald-500'
-                    }`}
-                  >
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                          isCrit
-                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                            : isHigh
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : isMed
-                            ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        }`}>
-                          {finding.severity}
-                        </span>
-
-                        <h4 className="text-sm font-semibold text-white tracking-tight">
-                          {finding.title}
-                        </h4>
+          filteredFindings.length > 0 ? (
+            <ul className="rule-t">
+              {filteredFindings.map((finding) => (
+                <li key={finding.id} className="rule-b py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={severityBadge(finding.severity)}>{finding.severity}</span>
+                        {finding.cwe && <span className="badge">{finding.cwe}</span>}
+                        <h4 className="text-ink font-semibold">{finding.title}</h4>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#070a12] border border-white/[0.08] text-[11px] font-mono text-slate-300">
-                          <FileCode size={12} className="text-indigo-400 flex-shrink-0" />
-                          <span className="truncate max-w-[200px]">{finding.file}</span>
-                        </span>
-
-                        <button
-                          onClick={onNavigateToPr}
-                          className="btn btn-primary btn-sm text-[11px] gap-1 px-2.5"
-                          title="Open Pull Request workflow to remediate this finding"
-                        >
-                          <Zap size={11} className="text-cyan-300" />
-                          <span>Fix with PR</span>
-                        </button>
-                      </div>
+                      <div className="font-mono text-sm text-ash truncate">{finding.file}</div>
                     </div>
-
-                    <div className="pt-3 text-xs text-slate-300 leading-relaxed font-sans">
+                    <button
+                      onClick={onNavigateToPr}
+                      className="btn btn-secondary btn-sm shrink-0"
+                      title="Open the pull request workflow to remediate this finding"
+                    >
+                      <GitPullRequest size={14} strokeWidth={2} />
+                      <span>Fix with PR</span>
+                    </button>
+                  </div>
+                  <details className="mt-2">
+                    <summary className="strip text-ink-2 hover:text-ink select-none">Detail and remediation</summary>
+                    <div className="paper-flat p-4 mt-2 text-sm text-ink leading-relaxed">
                       <MarkdownView content={finding.rawText} />
                     </div>
-                  </div>
-                );
-              })
-            ) : parsedFindings.length === 0 ? (
-              <div className="glass-panel p-8 text-center space-y-4 border border-emerald-500/20 bg-emerald-500/[0.03]">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
-                  <ShieldCheck size={32} />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-white tracking-wide">
-                    Codebase Passed Security Vulnerability Verification
-                  </h4>
-                  <p className="text-xs text-slate-300 max-w-md mx-auto mt-1">
-                    Zero critical vulnerabilities, exposed credentials, or execution sinks were detected in <strong className="text-emerald-300">{activeRepo}</strong>.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto pt-2 text-left">
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                      <CheckCircle2 size={13} />
-                      <span>Secret Isolation</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      Secrets cleanly retrieved via environment variables without plaintext leaks.
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                      <CheckCircle2 size={13} />
-                      <span>Execution Sinks</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      No dangerous dynamic execution calls (eval, exec, pickle.loads) detected.
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                      <CheckCircle2 size={13} />
-                      <span>Injection Defense</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      Safe query parameterization and absence of shell execution flaws.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="glass-panel p-10 text-center text-slate-400 space-y-2">
-                <CheckCircle2 size={32} className="mx-auto text-emerald-400 mb-2" />
-                <p className="text-sm font-semibold text-slate-200">No matching vulnerabilities</p>
-                <p className="text-xs text-slate-500">
-                  No issues matched severity filter "{selectedSeverity}" or search term "{searchQuery}".
-                </p>
-              </div>
-            )}
-          </div>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          ) : parsedFindings.length === 0 ? (
+            <div className="py-6 space-y-2">
+              <span className="badge badge-success">Passed</span>
+              <p className="text-ink">
+                The audit reported no vulnerabilities, exposed credentials or execution sinks in <span className="font-mono">{activeRepo}</span>.
+              </p>
+              <p className="text-sm text-ink-2">Open the report view to read the full audit transcript.</p>
+            </div>
+          ) : (
+            <div className="py-6 space-y-1">
+              <p className="text-ink font-semibold">No findings match</p>
+              <p className="text-sm text-ink-2">
+                Nothing matched severity "{selectedSeverity}"{searchQuery ? ` and "${searchQuery}"` : ''}. Clear the filter or search to see all findings.
+              </p>
+            </div>
+          )
         ) : (
-          <div className="glass-panel p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-              <span className="badge badge-warning">Raw Security Audit Transcript</span>
-              <span className="text-xs font-mono text-slate-400">Target: {activeRepo}</span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rule-b pb-3">
+              <span className="strip text-ash">{scanResult.type === 'fixes' ? 'Remediation patches' : 'Audit transcript'}</span>
+              <span className="font-mono text-sm text-ash">{activeRepo}</span>
             </div>
             <MarkdownView content={scanResult.content} />
           </div>
         )
       ) : (
-        /* Empty State */
-        <div className="glass-panel p-12 text-center text-slate-400 space-y-3">
-          <ShieldAlert size={40} className="mx-auto text-rose-400/50 mb-2" />
-          <h4 className="text-sm font-semibold text-slate-200">No Security Scan Executed Yet</h4>
-          <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-            Click <strong>"Run Security Audit"</strong> to scan {activeRepo || 'your repository'} for hardcoded credentials, SQL injection risks, unsafe functions, and vulnerability sinks.
-          </p>
-        </div>
+        <p className="text-sm text-ink-2 max-w-prose">
+          The audit scans {activeRepo ? <span className="font-mono">{activeRepo}</span> : 'your repository'} for hardcoded credentials, SQL injection, unsafe deserialization and dangerous execution calls, with file paths and line numbers.
+        </p>
       )}
     </div>
   );

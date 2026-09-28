@@ -1,449 +1,225 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Cpu, Activity, RefreshCw, GitBranch, Radio, Settings2, Check, 
-  ExternalLink, X, ChevronDown, Sparkles, Menu, Search,
-  MessageSquareCode, Network, ShieldAlert, Scissors, BookOpen, 
-  Workflow, GitCompare, GitCommit, GitPullRequest, ArrowRight, ShieldCheck
-} from 'lucide-react';
+import { RefreshCw, GitBranch, Check, X, Menu, Search, ExternalLink } from 'lucide-react';
 import { getApiBase, setApiBase } from '../api';
 import { TABS } from './TabNavigation';
 
-function GitHubIcon({ size = 15, className = "" }) {
+export function GitHubIcon({ size = 15, className = '' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
       <path d="M9 18c-4.51 2-5-2-7-2" />
     </svg>
   );
 }
 
-// Grouped tools for the Capabilities dropdown
-const TOOL_GROUPS = [
-  {
-    group: 'Code Intelligence',
-    items: [
-      { id: 'chat', label: 'Intelligence Chat', desc: 'LangGraph multi-agent reasoning & Qdrant RAG', icon: MessageSquareCode, tag: 'LangGraph' },
-      { id: 'architecture', label: 'Architecture Graph', desc: 'Topological call graph & AST traversal', icon: Network, tag: 'AST' },
-      { id: 'security', label: 'Security Audit', desc: 'CVE vulnerability scanner & health score', icon: ShieldAlert, tag: 'CVE' },
-    ]
-  },
-  {
-    group: 'Code Hygiene',
-    items: [
-      { id: 'dead_code', label: 'Dead Code Analysis', desc: 'AST unreferenced symbol detector', icon: Scissors, tag: 'Analysis' },
-      { id: 'docs', label: 'Documentation Generator', desc: 'Automated docstrings & module summaries', icon: BookOpen, tag: 'Generator' },
-      { id: 'uml', label: 'UML Diagrams', desc: 'Interactive Mermaid sequence & class models', icon: Workflow, tag: 'Mermaid' },
-    ]
-  },
-  {
-    group: 'Multi-Repo & Git',
-    items: [
-      { id: 'compare', label: 'Multi-Repo Compare', desc: 'Semantic diff across repository pairs', icon: GitCompare, tag: 'Diff' },
-      { id: 'evolution', label: 'Commit Evolution', desc: 'Git timeline & AST architectural drift', icon: GitCommit, tag: 'History' },
-      { id: 'pr', label: 'Autonomous PR', desc: 'Human-in-the-loop remediation PRs', icon: GitPullRequest, tag: 'HITL' },
-    ]
-  }
+// The brand mark: a crank disc, its arm, and the knob you turn.
+export function CrankMark({ size = 22, className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <circle cx="10" cy="13" r="7" fill="none" stroke="currentColor" strokeWidth="2.4" />
+      <circle cx="10" cy="13" r="1.8" fill="currentColor" />
+      <path d="M10 13 L19 5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      <circle cx="19.5" cy="4.5" r="2.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+const PAGES = [
+  { id: 'home', label: 'Home' },
+  { id: 'features', label: 'Workstation' },
+  { id: 'about', label: 'About' },
+  { id: 'settings', label: 'Settings' },
 ];
 
-export function Navbar({ 
-  activeRepo, 
-  keepAlive, 
-  onOpenIndexer, 
-  activePage = 'dashboard', 
-  activeTab = 'chat',
-  onNavigatePage = () => {}, 
+const ENDPOINTS = [
+  { url: '/api-proxy', label: 'Vite proxy', note: 'Dev server → Render, no CORS' },
+  { url: 'https://codebase-ys83.onrender.com', label: 'Render, direct', note: 'codebase-ys83.onrender.com' },
+  { url: 'http://localhost:8000', label: 'Local FastAPI', note: 'localhost:8000' },
+];
+
+const isWorkstation = (p) => p === 'features' || p === 'dashboard';
+
+export function Navbar({
+  activeRepo,
+  keepAlive,
+  onOpenIndexer,
+  activePage = 'home',
+  onNavigatePage = () => {},
   onSelectTab = () => {},
-  onOpenSearch = () => {} 
+  onOpenSearch = () => {},
 }) {
   const { online, latency, checking, countdown, refresh } = keepAlive;
-  const [showSettings, setShowSettings] = useState(false);
-  const [showCapabilities, setShowCapabilities] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [customUrl, setCustomUrl] = useState(getApiBase());
+  const [showStatus, setShowStatus] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [, force] = useState(0);
+  const statusRef = useRef(null);
 
-  const capabilitiesRef = useRef(null);
-  const settingsRef = useRef(null);
-
-  // Close dropdowns on outside click
   useEffect(() => {
-    const handleOutsideClick = (e) => {
-      if (capabilitiesRef.current && !capabilitiesRef.current.contains(e.target)) {
-        setShowCapabilities(false);
-      }
-      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
-        setShowSettings(false);
-      }
-    };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    const close = (e) => { if (statusRef.current && !statusRef.current.contains(e.target)) setShowStatus(false); };
+    const esc = (e) => { if (e.key === 'Escape') { setShowStatus(false); setMenuOpen(false); } };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
   }, []);
 
-  const formatCountdown = (secs) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const handleSelectEndpoint = (url) => {
-    setApiBase(url);
-    setCustomUrl(url || getApiBase());
-    refresh();
-  };
-
-  const handleToolSelect = (toolId) => {
-    onSelectTab(toolId);
-    onNavigatePage('features');
-    setShowCapabilities(false);
-    setIsMobileMenuOpen(false);
-  };
-
-  const handlePageSelect = (pageId) => {
-    onNavigatePage(pageId);
-    setIsMobileMenuOpen(false);
-  };
-
   const currentBase = getApiBase();
+  const lamp = online ? 'active' : checking ? 'idle' : 'offline';
+  const statusText = online ? 'Backend up' : checking ? 'Waking backend' : 'Backend down';
+  const mmss = `${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, '0')}`;
+
+  const go = (id) => { onNavigatePage(id); setMenuOpen(false); };
+  const pickEndpoint = (url) => { setApiBase(url); force((n) => n + 1); refresh(); };
 
   return (
-    <header className="sticky top-2 sm:top-4 z-40 w-full max-w-[1720px] mx-auto px-3 sm:px-6 transition-all">
-      <div className="w-full bg-[#0b101c]/80 border border-white/[0.1] rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/80 backdrop-blur-2xl px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between gap-4">
-        
-        {/* Left: Brand Logo (Interactive Click-to-Home) */}
-        <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 w-full bg-kraft/95 backdrop-blur-[2px] shadow-[0_1px_0_var(--kraft-dark)]" style={{ backgroundImage: 'var(--grain)' }}>
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-8 h-16 flex items-end gap-3">
+        {/* Brand tab */}
+        <button type="button" onClick={() => go('home')} className="flex items-stretch self-center shadow-lift-1 rounded-paper overflow-hidden group" aria-label="CodeBase home">
+          <span className="bg-crimson text-pulp w-10 flex items-center justify-center">
+            <CrankMark size={22} className="transition-transform duration-500 group-hover:rotate-[120deg]" />
+          </span>
+          <span className="bg-pulp text-ink px-3 flex items-center font-matrixtype-display text-[1.35rem] leading-none tracking-wide pt-0.5">
+            CODEBASE
+          </span>
+        </button>
+
+        {/* Page tabs */}
+        <nav aria-label="Pages" className="hidden md:flex items-end gap-[3px] ml-4">
+          {PAGES.map((p) => {
+            const current = p.id === 'features' ? isWorkstation(activePage) : activePage === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => go(p.id)}
+                aria-current={current ? 'page' : undefined}
+                className={`strip tab-cut px-4 transition-all duration-200 ${
+                  current
+                    ? 'bg-pulp text-ink h-11 pt-1 shadow-[0_-2px_6px_-2px_rgba(42,39,36,.3)]'
+                    : 'bg-paper-grey/80 text-ink-2 h-9 hover:h-10 hover:bg-pulp-2'
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2 self-center">
+          <button type="button" onClick={onOpenSearch} className="btn btn-secondary btn-sm !normal-case !tracking-normal !font-sans !font-medium gap-2" title="Command palette (Ctrl+K)">
+            <Search size={14} aria-hidden="true" />
+            <span className="hidden lg:inline text-ash">Find a tool or page</span>
+            <kbd className="font-mono text-[10px] px-1.5 py-px rounded-sm bg-pulp-2 text-ink-2 shadow-[inset_0_0_0_1px_var(--rule)]">Ctrl K</kbd>
+          </button>
+
           <button
             type="button"
-            onClick={() => handlePageSelect('home')}
-            className="flex items-center gap-3 text-left group transition-transform active:scale-95 cursor-pointer"
-            title="Return to Home Page"
+            onClick={onOpenIndexer}
+            className="hidden sm:inline-flex btn btn-secondary btn-sm !normal-case !tracking-normal font-mono !font-medium max-w-[220px]"
+            title="Index or switch repository"
           >
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-cyan-400 p-[1px] shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 transition-all flex-shrink-0">
-              <div className="h-full w-full bg-[#090d16] rounded-[11px] flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-indigo-500/10 group-hover:bg-indigo-500/20 transition-colors" />
-                <Cpu className="text-indigo-400 group-hover:text-cyan-300 transition-colors" size={20} />
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-white tracking-tight text-base sm:text-lg font-sans group-hover:text-indigo-200 transition-colors">
-                  CodeBase
-                </span>
-                <span className="badge badge-primary text-[10px] py-0.5 px-2 font-mono">
-                  RAG v2.0
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono tracking-tight hidden sm:block">
-                Repository Intelligence Engine
-              </p>
-            </div>
-          </button>
-        </div>
-
-        {/* Center: Streamlined & Spaced-Out Navigation */}
-        <div className="hidden md:flex items-center">
-          <nav className="flex items-center gap-1.5 bg-white/[0.04] p-1.5 rounded-2xl border border-white/[0.08] text-sm font-sans shadow-inner">
-            {/* 1. Dedicated Home Page */}
-            <button
-              onClick={() => onNavigatePage('home')}
-              className={`px-5 py-2 rounded-xl transition-all flex items-center gap-2 text-xs sm:text-sm font-medium cursor-pointer ${
-                activePage === 'home'
-                  ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-500/25'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full transition-colors ${activePage === 'home' ? 'bg-cyan-300' : 'bg-transparent'}`} />
-              <span>Home</span>
-            </button>
-
-            {/* 2. Dedicated Features Page */}
-            <button
-              onClick={() => onNavigatePage('features')}
-              className={`px-5 py-2 rounded-xl transition-all flex items-center gap-2 text-xs sm:text-sm font-medium cursor-pointer ${
-                activePage === 'features' || activePage === 'dashboard'
-                  ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-500/25'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full transition-colors ${activePage === 'features' || activePage === 'dashboard' ? 'bg-cyan-300' : 'bg-transparent'}`} />
-              <span>Features</span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Right Actions: Search + Active Repo + Minimal Live Status */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Quick Search CTA (⌘K) */}
-          <button
-            onClick={onOpenSearch}
-            className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-indigo-500/40 text-slate-300 hover:text-white transition-all text-xs font-mono group cursor-pointer"
-            title="Open Command Palette (⌘K / Ctrl+K)"
-          >
-            <Search size={14} className="text-slate-400 group-hover:text-indigo-400 transition-colors" />
-            <span className="hidden xl:inline text-xs text-slate-400 group-hover:text-slate-200">Search tools & symbols...</span>
-            <span className="hidden sm:inline xl:hidden text-xs text-slate-400">Search...</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.08] text-slate-300 border border-white/10 text-[10px] group-hover:border-indigo-400/50">
-              ⌘K
-            </kbd>
+            <GitBranch size={14} aria-hidden="true" />
+            <span className="truncate">{activeRepo || 'Index a repo'}</span>
           </button>
 
-          {/* Active Repository Pill */}
-          {activeRepo ? (
+          {/* Backend status + endpoint switcher */}
+          <div className="relative" ref={statusRef}>
             <button
-              onClick={onOpenIndexer}
-              className="flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/15 transition-all text-xs font-mono group cursor-pointer"
-              title="Click to switch or re-index repository"
+              type="button"
+              onClick={() => setShowStatus((s) => !s)}
+              aria-expanded={showStatus}
+              className="btn btn-secondary btn-sm !normal-case !tracking-normal !font-sans !font-medium"
+              title="Backend connection"
             >
-              <GitBranch size={14} className="text-emerald-400 group-hover:rotate-12 transition-transform shrink-0" />
-              <span className="font-semibold max-w-[110px] sm:max-w-[160px] truncate">{activeRepo}</span>
-              <span className="text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded font-bold hidden sm:inline">Ready</span>
-            </button>
-          ) : (
-            <button
-              onClick={onOpenIndexer}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-semibold text-xs transition-all shadow-md shadow-indigo-500/20 cursor-pointer"
-              title="Ingest a GitHub repository"
-            >
-              <Sparkles size={14} className="text-cyan-200" />
-              <span>⚡ Ingest Repo</span>
-            </button>
-          )}
-
-          {/* Minimal Live Status Pill */}
-          <div className="relative" ref={settingsRef}>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:border-white/20 text-xs font-mono transition-all cursor-pointer text-slate-300"
-              title="Backend status & connection settings"
-            >
-              <span className={`status-dot ${online ? 'active' : checking ? 'idle' : 'offline'}`} />
-              <span className="text-slate-300 text-xs hidden lg:inline">
-                {online ? 'Live' : checking ? 'Connecting...' : 'Offline'}
-              </span>
-              {latency !== null && (
-                <span className="text-slate-400 text-[11px] hidden xl:inline">
-                  {latency}ms
-                </span>
-              )}
+              <span className={`status-dot ${lamp}`} aria-hidden="true" />
+              <span className="hidden xl:inline">{statusText}</span>
+              {latency !== null && online && <span className="hidden lg:inline font-mono text-[11px] text-ash tabular-nums">{latency} ms</span>}
             </button>
 
-            {/* Endpoint Switcher Dropdown */}
-            {showSettings && (
-              <div className="absolute right-0 mt-2.5 w-80 rounded-2xl bg-[#0a0e17] border border-white/10 p-4 shadow-2xl z-50 space-y-3 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl">
-                <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                  <h4 className="text-xs font-bold text-white font-mono flex items-center gap-1.5">
-                    <Activity size={13} className="text-indigo-400" />
-                    Backend API Connection
-                  </h4>
-                  <button
-                    onClick={() => setShowSettings(false)}
-                    className="text-slate-400 hover:text-white"
-                  >
-                    <X size={13} />
-                  </button>
+            {showStatus && (
+              <div className="paper absolute right-0 mt-2 w-80 p-4 z-50 motion-modal-card" role="dialog" aria-label="Backend connection">
+                <div className="flex items-center justify-between pb-2 rule-b">
+                  <span className="strip text-ink">Backend connection</span>
+                  <button type="button" onClick={() => setShowStatus(false)} className="text-ash hover:text-ink" aria-label="Close"><X size={14} /></button>
+                </div>
+                <p className="mt-3 text-xs text-ink-2">
+                  <span className={`status-dot ${lamp} mr-2 align-middle`} />
+                  {statusText}{latency !== null && online ? ` · ${latency} ms round trip` : ''}
+                </p>
+                <p className="mt-1 font-mono text-[11px] text-ash break-all">{currentBase}</p>
+
+                <div className="mt-3 space-y-1">
+                  {ENDPOINTS.map((ep) => {
+                    const sel = currentBase === ep.url;
+                    return (
+                      <button
+                        key={ep.url}
+                        type="button"
+                        onClick={() => pickEndpoint(ep.url)}
+                        className={`w-full text-left px-3 py-2 rounded-sm flex items-center justify-between transition-colors ${sel ? 'bg-ink text-pulp' : 'hover:bg-pulp-2 text-ink'}`}
+                      >
+                        <span>
+                          <span className="block text-sm font-semibold">{ep.label}</span>
+                          <span className={`block text-[11px] font-mono ${sel ? 'text-plate-dim' : 'text-ash'}`}>{ep.note}</span>
+                        </span>
+                        {sel && <Check size={14} aria-hidden="true" />}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="space-y-1.5 text-xs font-mono">
-                  <div className="text-[11px] text-slate-400">Current Base URL:</div>
-                  <div className="p-2 rounded-lg bg-black/40 border border-white/10 text-indigo-300 break-all text-[11px]">
-                    {currentBase === '/api-proxy' ? '/api-proxy → Render Backend' : currentBase}
-                  </div>
-                </div>
-
-                <div className="space-y-1 text-xs">
-                  <div className="text-[11px] font-mono text-slate-400">Select Connection Target:</div>
-                  <button
-                    onClick={() => handleSelectEndpoint('/api-proxy')}
-                    className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                      currentBase === '/api-proxy'
-                        ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold'
-                        : 'bg-white/[0.02] text-slate-300 hover:bg-white/[0.06]'
-                    }`}
-                  >
-                    <div>
-                      <div>⚡ Vite Proxy (Recommended)</div>
-                      <div className="text-[10px] text-slate-400">Zero CORS • Render Backend Proxy</div>
-                    </div>
-                    {currentBase === '/api-proxy' && <Check size={13} className="text-indigo-400" />}
-                  </button>
-
-                  <button
-                    onClick={() => handleSelectEndpoint('https://codebase-ys83.onrender.com')}
-                    className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                      currentBase === 'https://codebase-ys83.onrender.com'
-                        ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold'
-                        : 'bg-white/[0.02] text-slate-300 hover:bg-white/[0.06]'
-                    }`}
-                  >
-                    <div>
-                      <div>🌐 Direct Render URL</div>
-                      <div className="text-[10px] text-slate-400">codebase-ys83.onrender.com</div>
-                    </div>
-                    {currentBase === 'https://codebase-ys83.onrender.com' && <Check size={13} className="text-indigo-400" />}
-                  </button>
-
-                  <button
-                    onClick={() => handleSelectEndpoint('http://localhost:8000')}
-                    className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                      currentBase === 'http://localhost:8000'
-                        ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold'
-                        : 'bg-white/[0.02] text-slate-300 hover:bg-white/[0.06]'
-                    }`}
-                  >
-                    <div>
-                      <div>💻 Local FastAPI Instance</div>
-                      <div className="text-[10px] text-slate-400">http://localhost:8000</div>
-                    </div>
-                    {currentBase === 'http://localhost:8000' && <Check size={13} className="text-indigo-400" />}
-                  </button>
-                </div>
-
-                <div className="pt-2 border-t border-white/[0.08] flex items-center justify-between text-[11px] font-mono text-slate-400">
-                  <span>Keep-alive ping ({formatCountdown(countdown)})</span>
-                  <button
-                    onClick={refresh}
-                    disabled={checking}
-                    className="btn btn-secondary btn-sm py-0.5 px-2 text-[11px] flex items-center gap-1"
-                  >
-                    <RefreshCw size={10} className={checking ? 'animate-spin' : ''} />
-                    <span>Ping Now</span>
+                <div className="mt-3 pt-3 rule-t flex items-center justify-between text-[11px] text-ash">
+                  <span>Keep-alive ping in <span className="font-mono tabular-nums">{mmss}</span></span>
+                  <button type="button" onClick={refresh} disabled={checking} className="btn btn-ghost btn-sm">
+                    <RefreshCw size={11} className={checking ? 'animate-spin' : ''} aria-hidden="true" />
+                    Ping now
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Live Vercel App link button */}
-          <a
-            href="https://code-base-self.vercel.app/"
-            target="_blank"
-            rel="noreferrer"
-            className="px-2.5 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 hover:text-white hover:bg-indigo-500/20 transition-all hidden lg:flex items-center gap-1.5 text-xs font-mono font-medium shadow-sm"
-            title="Open Live Vercel App"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Live App</span>
-            <ExternalLink size={11} className="text-indigo-400/80" />
+          <a href="https://github.com/Mayank459/CodeBase" target="_blank" rel="noreferrer" className="hidden sm:inline-flex btn btn-ghost btn-sm !px-2" aria-label="Source on GitHub">
+            <GitHubIcon size={17} />
           </a>
 
-          {/* GitHub source icon button */}
-          <a
-            href="https://github.com/Mayank459/CodeBase"
-            target="_blank"
-            rel="noreferrer"
-            className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-slate-400 hover:text-white hover:border-white/20 transition-all hidden sm:flex items-center justify-center"
-            title="View on GitHub"
-          >
-            <GitHubIcon size={15} />
-          </a>
-
-          {/* Mobile Hamburger Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white hover:border-white/20 transition-all cursor-pointer"
-            aria-label="Toggle mobile menu"
-          >
-            {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          <button type="button" onClick={() => setMenuOpen((o) => !o)} className="md:hidden btn btn-secondary btn-sm !px-2" aria-label="Menu" aria-expanded={menuOpen}>
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
         </div>
       </div>
 
-      {/* Responsive Mobile Drawer Menu (md:hidden) */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-white/[0.08] bg-[#07090e]/95 backdrop-blur-2xl px-4 py-6 space-y-5 animate-in slide-in-from-top-2 duration-150">
-          {/* Quick Search on Mobile */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              onOpenSearch();
-            }}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.1] text-slate-300 text-xs font-mono"
-          >
-            <div className="flex items-center gap-2">
-              <Search size={14} className="text-indigo-400" />
-              <span>Search capabilities, symbols...</span>
-            </div>
-            <kbd className="px-1.5 py-0.5 rounded bg-white/[0.08] text-slate-300 text-[10px] border border-white/10">⌘K</kbd>
-          </button>
-
-          {/* Mobile Main Pages */}
-          <div className="space-y-2">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-1 font-bold">
-              Navigation
-            </div>
+      {menuOpen && (
+        <div className="md:hidden px-4 pb-4 motion-expand-body">
+          <div className="paper p-4 space-y-4">
             <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handlePageSelect('home')}
-                className={`py-2.5 px-3 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
-                  activePage === 'home' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white/[0.04] text-slate-300 hover:text-white'
-                }`}
-              >
-                Home
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePageSelect('features')}
-                className={`py-2.5 px-3 rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
-                  activePage === 'features' || activePage === 'dashboard' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white/[0.04] text-slate-300 hover:text-white'
-                }`}
-              >
-                Features
-              </button>
-            </div>
-          </div>
-
-
-          {/* Mobile Tools (9 Capabilities) */}
-          <div className="space-y-1.5">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-1 font-bold">
-              Workstation Tools
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-60 overflow-y-auto pr-1">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                const isSelected = activePage === 'dashboard' && activeTab === tab.id;
+              {PAGES.map((p) => {
+                const current = p.id === 'features' ? isWorkstation(activePage) : activePage === p.id;
                 return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => handleToolSelect(tab.id)}
-                    className={`w-full flex items-center justify-between p-2 rounded-lg text-xs transition-colors ${
-                      isSelected
-                        ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold'
-                        : 'bg-white/[0.02] text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon size={14} className={isSelected ? 'text-cyan-400' : 'text-slate-500'} />
-                      <span>{tab.label}</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-500">{tab.tag}</span>
+                  <button key={p.id} type="button" onClick={() => go(p.id)} className={`btn btn-sm ${current ? 'btn-primary' : 'btn-secondary'}`}>
+                    {p.label}
                   </button>
                 );
               })}
             </div>
-          </div>
-
-          {/* Mobile Footer Links & GitHub */}
-          <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs text-slate-400">
-            <button
-              type="button"
-              onClick={() => handlePageSelect('privacy')}
-              className="hover:text-white transition-colors"
-            >
-              Privacy Policy
-            </button>
-            <a
-              href="https://github.com/Mayank459/CodeBase"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1.5 text-slate-300 hover:text-white"
-            >
-              <GitHubIcon size={14} />
-              <span>GitHub</span>
-              <ExternalLink size={11} />
-            </a>
+            <div>
+              <div className="strip text-ash mb-2">Tools</div>
+              <div className="grid grid-cols-1 gap-px">
+                {TABS.map((t, i) => (
+                  <button key={t.id} type="button" onClick={() => { onSelectTab(t.id); go('features'); }} className="flex items-center gap-3 px-2 py-2 text-left text-sm text-ink hover:bg-pulp-2 rounded-sm">
+                    <span className="font-mono text-[11px] text-ash w-5">{String(i + 1).padStart(2, '0')}</span>
+                    <t.icon size={15} aria-hidden="true" />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="pt-3 rule-t flex items-center justify-between text-sm">
+              <button type="button" onClick={() => go('privacy')} className="text-ink-2 underline">Privacy</button>
+              <a href="https://github.com/Mayank459/CodeBase" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-ink">
+                <GitHubIcon size={14} /> GitHub <ExternalLink size={11} aria-hidden="true" />
+              </a>
+            </div>
           </div>
         </div>
       )}

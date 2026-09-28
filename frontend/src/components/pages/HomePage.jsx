@@ -1,407 +1,365 @@
-import React from 'react';
-import { 
-  Sparkles, ArrowRight, ShieldAlert, Network, MessageSquareCode, 
-  Scissors, BookOpen, Workflow, GitCompare, GitCommit, GitPullRequest, 
-  GitBranch, Database, Zap, Cpu, CheckCircle2, ChevronRight, Layers, Search
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  GitBranch, TreePine, ListTree, Network, Binary, Database, Route,
+  ArrowRight, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { TABS } from '../TabNavigation';
+import { Procession } from '../Procession';
 
+// ---------------------------------------------------------------------------
+// The seven stages a repository passes through. Every output shown is real
+// structure from psf/requests or real configuration from this backend.
+// ---------------------------------------------------------------------------
+const STAGES = [
+  { id: 'clone', name: 'Clone', icon: GitBranch },
+  { id: 'parse', name: 'Parse', icon: TreePine },
+  { id: 'extract', name: 'Extract', icon: ListTree },
+  { id: 'graph', name: 'Graph', icon: Network },
+  { id: 'embed', name: 'Embed', icon: Binary },
+  { id: 'store', name: 'Store', icon: Database },
+  { id: 'answer', name: 'Answer', icon: Route },
+];
+const N = STAGES.length;
+const PROCESSION = STAGES.map((s) => ({ id: s.id, label: s.name, icon: s.icon }));
+const STEP = 90; // one stage per quarter turn of the crank
 
-export function HomePage({ 
-  onNavigatePage, 
-  onSelectTab, 
-  activeRepo, 
-  onOpenIndexer,
-  onOpenSearch 
-}) {
-  const handleLaunchTool = (tabId) => {
-    onSelectTab(tabId);
-    onNavigatePage('features');
-  };
+const mod = (a, n) => ((a % n) + n) % n;
 
-  const FEATURES = [
-    {
-      id: 'chat',
-      title: 'Repository Intelligence Chat',
-      tag: 'LangGraph + Qdrant',
-      color: '#6366f1',
-      icon: MessageSquareCode,
-      desc: 'Contextual code comprehension with LangGraph multi-agent orchestration, hybrid vector search, and AST citation evidence.',
-      cta: 'Launch AI Chat'
-    },
-    {
-      id: 'architecture',
-      title: 'Architecture Call Graph',
-      tag: 'NetworkX + AST',
-      color: '#06b6d4',
-      icon: Network,
-      desc: 'Interactive 2D topological call graph visualizer. Trace caller/callee relationships, BFS traversal paths, and modular coupling.',
-      cta: 'Explore Graph'
-    },
-    {
-      id: 'security',
-      title: 'Automated Security Audit',
-      tag: 'CVE Scanner',
-      color: '#f43f5e',
-      icon: ShieldAlert,
-      desc: 'Static vulnerability assessment across dependencies and code surfaces with CVSS risk scores, severity badges, and remediation steps.',
-      cta: 'Run Security Scan'
-    },
-    {
-      id: 'dead_code',
-      title: 'Dead Code Detection',
-      tag: 'Symbol Hygiene',
-      color: '#10b981',
-      icon: Scissors,
-      desc: 'AST-based static symbol resolution identifying unreferenced functions, dangling classes, and zero-callsite methods.',
-      cta: 'Scan Dead Code'
-    },
-    {
-      id: 'docs',
-      title: 'Documentation Generator',
-      tag: 'Automated Docstrings',
-      color: '#f59e0b',
-      icon: BookOpen,
-      desc: 'Automated generation of Google/NumPy docstrings, parameter specifications, exception handling, and full module overviews.',
-      cta: 'Generate Docs'
-    },
-    {
-      id: 'uml',
-      title: 'UML Class & Sequence Models',
-      tag: 'Mermaid Engine',
-      color: '#a855f7',
-      icon: Workflow,
-      desc: 'Transform raw abstract syntax trees into interactive sequence diagrams, class hierarchies, and execution flow charts.',
-      cta: 'View UML Models'
-    },
-    {
-      id: 'compare',
-      title: 'Multi-Repo Semantic Diff',
-      tag: 'Cross-Repo Analytics',
-      color: '#3b82f6',
-      icon: GitCompare,
-      desc: 'Compare architectural drift and semantic implementations between multiple repositories or divergent forks side by side.',
-      cta: 'Compare Repos'
-    },
-    {
-      id: 'evolution',
-      title: 'Commit Evolution Tracker',
-      tag: 'Git Timeline',
-      color: '#ec4899',
-      icon: GitCommit,
-      desc: 'Trace structural modifications and complexity shifts across commit history with AST change velocity telemetry.',
-      cta: 'Track Evolution'
-    },
-    {
-      id: 'pr',
-      title: 'Autonomous Remediation PR',
-      tag: 'HITL Workflow',
-      color: '#8b5cf6',
-      icon: GitPullRequest,
-      desc: 'Generate automated GitHub pull request patches for identified vulnerabilities and dead code with Human-In-The-Loop review.',
-      cta: 'Review PR Gate'
-    },
-  ];
+function StageOutput({ id, stats }) {
+  const entities = stats?.entities_indexed ?? stats?.entities;
+  const edges = stats?.edges_count ?? stats?.graph_edges;
+  const mono = 'font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap break-words sm:whitespace-pre';
 
-  return (
-    <div className="space-y-16 lg:space-y-24 w-full">
-      
-      {/* 1. HERO SECTION (Double-Bezel Hardware Architecture) */}
-      <section className="bezel-shell relative overflow-hidden">
-        <div className="bezel-core relative p-8 sm:p-12 lg:p-16 overflow-hidden">
-          {/* Subtle Ambient Radial Illuminations */}
-          <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-indigo-500/[0.08] rounded-full blur-3xl pointer-events-none -mr-28 -mt-28" />
-          <div className="absolute bottom-0 left-1/3 w-[450px] h-[450px] bg-cyan-500/[0.06] rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 max-w-4xl space-y-8">
-            {/* Eyebrow Hardware Badge */}
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.1] text-indigo-300 text-xs shadow-sm font-matrixtype">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-              </span>
-              <span className="tracking-wider uppercase text-[11px] font-semibold text-slate-300">
-                LangGraph Multi-Agent Engine • v2.0 Production
-              </span>
-            </div>
-
-            {/* Hero Display Headline with Optical Descender Balance */}
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.1] font-matrixtype-display">
-              Repository Intelligence <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-indigo-300">
-                & Full-Stack Code Comprehension.
-              </span>
-            </h1>
-
-            <p className="text-sm sm:text-base lg:text-lg text-slate-300 leading-relaxed max-w-3xl font-normal">
-              Parse complete abstract syntax trees, traverse topological call graphs, audit vulnerabilities, detect dead code, and query logic with hybrid semantic and graph vector search.
-            </p>
-
-            {/* Island Button CTAs with Button-in-Button Trailing Icons */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <button
-                type="button"
-                onClick={() => onNavigatePage('features')}
-                className="btn-island pl-6 pr-2.5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm shadow-xl shadow-indigo-600/30 cursor-pointer group"
-              >
-                <span>Launch Workstation</span>
-                <div className="btn-island-disc bg-white/20 text-white">
-                  <ArrowRight size={15} />
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenIndexer}
-                className="btn-island px-5 py-3 bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.1] text-slate-200 hover:text-white cursor-pointer text-sm font-mono"
-              >
-                <GitBranch size={15} className="text-emerald-400" />
-                <span>{activeRepo ? `Active: ${activeRepo}` : 'Ingest Repository'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenSearch}
-                className="hidden sm:inline-flex items-center gap-2.5 px-4 py-3 rounded-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] text-slate-400 hover:text-slate-200 text-xs font-mono transition-all cursor-pointer"
-              >
-                <Search size={14} className="text-indigo-400" />
-                <span>Command Palette</span>
-                <kbd className="px-2 py-0.5 rounded-full bg-white/[0.08] text-[10px] text-slate-300 border border-white/10 font-mono">⌘K</kbd>
-              </button>
-            </div>
-          </div>
-
-          {/* Platform Telemetry Strip */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-10 border-t border-white/[0.08] mt-12">
-            <div className="space-y-1">
-              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-matrixtype tabular-nums">
-                99.8%
-              </div>
-              <div className="text-[11px] text-slate-400 uppercase tracking-wider font-mono">
-                AST parse integrity
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-matrixtype tabular-nums">
-                87ms
-              </div>
-              <div className="text-[11px] text-slate-400 uppercase tracking-wider font-mono">
-                p50 vector latency
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-matrixtype tabular-nums">
-                128k
-              </div>
-              <div className="text-[11px] text-slate-400 uppercase tracking-wider font-mono">
-                sliding context
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-matrixtype">
-                AST + Qdrant
-              </div>
-              <div className="text-[11px] text-slate-400 uppercase tracking-wider font-mono">
-                hybrid knowledge
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. ASYMMETRICAL BENTO GRID SHOWCASE */}
-      <section className="space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-mono">
-              <Layers size={13} />
-              <span>Full Capability Suite</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight font-matrixtype-display">
-              All 9 Developer Tools on One Dedicated Platform
-            </h2>
-            <p className="text-slate-400 text-sm sm:text-base max-w-2xl">
-              Engineered with LangGraph multi-agent orchestration, abstract syntax tree extraction, and topological call graph traversal.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => onNavigatePage('features')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/[0.04] border border-white/[0.1] hover:border-indigo-500/40 text-xs font-mono text-indigo-300 hover:text-white transition-all cursor-pointer"
-          >
-            <span>Open All Tools</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* Asymmetrical Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Bento Tile 1: Flagship Intelligence Chat (Spans 2 columns on lg) */}
-          <div className="lg:col-span-2 bezel-shell">
-            <div className="bezel-core p-7 sm:p-8 flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 shadow-lg">
-                    <MessageSquareCode size={24} />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase font-mono px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold tracking-wider">
-                      Flagship Agent
-                    </span>
-                    <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-white/[0.04] text-slate-400 border border-white/[0.06]">
-                      LangGraph + Qdrant
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight font-matrixtype">
-                    Repository Intelligence Chat
-                  </h3>
-                  <p className="text-sm text-slate-300 leading-relaxed max-w-2xl">
-                    Multi-turn conversational code comprehension powered by LangGraph multi-agent routing. Queries the hybrid Qdrant vector space, retrieves AST symbols, and cites exact lines and functions with proof of evidence.
-                  </p>
-                </div>
-
-                {/* Interactive Telemetry Sample Chips */}
-                <div className="pt-2 flex flex-wrap gap-2">
-                  {['"Where is session token validation handled?"', '"Trace dependencies of get_current_user"', '"Explain the indexer pipeline"'].map((promptText, i) => (
-                    <span key={i} className="text-xs font-mono px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-slate-400">
-                      {promptText}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => handleLaunchTool('chat')}
-                  className="btn-island pl-5 pr-2 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold cursor-pointer group"
-                >
-                  <span>Launch Intelligence Chat</span>
-                  <div className="btn-island-disc bg-white/20 text-white">
-                    <ArrowRight size={13} />
-                  </div>
-                </button>
-                <span className="text-xs text-slate-500 font-mono hidden sm:inline">Active Tab: Chat</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Bento Tile 2: Architecture Call Graph (Spans 1 column on lg, featured visual) */}
-          <div className="lg:col-span-1 bezel-shell">
-            <div className="bezel-core p-7 sm:p-8 flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 shadow-lg">
-                    <Network size={24} />
-                  </div>
-                  <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-semibold">
-                    Interactive 2D
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-white tracking-tight font-matrixtype">
-                    Architecture Call Graph
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    2D Cytoscape visualizer for complete caller/callee relationships, modular coupling swimlanes, and BFS shortest-path execution traces.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleLaunchTool('architecture')}
-                className="w-full py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-cyan-600 border border-white/[0.08] hover:border-cyan-500 text-slate-300 hover:text-white transition-all text-xs font-mono flex items-center justify-between cursor-pointer group"
-              >
-                <span>Explore Topology</span>
-                <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
-              </button>
-            </div>
-          </div>
-
-          {/* Remaining 7 Bento Tiles in Clean Precision Hardware Enclosures */}
-          {FEATURES.filter(f => f.id !== 'chat' && f.id !== 'architecture').map((feat) => {
-            const Icon = feat.icon;
-            return (
-              <div key={feat.id} className="bezel-shell">
-                <div className="bezel-core p-6 flex flex-col justify-between space-y-5">
-                  <div className="space-y-3.5">
-                    <div className="flex items-center justify-between">
-                      <div 
-                        className="h-11 w-11 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-105"
-                        style={{ backgroundColor: `${feat.color}15`, border: `1px solid ${feat.color}35`, color: feat.color }}
-                      >
-                        <Icon size={20} />
-                      </div>
-                      <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/[0.03] text-slate-400 border border-white/[0.06]">
-                        {feat.tag}
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-bold text-white tracking-tight font-matrixtype">
-                      {feat.title}
-                    </h3>
-
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      {feat.desc}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleLaunchTool(feat.id)}
-                    className="w-full py-2 px-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-indigo-500/40 text-slate-300 hover:text-white transition-all text-xs font-mono flex items-center justify-between cursor-pointer group"
-                  >
-                    <span>{feat.cta}</span>
-                    <ArrowRight size={13} className="transition-transform group-hover:translate-x-1" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-
-        </div>
-      </section>
-
-      {/* 3. ARCHITECTURE PIPELINE BREAKDOWN (Double-Bezel Hardware Architecture) */}
-      <section className="bezel-shell">
-        <div className="bezel-core p-8 sm:p-12 space-y-8">
-          <div className="max-w-3xl space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-mono">
-              <span>Pipeline Telemetry</span>
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-matrixtype-display">
-              How CodeBase Indexes & Comprehends Complex Repositories
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-2xl">
-              From raw repository cloning to multi-agent citation, every line of code is structured into an interconnected knowledge topology.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 pt-2 text-xs font-mono">
-            {[
-              { step: '01', title: 'Shallow Clone', desc: 'depth=1 Git snapshot' },
-              { step: '02', title: 'Tree-sitter AST', desc: 'Symbol extraction' },
-              { step: '03', title: 'Call Graph', desc: 'NetworkX topology' },
-              { step: '04', title: 'Cohere 384-d', desc: 'Dense vector embeddings' },
-              { step: '05', title: 'Qdrant Store', desc: 'Hybrid payload index' },
-              { step: '06', title: 'LangGraph RAG', desc: 'Multi-agent verification' },
-            ].map((s, idx) => (
-              <div key={idx} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-indigo-500/40 transition-colors space-y-2 group">
-                <span className="text-cyan-400 font-bold text-xs block font-mono tracking-wider">{s.step}</span>
-                <div className="text-slate-200 font-semibold text-xs sm:text-sm tracking-tight group-hover:text-indigo-300 transition-colors">{s.title}</div>
-                <div className="text-[11px] text-slate-400">{s.desc}</div>
-              </div>
+  switch (id) {
+    case 'clone':
+      return (
+        <>
+          <p className="text-ink-2">A shallow snapshot: one commit, no history. The working tree is all the indexer reads.</p>
+          <pre className={`ink-plate mt-3 px-4 py-3 overflow-x-auto ${mono}`}><span className="text-plate-dim">$ </span>git clone --depth 1 https://github.com/psf/requests</pre>
+        </>
+      );
+    case 'parse':
+      return (
+        <>
+          <p className="text-ink-2">tree-sitter turns every Python file into a syntax tree, so classes and functions are found by structure, not by regex.</p>
+          <pre className={`ink-plate mt-3 px-4 py-3 overflow-x-auto ${mono}`}>{`(class_definition
+  name: (identifier)            `}<span className="text-pulp">Session</span>{`
+  body: (block
+    (function_definition name:  `}<span className="text-pulp">request</span>{`)
+    (function_definition name:  `}<span className="text-pulp">send</span>{`)))`}</pre>
+        </>
+      );
+    case 'extract':
+      return (
+        <>
+          <p className="text-ink-2">Each definition becomes an entity with its file and line range. {entities
+            ? <><b className="text-ink tabular-nums">{Number(entities).toLocaleString()}</b> entities in the current index.</>
+            : <>psf/requests produced <b className="text-ink tabular-nums">568</b> entities when indexed on 28 Sep 2026.</>}</p>
+          <table className={`mt-3 w-full ${mono}`}>
+            <tbody>
+              {[
+                ['class', 'Session', 'sessions.py'],
+                ['method', 'Session.request', 'sessions.py'],
+                ['method', 'Session.send', 'sessions.py'],
+                ['method', 'HTTPAdapter.send', 'adapters.py'],
+                ['function', 'get', 'api.py'],
+              ].map(([k, s, f]) => (
+                <tr key={s} className="rule-b last:border-0">
+                  <td className="py-1 pr-3 text-ash w-20">{k}</td>
+                  <td className="py-1 pr-3 text-ink font-medium">{s}</td>
+                  <td className="py-1 text-ash text-right">{f}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      );
+    case 'graph':
+      return (
+        <>
+          <p className="text-ink-2">NetworkX links every call site to its target{edges
+            ? <>: <b className="text-ink tabular-nums">{Number(edges).toLocaleString()}</b> call edges in the current index.</>
+            : <>. psf/requests had <b className="text-ink tabular-nums">1,227</b> call edges when indexed on 28 Sep 2026.</>} This is the path a plain <code className="font-mono text-ink">requests.get()</code> travels:</p>
+          <ol className="mt-4 flex flex-wrap items-center gap-y-3 font-mono text-[12px]">
+            {['api.get', 'api.request', 'Session.request', 'Session.send', 'HTTPAdapter.send'].map((s, i, a) => (
+              <li key={s} className="flex items-center">
+                <span className={`px-2 py-1 rounded-sm ${i === a.length - 1 ? 'bg-crimson text-pulp' : 'bg-pulp-2 text-ink shadow-[inset_0_0_0_1px_var(--rule)]'}`}>{s}</span>
+                {i < a.length - 1 && <span className="w-5 h-[2px] bg-ink-2 mx-1" aria-hidden="true" />}
+              </li>
+            ))}
+          </ol>
+        </>
+      );
+    case 'embed':
+      return (
+        <>
+          <p className="text-ink-2">Each entity becomes a 384-dimension vector (Cohere embed-english-light-v3.0), so a question like “where do retries happen?” finds <code className="font-mono text-ink">HTTPAdapter</code> even when the words differ.</p>
+          <div className="mt-4 flex items-end gap-[3px] h-14" aria-hidden="true">
+            {Array.from({ length: 48 }, (_, i) => (
+              <span key={i} className="flex-1 bg-ink-2 rounded-t-[1px]" style={{ height: `${18 + Math.abs(Math.sin(i * 12.9898) * 43758.5453 % 1) * 82}%`, opacity: i % 7 === 3 ? 1 : 0.7, background: i % 7 === 3 ? 'var(--crimson)' : undefined }} />
             ))}
           </div>
+          <p className="mt-1 text-[11px] text-ash">48 of 384 dimensions drawn, values illustrative.</p>
+        </>
+      );
+    case 'store':
+      return (
+        <>
+          <p className="text-ink-2">Vectors and their payloads go to Qdrant, filtered by repository so answers never mix codebases.</p>
+          <pre className={`ink-plate mt-3 px-4 py-3 overflow-x-auto ${mono}`}>{`collection  `}<span className="text-pulp">codebase_entities_cohere</span>{`
+index       repository_name = "psf/requests"
+payload     symbol, kind, file, lines, code`}</pre>
+        </>
+      );
+    default:
+      return (
+        <>
+          <p className="text-ink-2">A LangGraph router reads the question and hands it to a specialist agent: chat, call flow, architecture, security, docs, UML and more. The answer comes back with the files and line ranges it used.</p>
+          <div className="mt-3 paper-flat p-3">
+            <p className="text-[11px] strip text-ash">Example</p>
+            <p className="mt-1 text-sm text-ink"><b>Where does a request actually get sent?</b></p>
+            <p className="mt-1 text-sm text-ink-2"><code className="font-mono text-ink">Session.send</code> picks the mounted adapter and calls <code className="font-mono text-ink">HTTPAdapter.send</code>, which opens the connection through urllib3.</p>
+            <p className="mt-2 flex flex-wrap gap-1.5"><span className="evidence-pill">requests/sessions.py</span><span className="evidence-pill">requests/adapters.py</span></p>
+          </div>
+        </>
+      );
+  }
+}
+
+// The crank stage: drag the handle, use the arrow keys, or press the step buttons.
+function CrankStage({ stats }) {
+  const [angle, setAngle] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const discRef = useRef(null);
+  const lastRef = useRef(0);
+
+  const pos = angle / STEP; // fractional stage position
+  const stage = mod(Math.round(pos), N);
+
+  // Turns itself slowly until someone takes the handle.
+  useEffect(() => {
+    if (touched || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const t = setInterval(() => setAngle((a) => a + STEP), 4200);
+    return () => clearInterval(t);
+  }, [touched]);
+
+  const pointerAngle = (e) => {
+    const r = discRef.current.getBoundingClientRect();
+    const ax = r.left + (48 / 96) * r.width;
+    const ay = r.top + (134.5 / 150) * r.height;
+    return (Math.atan2(e.clientY - ay, e.clientX - ax) * 180) / Math.PI;
+  };
+  const onDown = (e) => {
+    setTouched(true);
+    setDragging(true);
+    lastRef.current = pointerAngle(e);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onMove = (e) => {
+    if (!dragging) return;
+    const a = pointerAngle(e);
+    let d = a - lastRef.current;
+    if (d > 180) d -= 360;
+    if (d < -180) d += 360;
+    lastRef.current = a;
+    setAngle((x) => x + d);
+  };
+  const onUp = () => {
+    setDragging(false);
+    setAngle((x) => Math.round(x / STEP) * STEP);
+  };
+  const step = (dir) => { setTouched(true); setAngle((x) => Math.round(x / STEP) * STEP + dir * STEP); };
+  const onKey = (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); step(1); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); step(-1); }
+  };
+
+  const current = STAGES[stage];
+  const turn = dragging ? 'none' : 'transform 700ms var(--ease-crank)';
+
+  return (
+    <div className="paper slotted p-4 sm:p-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="strip text-ink">How a repository moves through CodeBase</h2>
+        <span className="font-mono text-xs text-ash tabular-nums whitespace-nowrap">{stage + 1} / {N}</span>
+      </div>
+
+      {/* Seven stage cards on one rail; the crank is mounted on the rail's end and drives them */}
+      <div className="relative mt-6 flex items-end">
+        <Procession items={PROCESSION} pos={pos} ring dragging={dragging} className="flex-1 min-w-0" />
+        <svg
+          ref={discRef}
+          role="slider"
+          tabIndex={0}
+          aria-label="Crank: turn to move the repository through each stage"
+          aria-valuemin={1}
+          aria-valuemax={N}
+          aria-valuenow={stage + 1}
+          aria-valuetext={`${stage + 1}. ${current.name}`}
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={onUp}
+          onKeyDown={onKey}
+          viewBox="0 0 96 150"
+          overflow="visible"
+          className={`crank-handle shrink-0 w-[72px] sm:w-[96px] h-auto touch-none select-none rounded-sm ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        >
+          {/* the rail runs on to the axle */}
+          <rect x="-4" y="133" width="52" height="3" rx="1.5" fill="var(--ink)" />
+          {/* bearing plate the axle turns in */}
+          <rect x="26" y="112.5" width="44" height="44" rx="2" fill="var(--pulp-2)" stroke="var(--rule-strong)" />
+          <g style={{ transform: `rotate(${angle}deg)`, transformOrigin: '48px 134.5px', transition: turn }}>
+            <rect x="44" y="129.5" width="44" height="10" rx="5" fill="var(--ink-2)" />
+            <circle cx="88" cy="134.5" r="12" fill="var(--crimson)" />
+            <circle cx="88" cy="134.5" r="4" fill="var(--crimson-deep)" />
+          </g>
+          <circle cx="48" cy="134.5" r="9" fill="var(--ink)" />
+          <circle cx="48" cy="134.5" r="3" fill="var(--pulp)" />
+        </svg>
+      </div>
+
+      {/* The stage in motion folds open to show what it produced */}
+      <div className="mt-10 flex items-center justify-between gap-3">
+        <h3 key={`h-${current.id}`} className="font-matrixtype-display text-2xl text-ink leading-none stage-unfold">{current.name.toUpperCase()}</h3>
+        <div className="flex items-center gap-1.5">
+          <span className="strip !text-[10px] text-ash hidden sm:inline mr-1">Turn the crank or</span>
+          <button type="button" onClick={() => step(-1)} className="btn btn-secondary btn-sm !px-2" aria-label="Previous stage"><ChevronLeft size={16} /></button>
+          <button type="button" onClick={() => step(1)} className="btn btn-secondary btn-sm !px-2" aria-label="Next stage"><ChevronRight size={16} /></button>
         </div>
+      </div>
+      {/* Every stage is stacked in one grid cell so the panel always holds the tallest one:
+          turning the crank swaps what is visible without the box changing size. */}
+      <div className="grid mt-2 text-[14.5px] min-w-0" aria-live="polite">
+        {STAGES.map((st) => (
+          <div
+            key={st.id}
+            className={`[grid-area:1/1] min-w-0 ${st.id === current.id ? 'stage-unfold' : 'invisible'}`}
+            aria-hidden={st.id !== current.id}
+          >
+            <StageOutput id={st.id} stats={stats} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ToolDrawer({ onLaunch }) {
+  const [sel, setSel] = useState('chat');
+  const i = TABS.findIndex((t) => t.id === sel);
+  const tool = TABS[i];
+  return (
+    <div>
+      <div role="tablist" aria-label="Tools" className="folder-tabs !px-0">
+        {TABS.map((t, n) => (
+          <button key={t.id} role="tab" type="button" aria-selected={sel === t.id} onClick={() => setSel(t.id)} onMouseEnter={() => setSel(t.id)} className="folder-tab">
+            <span className="folder-num">{String(n + 1).padStart(2, '0')}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" className="paper !rounded-tl-none p-6 sm:p-10 grid md:grid-cols-[auto_1fr_auto] gap-6 md:gap-10 items-center">
+        <span className="font-matrixtype-display text-[5rem] sm:text-[6rem] leading-[.8] text-ink tabular-nums" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+        <div key={tool.id} className="stage-unfold">
+          <h3 className="font-cond font-bold text-3xl text-ink">{tool.label}</h3>
+          <p className="mt-2 text-lg text-ink-2 max-w-[56ch]">{tool.summary}</p>
+          <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-1 text-sm">
+            <div><dt className="strip inline text-ash">Reads </dt><dd className="inline text-ink">{tool.reads}</dd></div>
+            <div><dt className="strip inline text-ash">Returns </dt><dd className="inline text-ink">{tool.returns}</dd></div>
+          </dl>
+        </div>
+        <button type="button" onClick={() => onLaunch(tool.id)} className="btn btn-primary justify-self-start md:justify-self-end">
+          Open {tool.label}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function HomePage({ onNavigatePage, onSelectTab, activeRepo, indexStats, onOpenIndexer }) {
+  const launch = (tabId) => { onSelectTab(tabId); onNavigatePage('features'); window.scrollTo({ top: 0 }); };
+  const entities = indexStats?.entities_indexed ?? indexStats?.entities;
+  const edges = indexStats?.edges_count ?? indexStats?.graph_edges;
+  const indexed = Boolean(activeRepo && Number(entities) > 0);
+
+  return (
+    <div className="space-y-24 sm:space-y-32 pb-8">
+      {/* 1. First viewport: the claim and the machine */}
+      <section>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-10 lg:gap-14 items-center">
+        <div>
+          <h1 className="font-matrixtype-display text-ink leading-[0.95] text-[clamp(2.75rem,5.6vw,5.25rem)]">
+            TURN A REPO.<br />READ ITS<br />
+            <span className="inline-block mt-2 px-3 pt-1 bg-crimson text-pulp shadow-lift-2 -rotate-1">WIRING.</span>
+          </h1>
+          <p className="mt-6 text-lg text-ink-kraft max-w-[46ch]">
+            CodeBase parses a Python repository into symbols and call edges, then answers questions with the exact files and line ranges it read.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button type="button" onClick={() => launch('chat')} className="btn btn-primary !text-sm !py-3 !pl-5 !pr-9">Open the workstation</button>
+            <button type="button" onClick={onOpenIndexer} className="btn btn-secondary !text-sm !py-3">Index a repo</button>
+          </div>
+          {indexed && (
+            <p className="mt-5 text-sm text-ink-kraft">
+              Indexed now: <span className="font-mono text-ink">{activeRepo}</span>
+              {entities ? <> · <span className="tabular-nums">{Number(entities).toLocaleString()}</span> entities</> : null}
+              {edges ? <> · <span className="tabular-nums">{Number(edges).toLocaleString()}</span> call edges</> : null}
+            </p>
+          )}
+        </div>
+        <CrankStage stats={indexStats} />
+      </div>
+
       </section>
 
+      {/* 3. Nine tools, one index */}
+      <section>
+        <div className="mb-6">
+          <h2 className="font-cond font-bold text-4xl sm:text-5xl text-ink leading-[1.02]">Nine tools read the same index.</h2>
+          <p className="mt-4 text-ink-kraft max-w-[52ch]">Index once. Chat, graph, security, docs and the rest all work from the same symbols and edges.</p>
+        </div>
+        <ToolDrawer onLaunch={launch} />
+      </section>
+
+      {/* 4. The approval gate */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <h2 className="font-cond font-bold text-4xl sm:text-5xl text-ink leading-[1.02]">Nothing merges without you.</h2>
+          <p className="mt-4 text-ink-kraft max-w-[46ch]">
+            Security findings become a patch first. The LangGraph run pauses at an approval step, and a pull request is opened only after you have read and approved the diff.
+          </p>
+          <button type="button" onClick={() => launch('pr')} className="mt-6 btn btn-secondary">See the approval gate <ArrowRight size={14} aria-hidden="true" /></button>
+        </div>
+        <ol className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0">
+          {[
+            { k: 'Finding', v: 'security' },
+            { k: 'Patch', v: 'security_fix' },
+            { k: 'Your approval', v: 'await_approval', gate: true },
+            { k: 'Pull request', v: 'pr' },
+          ].map((s, i, a) => (
+            <li key={s.k} className="flex sm:flex-1 items-center">
+              <div className={`relative flex-1 px-3 py-4 rounded-[2px] text-center paper ${s.gate ? 'shadow-[inset_0_0_0_2px_var(--crimson),var(--lift-2)] sm:-translate-y-2' : ''}`}>
+                {s.gate && <span className="absolute -top-2 left-1/2 -ml-2 w-4 h-4 rounded-full bg-crimson shadow-lift-1" aria-hidden="true" />}
+                <div className="strip">{s.k}</div>
+                <div className="mt-1 font-mono text-[11px] text-ash">{s.v}</div>
+              </div>
+              {i < a.length - 1 && <span className="hidden sm:block w-4 h-[3px] bg-ink shrink-0" aria-hidden="true" />}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* 5. Close */}
+      <section className="paper slotted px-6 sm:px-12 py-12 sm:py-16 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+        <h2 className="font-matrixtype-display text-ink text-[clamp(2rem,4.4vw,3.75rem)] leading-[1]">
+          {indexed ? <>{activeRepo.toUpperCase()} IS INDEXED.<br />ASK IT SOMETHING.</> : <>INDEX A REPO.<br />ASK IT SOMETHING.</>}
+        </h2>
+        <button type="button" onClick={() => (indexed ? launch('chat') : onOpenIndexer())} className="btn btn-primary !text-sm !py-3 !pl-6 !pr-10 self-start lg:self-auto">
+          {indexed ? 'Open chat' : 'Index a repo'}
+        </button>
+      </section>
     </div>
   );
 }

@@ -1,0 +1,693 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-27T18:45:06+00:00",
+  "title": "Design System: CodeBase",
+  "extensions": {
+    "colorMeta": {
+      "kraft": {
+        "role": "neutral",
+        "displayName": "Kraft Board",
+        "canonical": "#c3a273",
+        "oklch": "oklch(73.1% 0.074 76.0)",
+        "tonalRamp": [
+          "#1b0400",
+          "#391e00",
+          "#583c09",
+          "#795b2d",
+          "#9c7c4e",
+          "#c09f70",
+          "#e5c393",
+          "#ffe9b7"
+        ]
+      },
+      "kraft-deep": {
+        "role": "neutral",
+        "displayName": "Deep Kraft",
+        "canonical": "#a9895c",
+        "oklch": "oklch(64.9% 0.073 75.4)",
+        "tonalRamp": [
+          "#1b0400",
+          "#391e00",
+          "#583c0c",
+          "#795b2f",
+          "#9c7c50",
+          "#c09f71",
+          "#e5c394",
+          "#ffe8b9"
+        ]
+      },
+      "kraft-dark": {
+        "role": "neutral",
+        "displayName": "Dark Kraft",
+        "canonical": "#8e7048",
+        "oklch": "oklch(56.5% 0.067 73.7)",
+        "tonalRamp": [
+          "#1b0400",
+          "#381f00",
+          "#573c13",
+          "#785b34",
+          "#9b7c54",
+          "#bf9f76",
+          "#e4c399",
+          "#ffe9bd"
+        ]
+      },
+      "on-kraft-2": {
+        "role": "neutral",
+        "displayName": "Board Ink",
+        "canonical": "#3a342d",
+        "oklch": "oklch(32.9% 0.015 71.6)",
+        "tonalRamp": [
+          "#0f0a05",
+          "#2a241d",
+          "#47413a",
+          "#676058",
+          "#888179",
+          "#aba49b",
+          "#cfc8bf",
+          "#f5ede4"
+        ]
+      },
+      "pulp": {
+        "role": "neutral",
+        "displayName": "Pulp",
+        "canonical": "#f2ece1",
+        "oklch": "oklch(94.5% 0.016 82.8)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#29241c",
+          "#464139",
+          "#666157",
+          "#878278",
+          "#aaa49a",
+          "#cec8be",
+          "#f4eee3"
+        ]
+      },
+      "pulp-2": {
+        "role": "neutral",
+        "displayName": "Pressed Pulp",
+        "canonical": "#e8e0d2",
+        "oklch": "oklch(90.9% 0.021 81.8)",
+        "tonalRamp": [
+          "#100a03",
+          "#2a241a",
+          "#484136",
+          "#676054",
+          "#898175",
+          "#aca497",
+          "#d0c8ba",
+          "#f6eddf"
+        ]
+      },
+      "paper-grey": {
+        "role": "neutral",
+        "displayName": "Paper Grey",
+        "canonical": "#d6ccbc",
+        "oklch": "oklch(84.9% 0.024 79.7)",
+        "tonalRamp": [
+          "#110a02",
+          "#2b2417",
+          "#494133",
+          "#696052",
+          "#8a8172",
+          "#ada494",
+          "#d2c8b8",
+          "#f7eddd"
+        ]
+      },
+      "writing-paper": {
+        "role": "neutral",
+        "displayName": "Writing Paper",
+        "canonical": "#fbf8f2",
+        "oklch": "oklch(98.0% 0.009 84.6)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#272520",
+          "#44423d",
+          "#63615c",
+          "#85827d",
+          "#a7a59f",
+          "#ccc9c3",
+          "#f1eee8"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Shadow Ink",
+        "canonical": "#2a2724",
+        "oklch": "oklch(27.5% 0.007 67.5)",
+        "tonalRamp": [
+          "#0d0b08",
+          "#272421",
+          "#45413e",
+          "#64605d",
+          "#85827e",
+          "#a8a4a0",
+          "#ccc8c4",
+          "#f2eeea"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink Two",
+        "canonical": "#4a443d",
+        "oklch": "oklch(39.0% 0.014 71.7)",
+        "tonalRamp": [
+          "#0f0a05",
+          "#29241e",
+          "#47413a",
+          "#666059",
+          "#888179",
+          "#aba49c",
+          "#cfc8bf",
+          "#f5ede4"
+        ]
+      },
+      "ash": {
+        "role": "neutral",
+        "displayName": "Pressed Ash",
+        "canonical": "#6b645b",
+        "oklch": "oklch(50.7% 0.017 74.3)",
+        "tonalRamp": [
+          "#0f0a04",
+          "#2a241c",
+          "#474138",
+          "#676057",
+          "#888178",
+          "#aba49a",
+          "#d0c8be",
+          "#f5ede3"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule"
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Rule Strong"
+      },
+      "crimson": {
+        "role": "primary",
+        "displayName": "Signal Crimson",
+        "canonical": "#b3262d",
+        "oklch": "oklch(50.3% 0.177 24.1)",
+        "tonalRamp": [
+          "#3a0000",
+          "#610000",
+          "#880005",
+          "#af222a",
+          "#d84b4b",
+          "#ff716d",
+          "#ff968f",
+          "#ffbcb3"
+        ]
+      },
+      "crimson-deep": {
+        "role": "primary",
+        "displayName": "Crimson Deep",
+        "canonical": "#8f1d23",
+        "oklch": "oklch(42.7% 0.149 23.9)",
+        "tonalRamp": [
+          "#340000",
+          "#590000",
+          "#7f0615",
+          "#a53435",
+          "#cc5855",
+          "#f47c77",
+          "#ffa099",
+          "#ffc5be"
+        ]
+      },
+      "crimson-hover": {
+        "role": "primary",
+        "displayName": "Crimson Hover",
+        "canonical": "#c02b33",
+        "oklch": "oklch(53.1% 0.185 23.7)",
+        "tonalRamp": [
+          "#3c0000",
+          "#630000",
+          "#8b0002",
+          "#b21a28",
+          "#db4749",
+          "#ff6d6b",
+          "#ff928d",
+          "#ffb8b1"
+        ]
+      },
+      "crimson-wash": {
+        "role": "primary",
+        "displayName": "Crimson Wash"
+      },
+      "forest": {
+        "role": "status",
+        "displayName": "Forest Ink",
+        "canonical": "#3f6a3a",
+        "oklch": "oklch(48.0% 0.089 141.8)",
+        "tonalRamp": [
+          "#001200",
+          "#022f00",
+          "#234d1f",
+          "#436e3e",
+          "#63905e",
+          "#85b380",
+          "#a9d8a3",
+          "#cefec7"
+        ]
+      },
+      "forest-wash": {
+        "role": "status",
+        "displayName": "Forest Wash"
+      },
+      "ochre": {
+        "role": "status",
+        "displayName": "Ochre Ink",
+        "canonical": "#8a5f12",
+        "oklch": "oklch(51.9% 0.102 75.8)",
+        "tonalRamp": [
+          "#210000",
+          "#401900",
+          "#603800",
+          "#825803",
+          "#a57933",
+          "#ca9c57",
+          "#f0c07b",
+          "#ffe6a0"
+        ]
+      },
+      "ochre-wash": {
+        "role": "status",
+        "displayName": "Ochre Wash"
+      },
+      "rust": {
+        "role": "status",
+        "displayName": "Rust Ink",
+        "canonical": "#a2451c",
+        "oklch": "oklch(50.7% 0.134 41.9)",
+        "tonalRamp": [
+          "#300000",
+          "#540000",
+          "#781d00",
+          "#9d4117",
+          "#c3633c",
+          "#ea865f",
+          "#ffab82",
+          "#ffd0a6"
+        ]
+      },
+      "rust-wash": {
+        "role": "status",
+        "displayName": "Rust Wash"
+      },
+      "plate": {
+        "role": "neutral",
+        "displayName": "Ink Plate",
+        "canonical": "#2a2724",
+        "oklch": "oklch(27.5% 0.007 67.5)",
+        "tonalRamp": [
+          "#0d0b08",
+          "#272421",
+          "#45413e",
+          "#64605d",
+          "#85827e",
+          "#a8a4a0",
+          "#ccc8c4",
+          "#f2eeea"
+        ]
+      },
+      "plate-2": {
+        "role": "neutral",
+        "displayName": "Plate Band",
+        "canonical": "#35312d",
+        "oklch": "oklch(31.6% 0.009 67.5)",
+        "tonalRamp": [
+          "#0e0a07",
+          "#282420",
+          "#45413d",
+          "#65605c",
+          "#86817d",
+          "#a9a49f",
+          "#cdc8c3",
+          "#f3ede8"
+        ]
+      },
+      "plate-ink": {
+        "role": "neutral",
+        "displayName": "Plate Ink",
+        "canonical": "#ede6d8",
+        "oklch": "oklch(92.7% 0.020 84.6)",
+        "tonalRamp": [
+          "#0f0a03",
+          "#2a241a",
+          "#474136",
+          "#676154",
+          "#888275",
+          "#aba497",
+          "#cfc8bb",
+          "#f5eee0"
+        ]
+      },
+      "plate-dim": {
+        "role": "neutral",
+        "displayName": "Plate Dim",
+        "canonical": "#b5ab9b",
+        "oklch": "oklch(74.5% 0.025 79.7)",
+        "tonalRamp": [
+          "#110a02",
+          "#2c2417",
+          "#494133",
+          "#696051",
+          "#8a8172",
+          "#aea494",
+          "#d2c8b7",
+          "#f8eddc"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero claim only; all caps Matrixtype Display, last line on a crimson strip."
+      },
+      "display-close": {
+        "displayName": "Display Close",
+        "purpose": "Closing call on a slotted sheet."
+      },
+      "stage-title": {
+        "displayName": "Stage Title",
+        "purpose": "Name of the stage currently unfolded; brand wordmark; giant tool numerals."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings, sentence case, 2.25rem on mobile."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Tool names inside a sheet; markdown heads."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default UI text."
+      },
+      "body-lg": {
+        "displayName": "Body Large",
+        "purpose": "Lead lines, 46-56ch."
+      },
+      "prose": {
+        "displayName": "Prose",
+        "purpose": "Chat answers and generated docs, max 72ch."
+      },
+      "label": {
+        "displayName": "Label Strip",
+        "purpose": "Every uppercase caps label; 10-11px inside Procession cards."
+      },
+      "button": {
+        "displayName": "Button Strip",
+        "purpose": "Button and folder-tab labels."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Code plates, symbols, paths and every number, tabular."
+      }
+    },
+    "shadows": [
+      {
+        "name": "lift-1",
+        "value": "0 1px 0 rgba(42, 39, 36, 0.18), 0 3px 8px -3px rgba(42, 39, 36, 0.35)",
+        "purpose": "Buttons, ink plates, small raised tags."
+      },
+      {
+        "name": "lift-2",
+        "value": "0 1px 0 rgba(42, 39, 36, 0.2), 3px 8px 18px -8px rgba(42, 39, 36, 0.5)",
+        "purpose": "Paper sheets, primary strip on hover, hero crimson strip."
+      },
+      {
+        "name": "lift-3",
+        "value": "0 1px 0 rgba(42, 39, 36, 0.22), 6px 16px 32px -12px rgba(42, 39, 36, 0.6)",
+        "purpose": "A card lifted on hover."
+      },
+      {
+        "name": "inset-rule",
+        "value": "inset 0 0 0 1px rgba(42, 39, 36, 0.16)",
+        "purpose": "Flat paper, badges, pills, waiting stages."
+      },
+      {
+        "name": "ink-plate",
+        "value": "inset 0 0 0 1px rgba(0, 0, 0, 0.3), var(--lift-1)",
+        "purpose": "Code and log plates."
+      },
+      {
+        "name": "procession-lift",
+        "value": "0 1px 0 rgba(42,39,36,.2), calc(4px + 6px*lift) calc(8px + 14px*lift) calc(14px + 10px*lift) -8px rgba(42,39,36, calc(.35 + .25*lift))",
+        "purpose": "Procession card shadow, interpolated by lift 0..1."
+      },
+      {
+        "name": "slot",
+        "value": "inset 0 2px 2px rgba(0, 0, 0, 0.4)",
+        "purpose": "Slot marks cut into the board (8x30px, dark kraft)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-crank",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "The crank: 700ms for Procession lift, pin stretch, shadow and handle rotation; 220ms for folder-tab rise. Off while dragging; snaps to the nearest quarter turn on release."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "UI: 160ms button lift, 140ms backdrop fade, 200ms rise-in (6px) for dialogs and expanding panels."
+      },
+      {
+        "name": "unfold",
+        "value": "520ms ease-out; perspective(900px) rotateX(-55deg) to none; transform-origin 50% 0",
+        "purpose": "A stage or tool summary folding open from its top crease on every change."
+      },
+      {
+        "name": "colour-shift",
+        "value": "300ms",
+        "purpose": "Procession card background and text colour change."
+      },
+      {
+        "name": "crank-auto",
+        "value": "4200ms interval, one quarter turn",
+        "purpose": "Home crank turns itself until touched; disabled under reduced motion."
+      },
+      {
+        "name": "brand-turn",
+        "value": "500ms, rotate 120deg",
+        "purpose": "Crank mark turns on brand-tab hover."
+      },
+      {
+        "name": "lamp",
+        "value": "1.2s ease-in-out infinite, opacity to 0.35",
+        "purpose": "Ochre lamp while the backend wakes."
+      },
+      {
+        "name": "nod",
+        "value": "0.9s ease-out infinite, translateY(-4px), 0.15s stagger",
+        "purpose": "Thinking: three paper tabs nodding, middle one crimson."
+      },
+      {
+        "name": "feed",
+        "value": "1.6s ease-out infinite",
+        "purpose": "Crimson beam feeding across a 3px progress rule."
+      },
+      {
+        "name": "caret",
+        "value": "0.9s steps(1) infinite",
+        "purpose": "2px crimson streaming caret."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation and transition durations 0.01ms, iteration 1",
+        "purpose": "Stages switch in place with no rotation, lift or unfold; crank auto-turn off."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "container",
+        "value": "1600px"
+      }
+    ],
+    "textures": [
+      {
+        "name": "grain",
+        "purpose": "Kraft board noise (SVG feTurbulence 0.9, 3 octaves, 220px tile)."
+      },
+      {
+        "name": "fibre",
+        "purpose": "Directional kraft fibre streaks (feTurbulence 0.012/0.9, 300px tile)."
+      },
+      {
+        "name": "pulp-grain",
+        "purpose": "Faint paper grain on pulp sheets (feTurbulence 1.1, 12% alpha)."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The crimson paper strip with its eyelet rivet; one per view, for the action that moves the machine.",
+      "html": "<button class=\"ds-btn-primary\">Open the workstation</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Archivo Narrow', Courier Prime, ui-monospace, monospace;font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;padding:9px 16px;border:0;border-radius:2px;cursor:pointer;transition:transform 160ms cubic-bezier(0.16,1,0.3,1),box-shadow 160ms cubic-bezier(0.16,1,0.3,1),background-color 160ms cubic-bezier(0.16,1,0.3,1),color 160ms cubic-bezier(0.16,1,0.3,1);position:relative;background:var(--crimson, #b3262d);color:var(--pulp, #f2ece1);padding:9px 24px 9px 20px;margin-right:8px;box-shadow:var(--lift-1, 0 1px 0 rgba(42,39,36,.18), 0 3px 8px -3px rgba(42,39,36,.35));}.ds-btn-primary::after{content:'';position:absolute;right:-8px;top:50%;width:17px;height:17px;margin-top:-8.5px;border-radius:50%;background:radial-gradient(circle,var(--ink, #2a2724) 0 2.5px,var(--paper-grey, #d6ccbc) 3px 5px,var(--ash, #6b645b) 5.5px 8.5px);box-shadow:0 1px 0 rgba(0,0,0,.3),1px 2px 4px rgba(42,39,36,.35);}.ds-btn-primary:hover{background:#c02b33;box-shadow:var(--lift-2, 0 1px 0 rgba(42,39,36,.2), 3px 8px 18px -8px rgba(42,39,36,.5));transform:translateY(-1px);}.ds-btn-primary:active{transform:translateY(1px);box-shadow:none;}.ds-btn-primary:focus-visible{outline:2px solid var(--crimson, #b3262d);outline-offset:2px;}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A pulp paper strip for every other action.",
+      "html": "<button class=\"ds-btn-secondary\">Index a repo</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Archivo Narrow', Courier Prime, ui-monospace, monospace;font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;padding:9px 16px;border:0;border-radius:2px;cursor:pointer;transition:transform 160ms cubic-bezier(0.16,1,0.3,1),box-shadow 160ms cubic-bezier(0.16,1,0.3,1),background-color 160ms cubic-bezier(0.16,1,0.3,1),color 160ms cubic-bezier(0.16,1,0.3,1);background:var(--pulp, #f2ece1);color:var(--ink, #2a2724);box-shadow:var(--lift-1, 0 1px 0 rgba(42,39,36,.18), 0 3px 8px -3px rgba(42,39,36,.35));}.ds-btn-secondary:hover{box-shadow:var(--lift-2, 0 1px 0 rgba(42,39,36,.2), 3px 8px 18px -8px rgba(42,39,36,.5));transform:translateY(-1px);}.ds-btn-secondary:active{transform:translateY(1px);box-shadow:none;}.ds-btn-secondary:focus-visible{outline:2px solid var(--crimson, #b3262d);outline-offset:2px;}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Unmounted strip for low-weight actions inside a sheet; fills with the rule tint, never lifts.",
+      "html": "<button class=\"ds-btn-ghost\">Ping now</button>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Archivo Narrow', Courier Prime, ui-monospace, monospace;font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;padding:9px 16px;border:0;border-radius:2px;cursor:pointer;transition:transform 160ms cubic-bezier(0.16,1,0.3,1),box-shadow 160ms cubic-bezier(0.16,1,0.3,1),background-color 160ms cubic-bezier(0.16,1,0.3,1),color 160ms cubic-bezier(0.16,1,0.3,1);background:transparent;color:var(--ink-2, #4a443d);}.ds-btn-ghost:hover{background:var(--rule, rgba(42,39,36,.16));color:var(--ink, #2a2724);}.ds-btn-ghost:focus-visible{outline:2px solid var(--crimson, #b3262d);outline-offset:2px;}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "A strip of writing paper; the inset rule turns crimson on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"https://github.com/psf/requests\" />",
+      "css": ".ds-input{width:100%;background:#fbf8f2;border:0;border-radius:2px;padding:9px 14px;font-family:'Courier Prime', ui-monospace, monospace;font-size:13px;color:var(--ink, #2a2724);caret-color:var(--crimson, #b3262d);outline:none;box-shadow:inset 0 0 0 1px var(--rule-strong, rgba(42,39,36,.32)),inset 0 2px 3px rgba(42,39,36,.08);transition:box-shadow 160ms cubic-bezier(0.16,1,0.3,1);}.ds-input::placeholder{color:var(--ash, #6b645b);}.ds-input:focus{box-shadow:inset 0 0 0 1.5px var(--crimson, #b3262d),inset 0 2px 3px rgba(42,39,36,.08);}"
+    },
+    {
+      "name": "Page Tabs",
+      "kind": "nav",
+      "refersTo": "page-tab",
+      "description": "Cut paper tabs hanging from the kraft nav bar; the current page is taller pulp.",
+      "html": "<nav class=\"ds-pagetabs\"><button class=\"ds-pagetab\">Home</button><button class=\"ds-pagetab\" aria-current=\"page\">Workstation</button><button class=\"ds-pagetab\">About</button></nav>",
+      "css": ".ds-pagetabs{display:flex;align-items:flex-end;gap:3px;height:48px;padding:0 12px;background:var(--kraft, #c3a273);box-shadow:0 1px 0 var(--kraft-dark, #8e7048);}.ds-pagetab{clip-path:polygon(0 100%,0 7px,7px 0,calc(100% - 7px) 0,100% 7px,100% 100%);height:36px;padding:0 16px;border:0;background:rgba(214,204,188,.8);color:var(--ink-2, #4a443d);font-family:'Archivo Narrow', Courier Prime, ui-monospace, monospace;font-weight:600;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all 200ms;}.ds-pagetab:hover{height:40px;background:var(--pulp-2, #e8e0d2);}.ds-pagetab[aria-current=page]{height:44px;padding-top:4px;background:var(--pulp, #f2ece1);color:var(--ink, #2a2724);box-shadow:0 -2px 6px -2px rgba(42,39,36,.3);}.ds-pagetab:focus-visible{outline:2px solid var(--crimson, #b3262d);outline-offset:2px;}"
+    },
+    {
+      "name": "Folder Tabs",
+      "kind": "nav",
+      "refersTo": "folder-tab-selected",
+      "description": "Numbered tool tabs with notched shoulders; the selected tab turns crimson and rises flush with the sheet.",
+      "html": "<div class=\"ds-folders\" role=\"tablist\"><button class=\"ds-folder\" role=\"tab\" aria-selected=\"true\"><span class=\"ds-num\">01</span>Chat</button><button class=\"ds-folder\" role=\"tab\" aria-selected=\"false\"><span class=\"ds-num\">02</span>Call graph</button><button class=\"ds-folder\" role=\"tab\" aria-selected=\"false\"><span class=\"ds-num\">03</span>Security</button></div><div class=\"ds-folder-sheet\"></div>",
+      "css": ".ds-folders{display:flex;align-items:flex-end;gap:3px;padding:10px 6px 0;}.ds-folder{clip-path:polygon(0 100%,0 7px,7px 0,calc(100% - 7px) 0,100% 7px,100% 100%);position:relative;display:inline-flex;align-items:center;gap:8px;padding:9px 14px 10px;border:0;border-radius:3px 3px 0 0;background:var(--paper-grey, #d6ccbc);color:var(--ink-2, #4a443d);font-family:'Archivo Narrow', Courier Prime, ui-monospace, monospace;font-weight:600;font-size:.8125rem;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;box-shadow:inset 0 -6px 8px -6px rgba(42,39,36,.25);transform:translateY(4px);transition:transform 220ms cubic-bezier(0.22,1,0.36,1),background-color 160ms,color 160ms;}.ds-folder:hover{transform:translateY(0);background:var(--pulp-2, #e8e0d2);color:var(--ink, #2a2724);}.ds-num{font-family:'Courier Prime', ui-monospace, monospace;font-size:.7rem;color:var(--ash, #6b645b);letter-spacing:0;}.ds-folder[aria-selected=true]{background:var(--crimson, #b3262d);color:var(--pulp, #f2ece1);transform:translateY(0);padding-bottom:14px;margin-bottom:-4px;z-index:2;box-shadow:0 -2px 6px -2px rgba(42,39,36,.3);}.ds-folder[aria-selected=true] .ds-num{color:rgba(242,236,225,.75);}.ds-folder:focus-visible{outline:2px solid var(--crimson, #b3262d);outline-offset:2px;}.ds-folder-sheet{height:48px;background:var(--pulp, #f2ece1);border-radius:0 3px 3px 3px;box-shadow:var(--lift-2, 0 1px 0 rgba(42,39,36,.2), 3px 8px 18px -8px rgba(42,39,36,.5));}"
+    },
+    {
+      "name": "Status Badges",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Small printed tags; status inks appear only as state.",
+      "html": "<span class=\"ds-badge\">Python</span> <span class=\"ds-badge ds-ok\">Done</span> <span class=\"ds-badge ds-warn\">Medium</span> <span class=\"ds-badge ds-bad\">Critical</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:2px;font-family:'Archivo Narrow', Courier Prime, ui-monospace, monospace;font-size:.6875rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--pulp-2, #e8e0d2);color:var(--ink-2, #4a443d);box-shadow:inset 0 0 0 1px var(--rule, rgba(42,39,36,.16));}.ds-ok{background:rgba(63,106,58,.12);color:var(--forest, #3f6a3a);box-shadow:inset 0 0 0 1px rgba(63,106,58,.35);}.ds-warn{background:rgba(138,95,18,.12);color:var(--ochre, #8a5f12);box-shadow:inset 0 0 0 1px rgba(138,95,18,.35);}.ds-bad{background:rgba(179,38,45,.1);color:var(--crimson, #b3262d);box-shadow:inset 0 0 0 1px rgba(179,38,45,.4);}"
+    },
+    {
+      "name": "Slotted Paper Sheet",
+      "kind": "card",
+      "refersTo": "paper-panel",
+      "description": "A pulp sheet lifted off the board and tabbed into it with two slot marks; anchors a view.",
+      "html": "<div class=\"ds-sheet\"><div class=\"ds-strip\">Repository</div><div class=\"ds-mono\">psf/requests</div><p class=\"ds-body\">661 entities, 916 call edges when last indexed.</p></div>",
+      "css": ".ds-sheet{position:relative;background:var(--pulp, #f2ece1);color:var(--ink, #2a2724);border-radius:3px;padding:24px;box-shadow:var(--lift-2, 0 1px 0 rgba(42,39,36,.2), 3px 8px 18px -8px rgba(42,39,36,.5));}.ds-sheet::before,.ds-sheet::after{content:'';position:absolute;top:24px;width:8px;height:30px;background:var(--kraft-dark, #8e7048);border-radius:1px;box-shadow:inset 0 2px 2px rgba(0,0,0,.4);}.ds-sheet::before{left:-4px;}.ds-sheet::after{right:-4px;}.ds-strip{font-family:'Archivo Narrow', Courier Prime, ui-monospace, monospace;font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:.75rem;color:var(--ash, #6b645b);}.ds-mono{font-family:'Courier Prime', ui-monospace, monospace;font-weight:600;margin-top:2px;}.ds-body{font-family:Courier Prime,system-ui,sans-serif;font-size:15px;color:var(--ink-2, #4a443d);margin:8px 0 0;}"
+    },
+    {
+      "name": "Ink Plate",
+      "kind": "card",
+      "refersTo": "ink-plate",
+      "description": "Charcoal plate for code, terminals and logs, with a header band.",
+      "html": "<div class=\"ds-plate\"><div class=\"ds-plate-head\">sessions.py</div><pre class=\"ds-plate-body\">$ git clone --depth 1 https://github.com/psf/requests</pre></div>",
+      "css": ".ds-plate{background:var(--plate, #2a2724);color:var(--plate-ink, #ede6d8);border-radius:2px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3),var(--lift-1, 0 1px 0 rgba(42,39,36,.18), 0 3px 8px -3px rgba(42,39,36,.35));}.ds-plate-head{padding:7px 14px;background:var(--plate-2, #35312d);font-family:'Courier Prime', ui-monospace, monospace;font-size:.75rem;color:var(--plate-dim, #b5ab9b);}.ds-plate-body{margin:0;padding:14px;font-family:'Courier Prime', ui-monospace, monospace;font-size:.8125rem;line-height:1.65;white-space:pre;overflow-x:auto;}"
+    },
+    {
+      "name": "Procession",
+      "kind": "custom",
+      "refersTo": "procession-card-active",
+      "description": "Signature pattern: stage cards pinned to one ink rail; the running stage lifts, tilts and turns crimson, done stages print in forest.",
+      "html": "<ol class=\"ds-proc\"><li class=\"ds-st ds-done\"><div class=\"ds-card\">Clone<small><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></small></div><i class=\"ds-pin\"></i><b class=\"ds-joint\"></b></li><li class=\"ds-st ds-run\"><div class=\"ds-card\">Parse<small>running</small></div><i class=\"ds-pin\"></i><b class=\"ds-joint\"></b></li><li class=\"ds-st ds-near\"><div class=\"ds-card\">Extract<small>waiting</small></div><i class=\"ds-pin\"></i><b class=\"ds-joint\"></b></li><li class=\"ds-st\"><div class=\"ds-card\">Graph<small>waiting</small></div><i class=\"ds-pin\"></i><b class=\"ds-joint\"></b></li></ol>",
+      "css": ".ds-proc{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:end;height:112px;margin:0;padding:0;list-style:none;}.ds-proc::before{content:'';position:absolute;left:0;right:0;bottom:14px;height:3px;background:var(--ink, #2a2724);border-radius:9999px;}.ds-st{--lift:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}.ds-card{position:relative;z-index:1;width:100%;max-width:108px;padding:8px 6px;border-radius:2px;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--pulp-2, #e8e0d2);color:var(--ink-2, #4a443d);font-family:'Archivo Narrow', Courier Prime, ui-monospace, monospace;font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase;transform:translateY(calc(-30px - 12px * var(--lift)));box-shadow:0 1px 0 rgba(42,39,36,.2),4px 8px 14px -8px rgba(42,39,36,.35);transition:transform 700ms cubic-bezier(0.22,1,0.36,1),background-color 300ms,color 300ms,box-shadow 700ms cubic-bezier(0.22,1,0.36,1);}.ds-card small{font-family:Courier Prime,system-ui,sans-serif;font-weight:400;text-transform:none;letter-spacing:0;opacity:.8;}.ds-pin{position:absolute;bottom:14px;width:3px;height:calc(30px + 12px * var(--lift));background:var(--ink-2, #4a443d);border-radius:9999px;transition:height 700ms cubic-bezier(0.22,1,0.36,1);}.ds-joint{position:absolute;bottom:9px;width:12px;height:12px;border-radius:50%;background:var(--pulp, #f2ece1);box-shadow:inset 0 0 0 2.5px var(--ink, #2a2724);}.ds-done .ds-card{background:var(--pulp, #f2ece1);color:var(--forest, #3f6a3a);}.ds-near{--lift:.2;}.ds-run{--lift:1;}.ds-run .ds-card{background:var(--crimson, #b3262d);color:var(--pulp, #f2ece1);transform:translateY(-42px) rotate(-2deg);box-shadow:0 1px 0 rgba(42,39,36,.2),10px 22px 24px -8px rgba(42,39,36,.6);}@media (prefers-reduced-motion:reduce){.ds-card,.ds-pin{transition:none;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Hand-Cranked Paper Machine",
+    "overview": "CodeBase is built as a kinetic paper automaton sitting on a sheet of kraft board. One crank turns a repository through its linkage (clone, parse, extract, graph, embed, store, answer), and whichever stage is moving lifts off the rail, turns crimson and folds open to show what it actually produced. Everything else is cut paper: pulp-white sheets slotted into the board, cut folder tabs, paper strips for buttons, charcoal ink plates for code. The world is warm, physical and matte; depth comes from paper lifting off board, never from glow.\n\nDensity follows the job. The home page is spacious and persuasive (one machine, one claim, four measured figures). The workstation is a dense tool: a sticky paper-tab nav, a repository strip, a row of nine numbered folder tabs, and one large paper sheet per tool. The system refuses the dark dev-tool dashboard it replaced: no glowing cards, no gradient text, no icon tiles, no indigo.\n\nThe machine only shows what is real. Figures are live from the index API or measured in `evals_report.json`; anything drawn by hand says so on the page.",
+    "keyCharacteristics": [
+      "Kraft board ground with fibre grain; pulp paper pieces with soft cast shadows and slot marks.",
+      "One moving colour: crimson marks the active tab, running stage, primary action and the failure or critical finding that stops the machine.",
+      "Matrixtype Display as die-cut letterpress caps; Archivo Narrow caps for every tab, label and button strip; Courier Prime typewriter face for body, code and every figure.",
+      "The Procession: stage cards pinned by linkage pins to one ink rail, reused on home, indexing and the chat agent pipeline.",
+      "Crank motion: 700ms on `cubic-bezier(0.22, 1, 0.36, 1)`; stages unfold from their top crease.",
+      "Near-square corners (2px strips, 3px sheets); cut shoulders on tabs."
+    ],
+    "rules": [
+      {
+        "name": "The Crimson Moves Rule",
+        "section": "colors",
+        "body": "Crimson belongs only to what is moving or has stopped the machine: the active tab, the running stage, the primary action, the critical finding, the error. A static decoration never gets it. If two crimson things compete in one view, one of them is wrong."
+      },
+      {
+        "name": "The Printed Ink Rule",
+        "section": "colors",
+        "body": "Forest, ochre and rust are state, never decoration. Each is used as a wash plus a 35% inset outline, or as a solid lamp."
+      },
+      {
+        "name": "The Board Text Rule",
+        "section": "colors",
+        "body": "Text set directly on kraft uses ink or board ink only; ash and paper greys are for text on paper."
+      },
+      {
+        "name": "The Figures Are Mono Rule",
+        "section": "typography",
+        "body": "Every number is Courier Prime (or Matrixtype at display scale) with tabular figures; inline code sits on a pulp chip, since body and code share one face."
+      },
+      {
+        "name": "The Caps Are Condensed Rule",
+        "section": "typography",
+        "body": "Uppercase text is Archivo Narrow with positive tracking, or Matrixtype Display. Courier Prime is never set in caps."
+      },
+      {
+        "name": "The Lift Means Selected Rule",
+        "section": "elevation",
+        "body": "A piece rises (translateY and a deeper shadow) when it is hovered, selected or running; at rest it stays down. The Procession's shadow grows with each card's lift."
+      },
+      {
+        "name": "The Slot Rule",
+        "section": "elevation",
+        "body": "Major sheets (the crank stage, repository strip, closing call) are tabbed into the board with two dark kraft slot marks at the side edges. Slots are for sheets that anchor a view, not for every card."
+      }
+    ],
+    "dos": [
+      "Do keep crimson for what is moving or has stopped the machine: active tab, running stage, primary action, critical finding, error.",
+      "Do build every surface from the paper pieces: sheet (3px, Lift 2), flat paper (2px, inset rule), ink plate for code, strip labels in Semi Condensed caps.",
+      "Do make buttons paper strips; give the one primary action per view the crimson strip with its eyelet rivet.",
+      "Do show pipelines with the Procession on one ink rail, and move them on the 700ms crank ease.",
+      "Do unfold new stage content from its top crease when the stage changes, and let reduced motion switch it in place.",
+      "Do set every figure in mono with tabular numbers, and take it live from the index API or from `evals_report.json`; keep the weak scores in.",
+      "Do label anything drawn by hand on the page itself (\"Sample diagram drawn by hand, not generated from this index\", \"values illustrative\", \"Example\")."
+    ],
+    "donts": [
+      "Don't invent numbers, customers, testimonials or usage figures; the old parse-integrity, latency and context-size figures must not return.",
+      "Don't present a sample or illustrative diagram as generated output.",
+      "Don't use crimson as decoration, and don't use forest, ochre or rust outside state.",
+      "Don't bring back the dark indigo dashboard: glowing cards, gradient text, icon tiles, glassmorphism.",
+      "Don't round paper beyond 3px or turn tags into rounded pills; circles are for pins, knobs, rivets and lamps only.",
+      "Don't set ash or grey text directly on kraft."
+    ]
+  }
+}

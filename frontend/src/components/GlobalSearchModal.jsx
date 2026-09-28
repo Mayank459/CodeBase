@@ -1,189 +1,106 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, X, CornerDownLeft, MessageSquareCode, Network, ShieldAlert, 
-  Scissors, BookOpen, Workflow, GitCompare, GitCommit, GitPullRequest, 
-  Settings, Info, ShieldCheck, ArrowRight, Sparkles, Terminal 
-} from 'lucide-react';
+import { Search, CornerDownLeft, Settings, Info, ShieldCheck, Home, MessageSquareCode } from 'lucide-react';
+import { TABS } from './TabNavigation';
 
-export function GlobalSearchModal({ 
-  isOpen, 
-  onClose, 
-  onSelectTab, 
-  onNavigatePage,
-  activeRepo 
-}) {
+export function GlobalSearchModal({ isOpen, onClose, onSelectTab, onNavigatePage, activeRepo }) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => inputRef.current?.focus(), 30);
       setSelectedIndex(0);
     } else {
       setQuery('');
     }
   }, [isOpen]);
 
-  const items = [
-    // Tabs Navigation
-    { id: 'chat', type: 'tool', label: 'Intelligence Chat', desc: 'Query codebase with hybrid vector + AST graph RAG', icon: MessageSquareCode, action: () => { onNavigatePage('dashboard'); onSelectTab('chat'); onClose(); } },
-    { id: 'architecture', type: 'tool', label: 'Architecture & Call Graph', desc: 'Inspect module complexity and trace call hierarchies', icon: Network, action: () => { onNavigatePage('dashboard'); onSelectTab('architecture'); onClose(); } },
-    { id: 'security', type: 'tool', label: 'Security Command Center', desc: 'Scan for hardcoded secrets and SQL injections', icon: ShieldAlert, action: () => { onNavigatePage('dashboard'); onSelectTab('security'); onClose(); } },
-    { id: 'dead_code', type: 'tool', label: 'Dead Code Analyzer', desc: 'Identify unreferenced functions with zero callers', icon: Scissors, action: () => { onNavigatePage('dashboard'); onSelectTab('dead_code'); onClose(); } },
-    { id: 'docs', type: 'tool', label: 'Documentation Generator', desc: 'Synthesize Markdown docs for functions and classes', icon: BookOpen, action: () => { onNavigatePage('dashboard'); onSelectTab('docs'); onClose(); } },
-    { id: 'uml', type: 'tool', label: 'UML & Class Diagrams', desc: 'Generate Mermaid and PlantUML diagrams', icon: Workflow, action: () => { onNavigatePage('dashboard'); onSelectTab('uml'); onClose(); } },
-    { id: 'compare', type: 'tool', label: 'Multi-Repo Comparison', desc: 'Compare architecture between two indexed repos', icon: GitCompare, action: () => { onNavigatePage('dashboard'); onSelectTab('compare'); onClose(); } },
-    { id: 'evolution', type: 'tool', label: 'Repository Evolution', desc: 'Diff two versions or commits of a repository', icon: GitCommit, action: () => { onNavigatePage('dashboard'); onSelectTab('evolution'); onClose(); } },
-    { id: 'pr', type: 'tool', label: 'Autonomous Pull Request', desc: 'Generate security remediation patches with human approval', icon: GitPullRequest, action: () => { onNavigatePage('dashboard'); onSelectTab('pr'); onClose(); } },
+  // Escape closes the dialog wherever focus is (the input only gets focus after opening)
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
-    // Pages
-    { id: 'settings', type: 'page', label: 'Settings & API Keys', desc: 'Configure Groq, Gemini, Cohere keys and endpoints', icon: Settings, action: () => { onNavigatePage('settings'); onClose(); } },
-    { id: 'about', type: 'page', label: 'About & System Topology', desc: 'Technical specifications and architecture details', icon: Info, action: () => { onNavigatePage('about'); onClose(); } },
-    { id: 'privacy', type: 'page', label: 'Privacy & Data Protection', desc: 'Ephemeral cloning and zero-training guarantees', icon: ShieldCheck, action: () => { onNavigatePage('privacy'); onClose(); } },
+  const openTool = (id) => { onSelectTab(id); onClose(); };
+  const openPage = (id) => { onNavigatePage(id); onClose(); };
+
+  const items = [
+    ...TABS.map((t, i) => ({ id: t.id, group: 'Tool', label: t.label, desc: t.summary, icon: t.icon, hint: `Alt ${i + 1}`, action: () => openTool(t.id) })),
+    { id: 'home', group: 'Page', label: 'Home', desc: 'How CodeBase works, with the crank', icon: Home, action: () => openPage('home') },
+    { id: 'settings', group: 'Page', label: 'Settings', desc: 'API keys for Groq, Gemini, Cohere; backend endpoint', icon: Settings, action: () => openPage('settings') },
+    { id: 'about', group: 'Page', label: 'About', desc: 'Architecture and how the system is built', icon: Info, action: () => openPage('about') },
+    { id: 'privacy', group: 'Page', label: 'Privacy', desc: 'What is cloned, stored, and deleted', icon: ShieldCheck, action: () => openPage('privacy') },
   ];
 
-  const filteredItems = items.filter((item) => {
-    if (!query.trim()) return true;
-    const q = query.toLowerCase();
-    return item.label.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q);
-  });
+  const q = query.trim().toLowerCase();
+  const filtered = q ? items.filter((it) => it.label.toLowerCase().includes(q) || it.desc.toLowerCase().includes(q)) : items;
 
   const handleKeyDown = (e) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % Math.max(1, filteredItems.length));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % Math.max(1, filteredItems.length));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (filteredItems[selectedIndex]) {
-        filteredItems[selectedIndex].action();
-      } else if (query.trim()) {
-        // Fallback: send query to chat
-        onNavigatePage('dashboard');
-        onSelectTab('chat');
-        onClose();
-      }
-    } else if (e.key === 'Escape') {
-      onClose();
-    }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIndex((p) => (p + 1) % Math.max(1, filtered.length)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIndex((p) => (p - 1 + filtered.length) % Math.max(1, filtered.length)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (filtered[selectedIndex]) filtered[selectedIndex].action(); else if (q) openTool('chat'); }
+    else if (e.key === 'Escape') onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div 
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/80 backdrop-blur-md motion-modal-backdrop cursor-pointer"
-    >
-      <div 
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl rounded-2xl bg-[#0a0e17] border border-white/15 shadow-2xl shadow-indigo-500/10 overflow-hidden flex flex-col motion-modal-card cursor-default"
-      >
-        {/* Search Input Bar */}
-        <div className="relative flex items-center px-4 py-3.5 border-b border-white/10 bg-white/[0.02]">
-          <Search size={18} className="text-indigo-400 mr-3 flex-shrink-0" />
+    <div onClick={onClose} className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-ink/45 motion-modal-backdrop">
+      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Command palette" className="paper w-full max-w-2xl overflow-hidden motion-modal-card !shadow-lift-3">
+        <div className="flex items-center gap-3 px-4 py-3 rule-b">
+          <Search size={18} className="text-ink-2 shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
+            onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
-            placeholder={
-              activeRepo 
-                ? `Search tools, symbols, or query ${activeRepo}...` 
-                : 'Search developer tools, settings, pages...'
-            }
-            className="w-full bg-transparent text-sm text-white placeholder:text-slate-500 font-sans outline-none"
+            placeholder="Find a tool or page"
+            aria-label="Search tools and pages"
+            className="w-full bg-transparent text-base text-ink placeholder:text-ash outline-none"
           />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="text-slate-500 hover:text-white p-1"
-            >
-              <X size={14} />
-            </button>
-          )}
-          <kbd className="hidden sm:inline-block ml-2 px-1.5 py-0.5 rounded text-[10px] font-mono bg-white/[0.08] text-slate-400 border border-white/10">
-            ESC
-          </kbd>
+          <kbd className="hidden sm:inline font-mono text-[10px] px-1.5 py-px rounded-sm bg-pulp-2 text-ink-2 shadow-[inset_0_0_0_1px_var(--rule)]">Esc</kbd>
         </div>
 
-        {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-2 space-y-1">
-          {filteredItems.length > 0 ? (
-            filteredItems.map((item, idx) => {
-              const Icon = item.icon;
-              const isSelected = idx === selectedIndex;
-
-              return (
-                <div
-                  key={item.id}
-                  onClick={item.action}
-                  onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`px-3 py-2.5 rounded-xl cursor-pointer transition-all flex items-center justify-between ${
-                    isSelected
-                      ? 'bg-indigo-600/20 text-white border border-indigo-500/40 shadow-sm'
-                      : 'text-slate-300 hover:bg-white/[0.04] border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 truncate">
-                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-indigo-500/30 text-indigo-300' : 'bg-white/[0.04] text-slate-400'
-                    }`}>
-                      <Icon size={16} />
-                    </div>
-                    <div className="truncate">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold font-sans">{item.label}</span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-400 uppercase">
-                          {item.type}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-400 font-sans truncate">{item.desc}</div>
-                    </div>
-                  </div>
-
-                  {isSelected && (
-                    <CornerDownLeft size={14} className="text-indigo-400 flex-shrink-0 ml-2" />
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <div className="p-8 text-center space-y-3">
-              <Sparkles size={24} className="mx-auto text-indigo-400/60" />
-              <div className="text-xs font-semibold text-slate-200">
-                Ask query "{query}" in Intelligence Chat
-              </div>
-              <button
-                onClick={() => {
-                  onNavigatePage('dashboard');
-                  onSelectTab('chat');
-                  onClose();
-                }}
-                className="btn btn-primary btn-sm gap-1.5 mx-auto"
+        <ul className="max-h-[60vh] overflow-y-auto p-2" role="listbox">
+          {filtered.map((it, idx) => {
+            const Icon = it.icon;
+            const sel = idx === selectedIndex;
+            return (
+              <li
+                key={it.id}
+                role="option"
+                aria-selected={sel}
+                onClick={it.action}
+                onMouseEnter={() => setSelectedIndex(idx)}
+                className={`px-3 py-2.5 rounded-sm cursor-pointer flex items-center gap-3 ${sel ? 'bg-ink text-pulp' : 'text-ink'}`}
               >
-                <span>Search with Chat RAG</span>
-                <CornerDownLeft size={12} />
+                <Icon size={16} className={sel ? 'text-pulp' : 'text-ink-2'} aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="text-sm font-semibold">{it.label}</span>
+                  <span className={`ml-2 strip !text-[10px] ${sel ? 'text-plate-dim' : 'text-ash'}`}>{it.group}</span>
+                  <span className={`block text-[13px] truncate ${sel ? 'text-plate-dim' : 'text-ink-2'}`}>{it.desc}</span>
+                </span>
+                {it.hint && <span className={`font-mono text-[11px] ${sel ? 'text-plate-dim' : 'text-ash'}`}>{it.hint}</span>}
+                {sel && <CornerDownLeft size={14} aria-hidden="true" />}
+              </li>
+            );
+          })}
+          {filtered.length === 0 && (
+            <li className="p-8 text-center">
+              <p className="text-sm text-ink">Nothing called “{query}”.</p>
+              <button type="button" onClick={() => openTool('chat')} className="mt-3 btn btn-primary btn-sm">
+                <MessageSquareCode size={13} aria-hidden="true" /> Ask chat{activeRepo ? ` about ${activeRepo}` : ''}
               </button>
-            </div>
+            </li>
           )}
-        </div>
+        </ul>
 
-        {/* Footer info */}
-        <div className="px-4 py-2 bg-white/[0.02] border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-500">
-          <div className="flex items-center gap-3">
-            <span>↑↓ Navigate</span>
-            <span>↵ Select</span>
-            <span>ESC Close</span>
-          </div>
-          <span>CodeBase Intelligence Palette</span>
+        <div className="px-4 py-2 rule-t flex gap-4 text-[11px] font-mono text-ash">
+          <span>↑↓ move</span><span>Enter open</span><span>Esc close</span>
         </div>
       </div>
     </div>

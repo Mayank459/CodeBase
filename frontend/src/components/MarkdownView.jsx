@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Copy, Check, Terminal, ExternalLink, Eye, Code, ZoomIn, ZoomOut, RotateCcw, 
+import {
+  Copy, Check, Terminal, ExternalLink, Eye, Code, ZoomIn, ZoomOut, RotateCcw,
   Maximize2, Minimize2, Move, Download, Image as ImageIcon,
-  ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Minus, Sparkles, Network
+  ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Minus
 } from 'lucide-react';
-import { getMermaidLiveUrl, getMermaidInkUrl } from '../api';
+import { getMermaidLiveUrl } from '../api';
+import { MermaidDiagram, downloadMermaidSvg, downloadMermaidPng } from './MermaidDiagram';
 
 function sanitizeMermaid(raw) {
   if (!raw) return '';
@@ -114,7 +115,7 @@ export function MarkdownView({ content }) {
   }
 
   return (
-    <div className="markdown-body chat-prose space-y-4 text-slate-100 font-tiempos text-[16px] sm:text-[17px] leading-[1.8] font-normal">
+    <div className="markdown-body chat-prose space-y-4 text-ink text-[16px] leading-[1.7]">
       {parts.map((part, idx) => {
         if (part.type === 'code') {
           const isMermaid = (part.lang && (part.lang.toLowerCase() === 'mermaid' || part.lang.toLowerCase() === 'flowchart' || part.lang.toLowerCase() === 'diagram')) ||
@@ -143,22 +144,23 @@ function CodeSnippet({ lang, code }) {
   };
 
   return (
-    <div className="code-block-wrapper my-3 rounded-lg overflow-hidden border border-white/10 bg-[#060910]">
-      <div className="code-header flex items-center justify-between px-3 py-1.5 bg-white/[0.04] border-b border-white/[0.06] text-xs font-mono text-slate-400">
+    <div className="code-block-wrapper">
+      <div className="code-header">
         <div className="flex items-center gap-2">
-          <Terminal size={13} className="text-indigo-400" />
+          <Terminal size={14} strokeWidth={2} />
           <span>{lang || 'code'}</span>
         </div>
         <button
+          type="button"
           onClick={handleCopy}
-          className="btn btn-ghost btn-sm py-0.5 px-2 text-xs text-slate-400 hover:text-white flex items-center gap-1.5"
+          className="inline-flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 text-xs font-mono text-plate-dim hover:text-plate-ink"
           title="Copy code"
         >
-          {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+          {copied ? <Check size={14} strokeWidth={2} /> : <Copy size={14} strokeWidth={2} />}
           <span>{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
-      <pre className="code-content p-4 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre">
+      <pre className="code-content text-[12.5px]">
         <code>{code}</code>
       </pre>
     </div>
@@ -202,7 +204,6 @@ function MermaidSnippet({ code }) {
 
   const sanitized = sanitizeMermaid(code);
   const liveUrl = getMermaidLiveUrl(sanitized || code);
-  const inkUrl = getMermaidInkUrl(sanitized || code, 'svg', 'dark');
 
   const handleZoomIn = () => setZoom((z) => Math.min(Math.round((z + 0.25) * 100) / 100, 3.5));
   const handleZoomOut = () => setZoom((z) => Math.max(Math.round((z - 0.25) * 100) / 100, 0.4));
@@ -302,81 +303,53 @@ function MermaidSnippet({ code }) {
   };
 
   const handleDownloadSvg = async () => {
-    if (!inkUrl) return;
     try {
-      const res = await fetch(inkUrl);
-      const content = await res.text();
-      const blob = new Blob([content], { type: 'image/svg+xml;charset=utf-8' });
-      const dlUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = dlUrl;
-      a.download = `diagram_${Date.now()}.svg`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(dlUrl);
+      await downloadMermaidSvg(sanitized || code, `diagram_${Date.now()}.svg`);
     } catch (err) {
       console.error('Download SVG failed:', err);
     }
   };
 
-  const handleDownloadPng = () => {
-    const pngUrl = getMermaidInkUrl(sanitized || code, 'png', 'dark');
-    if (!pngUrl) return;
-    const a = document.createElement('a');
-    a.href = pngUrl;
-    a.download = `diagram_${Date.now()}.png`;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const handleDownloadPng = async () => {
+    try {
+      await downloadMermaidPng(sanitized || code, `diagram_${Date.now()}.png`);
+    } catch (err) {
+      console.error('Download PNG failed:', err);
+    }
   };
+
+  const seg = (on) => `btn btn-sm ${on ? 'bg-ink text-pulp shadow-lift-1' : 'btn-secondary'}`;
+  const tool = 'btn btn-secondary btn-sm';
 
   // 1. Minimized Dock State
   if (windowState === 'minimized') {
     return (
-      <div className="my-4 rounded-2xl border border-white/[0.1] bg-[#090d16] p-4 shadow-2xl flex items-center justify-between transition-all duration-300 hover:border-indigo-500/40">
+      <div className="my-4 paper-flat px-4 py-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setWindowState('closed')}
-              className="h-3.5 w-3.5 rounded-full bg-[#ff5f56] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-              title="Close diagram"
-            >
-              <X size={8} className="text-[#450000] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setWindowState('normal')}
-              className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-              title="Restore diagram"
-            >
-              <Minus size={8} className="text-[#4e3200] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setWindowState('maximized')}
-              className="h-3.5 w-3.5 rounded-full bg-[#27c93f] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-              title="Maximize diagram to full screen"
-            >
-              <Maximize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-            </button>
-          </div>
-          <div className="h-4 w-px bg-white/10 mx-1" />
-          <span className="text-xs font-mono font-bold text-white">Mermaid Visual Diagram</span>
-          <span className="text-[11px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-            Minimized • Vector Canvas
-          </span>
+          <span className="strip text-ash">Minimized</span>
+          <span className="font-semibold text-ink">Mermaid diagram</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => setWindowState('normal')} className={tool}>
+            Restore
+          </button>
           <button
             type="button"
-            onClick={() => setWindowState('normal')}
-            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+            onClick={() => setWindowState('maximized')}
+            className={tool}
+            aria-label="Open diagram full screen"
+            title="Open diagram full screen"
           >
-            <span>Restore Window</span>
-            <Maximize2 size={13} />
+            <Maximize2 size={14} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setWindowState('closed')}
+            className="btn btn-ghost btn-sm"
+            aria-label="Close diagram"
+            title="Close diagram"
+          >
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -386,327 +359,206 @@ function MermaidSnippet({ code }) {
   // 2. Closed State
   if (windowState === 'closed') {
     return (
-      <div className="p-8 my-4 rounded-2xl bg-[#090d16]/90 border border-white/[0.08] text-center space-y-4 shadow-xl">
-        <div className="h-12 w-12 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-          <Network size={22} />
-        </div>
-        <div className="space-y-1">
-          <h4 className="text-sm font-bold text-white font-mono">Mermaid Visual Diagram Closed</h4>
-          <p className="text-xs text-slate-400">You can reopen the interactive vector diagram canvas at any time.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setWindowState('normal')}
-          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-semibold inline-flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
-        >
-          <Sparkles size={14} />
-          <span>Reopen Diagram</span>
+      <div className="my-4 paper-flat p-6 text-center space-y-3">
+        <p className="text-sm text-ink-2">The diagram is closed. Reopen it to view it again.</p>
+        <button type="button" onClick={() => setWindowState('normal')} className={tool}>
+          <Eye size={14} strokeWidth={2} />
+          <span>Reopen diagram</span>
         </button>
       </div>
     );
   }
 
   return (
-    <div className={`mermaid-block-wrapper transition-all duration-200 ${
-      isMax 
-        ? 'fixed inset-0 z-[999] bg-[#07090e]/98 backdrop-blur-2xl p-2 sm:p-4 w-screen h-screen flex flex-col overflow-hidden animate-in fade-in duration-200' 
-        : 'my-4 rounded-xl overflow-hidden border border-indigo-500/20 bg-[#080c16] shadow-xl'
+    <div className={`mermaid-block-wrapper ${
+      isMax
+        ? 'fixed inset-0 z-[999] bg-kraft p-2 sm:p-4 flex flex-col'
+        : 'my-4'
     }`}>
-      <div className={isMax ? 'flex flex-col h-full rounded-2xl bg-[#070a12] overflow-hidden border border-white/[0.12] shadow-2xl relative' : 'flex flex-col'}>
-        {/* Universal Diagram Toolbar - Clean Single-Row Studio Header */}
-        <div className={`flex items-center justify-between border-b border-white/[0.08] flex-nowrap gap-3 min-w-0 flex-shrink-0 ${
-          isMax ? 'px-4 sm:px-6 py-3 bg-[#090d18]' : 'px-3.5 py-2.5 bg-[#0d121f]'
-        } text-xs font-mono text-slate-300`}>
-          <div className="flex items-center gap-3 min-w-0 flex-shrink">
-            {/* Interactive macOS window traffic lights */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Red Dot = Close */}
-              <button
-                type="button"
-                onClick={() => setWindowState('closed')}
-                className="h-3.5 w-3.5 rounded-full bg-[#ff5f56] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                title="Close diagram window"
-              >
-                <X size={8} className="text-[#450000] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-              </button>
-
-              {/* Yellow Dot = Minimize */}
-              <button
-                type="button"
-                onClick={() => setWindowState('minimized')}
-                className="h-3.5 w-3.5 rounded-full bg-[#ffbd2e] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                title="Minimize diagram to dock"
-              >
-                <Minus size={8} className="text-[#4e3200] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-              </button>
-
-              {/* Green Dot = Maximize / Fullscreen / Restore */}
-              <button
-                type="button"
-                onClick={() => setWindowState(isMax ? 'normal' : 'maximized')}
-                className="h-3.5 w-3.5 rounded-full bg-[#27c93f] hover:brightness-110 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 group/btn border border-black/20"
-                title={isMax ? 'Exit Fullscreen (Esc)' : 'Maximize to full screen'}
-              >
-                {isMax ? (
-                  <Minimize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                ) : (
-                  <Maximize2 size={8} className="text-[#003808] opacity-0 group-hover/btn:opacity-100 transition-opacity stroke-[3]" />
-                )}
-              </button>
-            </div>
-
-            <div className="h-4 w-px bg-white/10 mx-0.5 flex-shrink-0" />
-
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="badge badge-primary font-mono text-xs whitespace-nowrap">
-                Mermaid Diagram
-              </span>
-              {isMax && (
-                <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 whitespace-nowrap">
-                  Fullscreen (Press Esc)
-                </span>
-              )}
-            </div>
+      <div className={isMax ? 'paper flex flex-col h-full overflow-hidden p-3 sm:p-4 gap-3' : 'flex flex-col gap-2'}>
+        {/* Diagram toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 rule-b flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="strip text-ash whitespace-nowrap">Mermaid diagram</span>
+            {isMax && <span className="text-xs text-ash whitespace-nowrap">Press Esc to exit</span>}
           </div>
 
-          {/* Right: View Mode, Exports, Copy, Live, Exit Fullscreen */}
-          <div className="flex items-center gap-2 flex-nowrap flex-shrink-0">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-white/[0.04] p-0.5 rounded-lg border border-white/[0.08] text-xs">
+          <div className="flex flex-wrap items-center gap-1">
+            <div className="flex items-center gap-1" role="group" aria-label="View mode">
               <button
                 type="button"
                 onClick={() => setViewMode('diagram')}
-                className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  viewMode === 'diagram' ? 'bg-indigo-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'
-                }`}
-                title="View Vector Diagram (D)"
+                aria-pressed={viewMode === 'diagram'}
+                aria-label="Show diagram"
+                className={seg(viewMode === 'diagram')}
+                title="Show diagram (D)"
               >
-                <Eye size={12} />
+                <Eye size={14} strokeWidth={2} />
                 <span className="hidden sm:inline">Diagram</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('code')}
-                className={`px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  viewMode === 'code' ? 'bg-indigo-600 text-white font-semibold shadow-sm' : 'text-slate-400 hover:text-white'
-                }`}
-                title="View Mermaid DSL Source (S)"
+                aria-pressed={viewMode === 'code'}
+                aria-label="Show Mermaid source"
+                className={seg(viewMode === 'code')}
+                title="Show Mermaid source (S)"
               >
-                <Code size={12} />
+                <Code size={14} strokeWidth={2} />
                 <span className="hidden sm:inline">Source</span>
               </button>
             </div>
 
-            {/* Export SVG */}
             {viewMode === 'diagram' && (
-              <button
-                type="button"
-                onClick={handleDownloadSvg}
-                className="px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer border border-white/[0.06]"
-                title="Export diagram as SVG image"
-              >
-                <Download size={12} />
-                <span>SVG</span>
-              </button>
+              <>
+                <button type="button" onClick={handleDownloadSvg} className={tool} title="Export as SVG">
+                  <Download size={14} strokeWidth={2} />
+                  <span>SVG</span>
+                </button>
+                <button type="button" onClick={handleDownloadPng} className={tool} title="Export as PNG">
+                  <ImageIcon size={14} strokeWidth={2} />
+                  <span>PNG</span>
+                </button>
+              </>
             )}
 
-            {/* Export PNG */}
-            {viewMode === 'diagram' && (
-              <button
-                type="button"
-                onClick={handleDownloadPng}
-                className="px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer border border-white/[0.06]"
-                title="Export high-resolution PNG image"
-              >
-                <ImageIcon size={12} />
-                <span>PNG</span>
-              </button>
-            )}
-
-            {/* Copy Code */}
             <button
               type="button"
               onClick={handleCopy}
-              className="px-2.5 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-300 hover:text-white flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer border border-white/[0.06]"
-              title="Copy Mermaid Code"
+              className={tool}
+              aria-label={copied ? 'Copied Mermaid source' : 'Copy Mermaid source'}
+              title="Copy Mermaid source"
             >
-              {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+              {copied ? <Check size={14} strokeWidth={2} className="text-forest" /> : <Copy size={14} strokeWidth={2} />}
               <span className="hidden md:inline">{copied ? 'Copied' : 'Copy'}</span>
             </button>
 
-            {/* Open in Live Editor */}
             {liveUrl && (
               <a
                 href={liveUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 hover:text-white flex items-center gap-1.5 text-xs font-mono transition-colors cursor-pointer border border-indigo-500/30"
-                title="Open in Mermaid Live Editor"
+                className={tool}
+                aria-label="Open in Mermaid Live editor"
+                title="Open in Mermaid Live editor"
               >
-                <ExternalLink size={12} />
+                <ExternalLink size={14} strokeWidth={2} />
                 <span className="hidden sm:inline">Live</span>
               </a>
             )}
 
-            <div className="h-4 w-px bg-white/10 mx-0.5" />
-
-            {/* Fullscreen Toggle */}
             <button
               type="button"
               onClick={() => setWindowState(isMax ? 'normal' : 'maximized')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
-                isMax
-                  ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-              }`}
-              title={isMax ? 'Exit Fullscreen (Esc)' : 'Maximize diagram to full screen'}
+              className={tool}
+              title={isMax ? 'Exit full screen (Esc)' : 'Full screen'}
             >
-              {isMax ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-              <span>{isMax ? 'Exit (Esc)' : 'Fullscreen'}</span>
+              {isMax ? <Minimize2 size={14} strokeWidth={2} /> : <Maximize2 size={14} strokeWidth={2} />}
+              <span>{isMax ? 'Exit (Esc)' : 'Full screen'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setWindowState('minimized')}
+              className="btn btn-ghost btn-sm"
+              aria-label="Minimize diagram"
+              title="Minimize diagram"
+            >
+              <Minus size={14} strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setWindowState('closed')}
+              className="btn btn-ghost btn-sm"
+              aria-label="Close diagram"
+              title="Close diagram"
+            >
+              <X size={14} strokeWidth={2} />
             </button>
           </div>
         </div>
 
-        {/* Viewport and Canvas Container */}
-        <div className={`relative flex-1 w-full overflow-hidden flex flex-col ${isMax ? 'min-h-0' : ''}`}>
+        {/* Viewport */}
+        <div className={`relative w-full flex flex-col ${isMax ? 'flex-1 min-h-0' : ''}`}>
           {viewMode === 'diagram' ? (
-            <div 
-              ref={viewportRef}
-              tabIndex={0}
-              onKeyDown={handleKeyDown}
-              onPointerDown={handlePointerDown}
-              onDoubleClick={handleResetZoom}
-              style={{ touchAction: 'none' }}
-              className={`w-full flex items-center justify-center relative select-none outline-none ${
-                isMax 
-                  ? 'flex-1 h-full min-h-0 bg-[#060910]' 
-                  : 'p-4 sm:p-6 h-[520px] max-h-[70vh] min-h-[280px] bg-gradient-to-b from-[#080c16] to-[#0a0f1d]'
-              } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-            >
-              <div 
-                className="w-full h-full flex items-center justify-center origin-center select-none"
-                style={{ 
-                  transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
-                  transition: isDragging ? 'none' : 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)',
-                  willChange: 'transform'
-                }}
+            <>
+              <div
+                ref={viewportRef}
+                tabIndex={0}
+                onKeyDown={handleKeyDown}
+                onPointerDown={handlePointerDown}
+                onDoubleClick={handleResetZoom}
+                style={{ touchAction: 'none' }}
+                aria-label="Diagram canvas. Drag or use arrow keys to pan."
+                className={`paper-flat bg-[#fbf8f2] w-full flex items-center justify-center relative overflow-hidden select-none ${
+                  isMax ? 'flex-1 min-h-0' : 'p-4 sm:p-6 h-[520px] max-h-[70vh] min-h-[280px]'
+                } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
               >
-                <img
-                  src={inkUrl}
-                  alt="Architecture and sequence diagram"
-                  className="max-w-full max-h-full w-auto h-auto object-contain drop-shadow-2xl select-none pointer-events-none"
-                  draggable={false}
-                  onError={() => setViewMode('code')}
-                />
-              </div>
-
-              {/* Momentary Google-Maps-Style Scroll-to-Zoom Hint Toast */}
-              {showScrollHint && !isMax && (
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-30 flex items-center justify-center pointer-events-none animate-in fade-in duration-150">
-                  <div className="px-4 py-2 rounded-xl bg-[#090d16]/95 border border-indigo-500/40 text-white text-xs font-mono shadow-2xl flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold border border-indigo-500/30">
-                      {modKeyText}
-                    </span>
-                    <span>+ Scroll to zoom diagram</span>
-                  </div>
+                <div
+                  className="w-full h-full flex items-center justify-center origin-center select-none"
+                  style={{
+                    transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+                    transition: isDragging ? 'none' : 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    willChange: 'transform'
+                  }}
+                >
+                  <MermaidDiagram
+                    code={sanitized || code}
+                    label="Diagram"
+                    className="max-w-full max-h-full select-none pointer-events-none"
+                    onError={() => setViewMode('code')}
+                  />
                 </div>
-              )}
 
-              {/* Floating Interactive Canvas Controls Dock */}
-              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 p-1.5 rounded-2xl bg-[#090d18]/90 border border-white/[0.12] shadow-2xl backdrop-blur-xl pointer-events-auto">
-                {/* Zoom Controls */}
-                <div className="flex items-center gap-0.5 bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.06]">
-                  <button
-                    type="button"
-                    onClick={handleZoomOut}
-                    disabled={zoom <= 0.4}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    title="Zoom Out (-)"
-                  >
-                    <ZoomOut size={13} />
+                {/* Momentary scroll-to-zoom hint */}
+                {showScrollHint && !isMax && (
+                  <div className="absolute inset-x-0 top-3 z-30 flex justify-center pointer-events-none">
+                    <div className="paper px-3 py-1.5 text-sm text-ink flex items-center gap-2">
+                      <kbd className="font-mono text-xs px-1.5 py-0.5 rounded-sm bg-pulp-2 border border-rule">{modKeyText}</kbd>
+                      <span>+ scroll to zoom</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Zoom and pan controls */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 pointer-events-auto">
+                  <button type="button" onClick={handleZoomOut} disabled={zoom <= 0.4} className={tool} aria-label="Zoom out" title="Zoom out (-)">
+                    <ZoomOut size={14} strokeWidth={2} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleResetZoom}
-                    className="px-2.5 py-1 text-xs font-mono font-bold text-indigo-300 hover:text-white transition-colors cursor-pointer"
-                    title="Reset Zoom to 100% (R / 0)"
-                  >
+                  <button type="button" onClick={handleResetZoom} className={`${tool} font-mono tabular-nums`} aria-label="Reset zoom to 100%" title="Reset zoom (R / 0)">
                     {Math.round(zoom * 100)}%
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleZoomIn}
-                    disabled={zoom >= 3.5}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    title="Zoom In (+)"
-                  >
-                    <ZoomIn size={13} />
+                  <button type="button" onClick={handleZoomIn} disabled={zoom >= 3.5} className={tool} aria-label="Zoom in" title="Zoom in (+)">
+                    <ZoomIn size={14} strokeWidth={2} />
                   </button>
-                </div>
-
-                {/* Pan Directional Buttons */}
-                <div className="flex items-center gap-0.5 bg-white/[0.04] p-0.5 rounded-xl border border-white/[0.06]">
-                  <button
-                    type="button"
-                    onClick={() => handlePan(60, 0)}
-                    className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-                    title="Pan Left (←)"
-                  >
-                    <ChevronLeft size={13} />
+                  <span className="w-2" aria-hidden="true" />
+                  <button type="button" onClick={() => handlePan(60, 0)} className={tool} aria-label="Pan left" title="Pan left">
+                    <ChevronLeft size={14} strokeWidth={2} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handlePan(0, 60)}
-                    className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-                    title="Pan Up (↑)"
-                  >
-                    <ChevronUp size={13} />
+                  <button type="button" onClick={() => handlePan(0, 60)} className={tool} aria-label="Pan up" title="Pan up">
+                    <ChevronUp size={14} strokeWidth={2} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handlePan(0, -60)}
-                    className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-                    title="Pan Down (↓)"
-                  >
-                    <ChevronDown size={13} />
+                  <button type="button" onClick={() => handlePan(0, -60)} className={tool} aria-label="Pan down" title="Pan down">
+                    <ChevronDown size={14} strokeWidth={2} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handlePan(-60, 0)}
-                    className="p-1.5 text-slate-400 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-                    title="Pan Right (→)"
-                  >
-                    <ChevronRight size={13} />
+                  <button type="button" onClick={() => handlePan(-60, 0)} className={tool} aria-label="Pan right" title="Pan right">
+                    <ChevronRight size={14} strokeWidth={2} />
                   </button>
-                </div>
-
-                {/* Center View */}
-                <button
-                  type="button"
-                  onClick={handleResetZoom}
-                  className="px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs font-mono text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors border border-white/[0.06] cursor-pointer"
-                  title="Center & Reset View (Double-click or R)"
-                >
-                  <RotateCcw size={12} />
-                  <span className="hidden sm:inline">Center</span>
-                </button>
-
-                {/* Floating Guidance Badge */}
-                <div className="hidden md:flex items-center gap-2 border-l border-white/10 pl-2.5 text-[11px] font-mono text-slate-400">
-                  <span className="flex items-center gap-1 text-indigo-300">
-                    <Move size={11} />
-                    <span>Drag or arrows</span>
-                  </span>
-                  <span className="text-slate-600">•</span>
-                  <span className="text-slate-300">{isMax ? 'Scroll to zoom' : `${modKeyText} + Scroll`}</span>
-                  <span className="text-slate-600">•</span>
-                  <span className="text-slate-400">Double-click reset</span>
+                  <span className="w-2" aria-hidden="true" />
+                  <button type="button" onClick={handleResetZoom} className={tool} aria-label="Center and reset view" title="Center and reset view (double-click or R)">
+                    <RotateCcw size={14} strokeWidth={2} />
+                    <span className="hidden sm:inline">Center</span>
+                  </button>
                 </div>
               </div>
-            </div>
+
+              <p className="hidden md:flex items-center gap-2 pt-2 text-xs text-ash flex-shrink-0">
+                <Move size={14} strokeWidth={2} />
+                <span>Drag or use arrow keys to pan · {isMax ? 'Scroll' : `${modKeyText} + scroll`} to zoom · Double-click to reset</span>
+              </p>
+            </>
           ) : (
-            <div className="relative flex-1 overflow-auto bg-[#04060a]">
-              <pre className="p-4 text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre">
+            <div className={`ink-plate overflow-auto ${isMax ? 'flex-1 min-h-0' : 'max-h-[520px]'}`}>
+              <pre className="p-4 font-mono text-[12.5px] whitespace-pre">
                 <code>{sanitized || code}</code>
               </pre>
             </div>
@@ -728,7 +580,7 @@ function SimpleMarkdownRenderer({ text }) {
   const flushUnorderedList = () => {
     if (unorderedItems.length > 0) {
       renderedElements.push(
-        <ul key={`ul-${renderedElements.length}`} className="list-disc pl-6 space-y-1.5 my-2.5 text-slate-200 text-[15.5px] sm:text-[16.5px] leading-[1.8] font-tiempos font-normal">
+        <ul key={`ul-${renderedElements.length}`} className="pl-6 space-y-1.5 my-2.5 text-ink-2">
           {unorderedItems.map((item, i) => {
             // Task list check: [ ] or [x]
             const taskMatch = item.match(/^\[([ xX])\]\s*(.*)$/);
@@ -736,12 +588,16 @@ function SimpleMarkdownRenderer({ text }) {
               const isChecked = taskMatch[1].toLowerCase() === 'x';
               return (
                 <li key={i} className="list-none -ml-5 flex items-start gap-2.5 my-1">
-                  <span className={`inline-flex items-center justify-center h-4 w-4 rounded mt-1 border text-[10px] ${
-                    isChecked 
-                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
-                      : 'bg-white/[0.04] border-white/20 text-transparent'
-                  }`}>
-                    ✓
+                  <span
+                    role="img"
+                    aria-label={isChecked ? 'Done' : 'Not done'}
+                    className={`inline-flex items-center justify-center h-4 w-4 rounded-sm mt-1 border shrink-0 ${
+                      isChecked
+                        ? 'bg-[var(--forest-wash)] border-forest text-forest'
+                        : 'bg-pulp-2 border-rule'
+                    }`}
+                  >
+                    {isChecked && <Check size={12} strokeWidth={2.5} />}
                   </span>
                   <span>{formatInline(taskMatch[2])}</span>
                 </li>
@@ -758,7 +614,7 @@ function SimpleMarkdownRenderer({ text }) {
   const flushOrderedList = () => {
     if (orderedItems.length > 0) {
       renderedElements.push(
-        <ol key={`ol-${renderedElements.length}`} className="list-decimal pl-6 space-y-1.5 my-2.5 text-slate-200 text-[15.5px] sm:text-[16.5px] leading-[1.8] font-tiempos font-normal">
+        <ol key={`ol-${renderedElements.length}`} className="list-decimal pl-6 space-y-1.5 my-2.5 text-ink-2 marker:text-ash">
           {orderedItems.map((item, i) => (
             <li key={i} className="pl-1">
               {formatInline(item)}
@@ -775,12 +631,12 @@ function SimpleMarkdownRenderer({ text }) {
       const header = tableRows[0];
       const body = tableRows.slice(1);
       renderedElements.push(
-        <div key={`table-${renderedElements.length}`} className="overflow-x-auto my-3.5 border border-white/10 rounded-xl bg-[#090d16]/70 shadow-lg">
+        <div key={`table-${renderedElements.length}`} className="overflow-x-auto my-3.5">
           <table className="w-full text-left text-sm border-collapse">
             <thead>
-              <tr className="bg-white/[0.06] border-b border-white/10 text-slate-200">
+              <tr className="rule-b">
                 {header.map((col, idx) => (
-                  <th key={idx} className="p-3 font-semibold font-mono text-xs text-indigo-300 uppercase tracking-wider">
+                  <th key={idx} className="strip text-ash px-3 py-2">
                     {formatInline(col.trim())}
                   </th>
                 ))}
@@ -788,9 +644,9 @@ function SimpleMarkdownRenderer({ text }) {
             </thead>
             <tbody>
               {body.map((row, rIdx) => (
-                <tr key={rIdx} className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors">
+                <tr key={rIdx} className="rule-b">
                   {row.map((cell, cIdx) => (
-                    <td key={cIdx} className="p-3 text-slate-200 text-sm">
+                    <td key={cIdx} className="px-3 py-2 text-ink-2 text-sm align-top">
                       {formatInline(cell.trim())}
                     </td>
                   ))}
@@ -850,7 +706,7 @@ function SimpleMarkdownRenderer({ text }) {
     // Horizontal Rule: --- or *** or ___
     if (/^(?:---|\*\*\*|___)$/.test(trimmed)) {
       flushAll();
-      renderedElements.push(<hr key={idx} className="my-5 border-t border-white/[0.08]" />);
+      renderedElements.push(<hr key={idx} className="my-5 border-0 rule-t" />);
       return;
     }
 
@@ -863,38 +719,33 @@ function SimpleMarkdownRenderer({ text }) {
 
       if (level === 1) {
         renderedElements.push(
-          <h2 key={idx} className="text-xl sm:text-2xl font-bold text-white mt-6 mb-3 pb-2 border-b border-white/10 flex items-center gap-2.5 font-tiempos">
-            <span className="h-4 w-1 rounded-full bg-gradient-to-b from-indigo-400 to-indigo-600 inline-block shrink-0" />
-            <span>{formatInline(headingContent)}</span>
+          <h2 key={idx} className="font-cond font-bold text-ink text-2xl mt-6 mb-3 pb-2 rule-b">
+            {formatInline(headingContent)}
           </h2>
         );
       } else if (level === 2) {
         renderedElements.push(
-          <h3 key={idx} className="text-lg sm:text-xl font-bold text-white mt-5 mb-2.5 pb-1.5 border-b border-white/[0.07] flex items-center gap-2 font-tiempos">
-            <span className="h-3.5 w-1 rounded-full bg-gradient-to-b from-cyan-400 to-indigo-500 inline-block shrink-0" />
-            <span>{formatInline(headingContent)}</span>
+          <h3 key={idx} className="font-cond font-bold text-ink text-xl mt-5 mb-2.5">
+            {formatInline(headingContent)}
           </h3>
         );
       } else if (level === 3) {
         renderedElements.push(
-          <h4 key={idx} className="text-base sm:text-lg font-semibold text-cyan-200 mt-4 mb-2 flex items-center gap-2 font-tiempos">
-            <span className="text-cyan-400/80 font-mono text-xs select-none">§</span>
-            <span>{formatInline(headingContent)}</span>
+          <h4 key={idx} className="font-cond font-bold text-ink text-lg mt-4 mb-2">
+            {formatInline(headingContent)}
           </h4>
         );
       } else if (level === 4) {
         renderedElements.push(
-          <h5 key={idx} className="text-[15px] sm:text-base font-semibold text-indigo-200 mt-3.5 mb-1.5 flex items-center gap-2 font-tiempos">
-            <span className="text-indigo-400/70 font-mono text-xs select-none">▸</span>
-            <span>{formatInline(headingContent)}</span>
+          <h5 key={idx} className="font-cond font-bold text-ink text-base mt-3.5 mb-1.5">
+            {formatInline(headingContent)}
           </h5>
         );
       } else {
         // level 5 or 6
         renderedElements.push(
-          <h6 key={idx} className="text-xs sm:text-sm font-semibold text-slate-300 mt-3 mb-1 uppercase tracking-wider font-mono flex items-center gap-2">
-            <span className="text-slate-500 text-[10px] select-none">•</span>
-            <span>{formatInline(headingContent)}</span>
+          <h6 key={idx} className="strip text-ash mt-3 mb-1">
+            {formatInline(headingContent)}
           </h6>
         );
       }
@@ -910,12 +761,12 @@ function SimpleMarkdownRenderer({ text }) {
       renderedElements.push(
         <div
           key={idx}
-          className={`p-3.5 my-3 border-l-2 rounded-r-xl text-sm leading-relaxed ${
+          className={`my-3 border-l pl-4 italic text-ink-2 ${
             isAlert
-              ? 'border-amber-500 bg-amber-500/10 text-amber-200'
+              ? 'border-ochre bg-[var(--ochre-wash)] py-2 pr-3'
               : isTip
-              ? 'border-indigo-500 bg-indigo-500/10 text-indigo-200'
-              : 'border-slate-600 bg-white/[0.03] text-slate-200'
+              ? 'border-ink bg-pulp-2 py-2 pr-3'
+              : 'border-ink py-1'
           }`}
         >
           {formatInline(calloutText.replace(/\[!(WARNING|IMPORTANT|TIP|NOTE)\]/, '').trim())}
@@ -931,9 +782,9 @@ function SimpleMarkdownRenderer({ text }) {
       return;
     }
 
-    // Standard paragraph with Tiempos font and clean leading
+    // Standard paragraph
     renderedElements.push(
-      <p key={idx} className="text-slate-200 leading-[1.8] text-[15.5px] sm:text-[16.5px] font-normal font-tiempos">
+      <p key={idx} className="text-ink-2">
         {formatInline(trimmed)}
       </p>
     );
@@ -959,25 +810,25 @@ function formatInline(str) {
     const token = m[0];
     if (token.startsWith('`')) {
       tokens.push(
-        <code key={m.index} className="px-1.5 py-0.5 mx-0.5 rounded bg-cyan-500/10 text-cyan-300 font-mono text-[12.5px] border border-cyan-500/20">
+        <code key={m.index} className="font-mono text-ink bg-pulp-2 px-1 rounded-sm text-[0.875em]">
           {token.slice(1, -1)}
         </code>
       );
     } else if (token.startsWith('**') || token.startsWith('__')) {
       tokens.push(
-        <strong key={m.index} className="font-semibold text-white tracking-wide">
+        <strong key={m.index} className="font-semibold text-ink">
           {token.slice(2, -2)}
         </strong>
       );
     } else if (token.startsWith('*')) {
       tokens.push(
-        <em key={m.index} className="italic text-slate-300">
+        <em key={m.index} className="italic">
           {token.slice(1, -1)}
         </em>
       );
     } else if (token.startsWith('~~')) {
       tokens.push(
-        <del key={m.index} className="line-through text-slate-400">
+        <del key={m.index} className="line-through text-ash">
           {token.slice(2, -2)}
         </del>
       );
@@ -991,15 +842,15 @@ function formatInline(str) {
           href={linkUrl}
           target="_blank"
           rel="noreferrer"
-          className={`inline-flex items-center gap-1 font-mono text-[13px] px-1.5 py-0.5 rounded transition-all ${
-            isFileLink 
-              ? 'text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 hover:bg-cyan-500/20 hover:text-cyan-100'
-              : 'text-indigo-400 hover:text-indigo-300 underline underline-offset-2'
-          }`}
+          className={
+            isFileLink
+              ? 'evidence-pill'
+              : 'inline-flex items-center gap-1 text-ink underline underline-offset-2 decoration-ink/40 hover:decoration-ink'
+          }
           title={linkUrl}
         >
           <span>{linkText}</span>
-          {!isFileLink && <ExternalLink size={10} className="inline opacity-70" />}
+          {!isFileLink && <ExternalLink size={12} strokeWidth={2} className="inline text-ash" />}
         </a>
       );
     }

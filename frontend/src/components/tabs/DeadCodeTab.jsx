@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Scissors, Play, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Scissors } from 'lucide-react';
 import { apiPost } from '../../api';
 import { MarkdownView } from '../MarkdownView';
 
@@ -30,61 +30,44 @@ export function DeadCodeTab({ activeRepo }) {
 
   return (
     <div className="space-y-6">
-      <div className="glass-panel p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-base font-semibold text-white flex items-center gap-2">
-            <Scissors size={18} className="text-amber-400" />
-            <span>Dead Code & Unused Symbol Detection</span>
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Uses call graph reachability analysis to discover unreferenced functions, classes, and dead branches.
-          </p>
-        </div>
-
-        <button
-          onClick={handleAnalyze}
-          disabled={loading || !activeRepo}
-          className="btn btn-primary gap-2 text-xs"
-        >
-          {loading ? (
-            <>
-              <Scissors size={14} className="animate-spin" />
-              <span>Scanning Graph...</span>
-            </>
-          ) : (
-            <>
-              <Play size={14} />
-              <span>Find Dead Code</span>
-            </>
-          )}
+      <div className="flex flex-wrap items-center gap-3">
+        <button onClick={handleAnalyze} disabled={loading || !activeRepo} className="btn btn-primary">
+          <Scissors size={14} strokeWidth={2} />
+          <span>{loading ? 'Scanning graph…' : 'Find dead code'}</span>
         </button>
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-ink-2" role="status">
+            <div className="flex items-end gap-1">
+              <div className="thinking-dot" />
+              <div className="thinking-dot" />
+              <div className="thinking-dot" />
+            </div>
+            <span>Walking the call graph for symbols with no callers…</span>
+          </div>
+        )}
       </div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle size={15} />
-          <span>{error}</span>
+        <div className="paper-flat p-4 text-sm">
+          <p className="text-crimson font-semibold">{error}</p>
+          <p className="text-ink-2 mt-1">Check that the repository is indexed, then run the scan again.</p>
         </div>
       )}
 
       {result && (
-        <div className="glass-panel p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-            <span className="badge badge-warning">Reachability Report</span>
-            <span className="text-xs font-mono text-slate-400">Target: {activeRepo}</span>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between rule-b pb-3">
+            <span className="strip text-ash">Reachability report</span>
+            <span className="font-mono text-sm text-ash">{activeRepo}</span>
           </div>
           <MarkdownView content={result} />
         </div>
       )}
 
       {!result && !loading && (
-        <div className="glass-panel p-12 text-center text-slate-400 space-y-2">
-          <Scissors size={36} className="mx-auto text-amber-400/50 mb-2" />
-          <p className="text-sm font-medium text-slate-300">Clean up unnecessary code</p>
-          <p className="text-xs text-slate-500">
-            Click "Find Dead Code" to traverse the AST and identify uncalled functions, unused imports, and unreachable methods.
-          </p>
-        </div>
+        <p className="text-sm text-ink-2 max-w-prose">
+          Run the scan to list functions, classes and methods in {activeRepo ? <span className="font-mono">{activeRepo}</span> : 'your repository'} that nothing calls.
+        </p>
       )}
     </div>
   );

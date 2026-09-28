@@ -283,7 +283,7 @@ export function getMermaidInkUrl(code, format = 'svg', theme = 'dark') {
     }
     const b64 = (typeof window !== 'undefined' ? window.btoa : (s) => Buffer.from(s, 'binary').toString('base64'))(binary);
     const endpoint = format === 'png' ? 'img' : 'svg';
-    const themeParam = theme ? `?theme=${theme}&bgColor=!07090e` : '?bgColor=!07090e';
+    const themeParam = theme ? `?theme=${theme}&bgColor=!fbf8f2` : '?bgColor=!fbf8f2';
     return `https://mermaid.ink/${endpoint}/${b64}${themeParam}`;
   } catch (err) {
     return null;

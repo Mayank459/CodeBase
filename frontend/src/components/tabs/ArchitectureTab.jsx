@@ -1,12 +1,39 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Network, FileCode, Layers, Activity, Play, 
-  CheckCircle2, AlertCircle, GitBranch, Search, Sparkles, 
-  Workflow, Code2, Server, Cpu, Database, ShieldCheck, Zap, 
-  Boxes, Compass, Terminal, FolderTree, ArrowRight
-} from 'lucide-react';
+import { Activity, Play, AlertCircle, GitBranch, Search } from 'lucide-react';
 import { apiPost } from '../../api';
 import { MarkdownView } from '../MarkdownView';
+
+// Ink tones for language segments (API colours are rainbow; the paper world uses ink density)
+const LANG_TONES = ['#2a2724', '#4a443d', '#6b645b', '#a39a8c', '#d6ccbc'];
+
+const Segmented = ({ options, value, onChange, label }) => (
+  <div className="inline-flex flex-wrap" role="group" aria-label={label}>
+    {options.map(([key, text]) => (
+      <button
+        key={key}
+        type="button"
+        aria-pressed={value === key}
+        onClick={() => onChange(key)}
+        className={`btn btn-sm ${value === key ? 'bg-ink text-pulp' : 'btn-secondary'}`}
+      >
+        {text}
+      </button>
+    ))}
+  </div>
+);
+
+const Dots = ({ children }) => (
+  <div className="flex items-center gap-3 text-sm text-ink-2">
+    <span className="flex items-center gap-1">
+      <span className="thinking-dot" />
+      <span className="thinking-dot" />
+      <span className="thinking-dot" />
+    </span>
+    <span>{children}</span>
+  </div>
+);
+
+const sectionHeading = 'font-cond font-bold text-ink text-lg';
 
 export function ArchitectureTab({ activeRepo }) {
   const [loading, setLoading] = useState(false);
@@ -138,29 +165,28 @@ export function ArchitectureTab({ activeRepo }) {
   const architectureDiagramMarkdown = useMemo(() => {
     if (!data && !activeRepo) return '';
     const repo = activeRepo || 'Repository';
-    const isTalent = repo.toLowerCase().includes('talent');
     const isRequests = repo.toLowerCase().includes('requests');
 
     if (isRequests) {
       return `\`\`\`mermaid
 graph TD
-  subgraph Entrypoints ["🌐 Public API & Canonical Entrypoints"]
+  subgraph Entrypoints ["Public API & Canonical Entrypoints"]
     api["api.py<br/>(get, post, put, delete)"]
     session["sessions.py<br/>(Session, SessionRedirectMixin)"]
   end
 
-  subgraph Core_Logic ["⚡ Domain Logic & Models"]
+  subgraph Core_Logic ["Domain Logic & Models"]
     models["models.py<br/>(Request, PreparedRequest, Response)"]
     auth["auth.py<br/>(AuthBase, HTTPBasicAuth)"]
     cookies["cookies.py<br/>(RequestsCookieJar)"]
   end
 
-  subgraph Adapters ["🔌 Transport Adapters & Sockets"]
+  subgraph Adapters ["Transport Adapters & Sockets"]
     adapter["adapters.py<br/>(HTTPAdapter, BaseAdapter)"]
     hooks["hooks.py<br/>(Dispatch Hooks)"]
   end
 
-  subgraph Foundations ["🛠️ Exceptions & Compatibility"]
+  subgraph Foundations ["Exceptions & Compatibility"]
     exceptions["exceptions.py<br/>(RequestException)"]
     utils["utils.py<br/>(Encoding & Network Helpers)"]
   end
@@ -174,10 +200,10 @@ graph TD
   models --> exceptions
   session --> hooks
 
-  classDef entry fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-  classDef core fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-  classDef transport fill:#701a75,stroke:#f472b6,stroke-width:2px,color:#f8fafc;
-  classDef base fill:#0f172a,stroke:#64748b,stroke-width:1.5px,color:#94a3b8;
+  classDef entry fill:#f2ece1,stroke:#2a2724,stroke-width:1.25px,color:#2a2724;
+  classDef core fill:#f2ece1,stroke:#2a2724,stroke-width:1.25px,color:#2a2724;
+  classDef transport fill:#f2ece1,stroke:#2a2724,stroke-width:1.25px,color:#2a2724;
+  classDef base fill:#e8e0d2,stroke:#4a443d,stroke-width:1.25px,color:#2a2724;
 
   class api,session entry;
   class models,auth,cookies core;
@@ -188,22 +214,22 @@ graph TD
 
     return `\`\`\`mermaid
 graph TD
-  subgraph Entrypoints ["🌐 Entrypoints & API Controllers"]
+  subgraph Entrypoints ["Entrypoints & API Controllers"]
     api["Public Routes & Controllers<br/>(HTTP API, Ingestion Handlers)"]
     lifecycle["Lifecycle Bootstrap<br/>(Context, Setup, Server State)"]
   end
 
-  subgraph Domain_Core ["⚡ Core Processing & Agents"]
+  subgraph Domain_Core ["Core Processing & Agents"]
     agent["LangGraph Agent Workflow<br/>(Reasoning, StateGraph, Tools)"]
     ast["AST Entity Extractor<br/>(Parser Trees, Symbol Resolver)"]
   end
 
-  subgraph Vector_Graph ["💾 Embeddings & Graph Topologies"]
+  subgraph Vector_Graph ["Embeddings & Graph Topologies"]
     qdrant["Qdrant Hybrid Vector Store<br/>(Embeddings Index)"]
     networkx["NetworkX Call Graph<br/>(Directed Dependency Topologies)"]
   end
 
-  subgraph Gateways ["🔌 External Gateways & LLM Models"]
+  subgraph Gateways ["External Gateways & LLM Models"]
     llm["LLM Reasoning Gateways<br/>(Gemini, Groq, Anthropic)"]
     git["Git Version Control Engine<br/>(Commits, PRs, Diffs)"]
   end
@@ -216,10 +242,10 @@ graph TD
   agent --> llm
   lifecycle --> git
 
-  classDef entry fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
-  classDef core fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#f8fafc;
-  classDef storage fill:#701a75,stroke:#f472b6,stroke-width:2px,color:#f8fafc;
-  classDef transport fill:#0f172a,stroke:#64748b,stroke-width:1.5px,color:#94a3b8;
+  classDef entry fill:#f2ece1,stroke:#2a2724,stroke-width:1.25px,color:#2a2724;
+  classDef core fill:#f2ece1,stroke:#2a2724,stroke-width:1.25px,color:#2a2724;
+  classDef storage fill:#f2ece1,stroke:#2a2724,stroke-width:1.25px,color:#2a2724;
+  classDef transport fill:#e8e0d2,stroke:#4a443d,stroke-width:1.25px,color:#2a2724;
 
   class api,lifecycle entry;
   class agent,ast core;
@@ -267,424 +293,280 @@ graph TD
   const entryPoints = data?.entry_points || [];
   const centralityHubs = data?.centrality_hubs || [];
 
+
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="glass-panel p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Network size={20} className="text-indigo-400" />
-            <h3 className="text-base font-semibold text-white">Repository Structural Architecture & Telemetry</h3>
-            <span className="badge badge-primary text-[10px]">AST Graph & Polyglot Analysis</span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Synthesizes code patterns, language distribution, architectural subsystems, dependency hubs, and canonical entry points.
-          </p>
-        </div>
-
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={handleAnalyze}
           disabled={loading || !activeRepo}
-          className="btn btn-primary gap-2 text-xs shadow-lg shadow-indigo-500/20 flex-shrink-0"
+          className={`btn btn-md gap-2 ${data ? 'btn-secondary' : 'btn-primary'}`}
         >
           {loading ? (
             <>
-              <Activity size={14} className="animate-spin" />
-              <span>Analyzing Architecture...</span>
+              <Activity size={14} strokeWidth={2} className="animate-spin" />
+              <span>Analyzing</span>
             </>
           ) : (
             <>
-              <Play size={14} />
-              <span>{data ? 'Re-Analyze Architecture' : 'Analyze Architecture'}</span>
+              <Play size={14} strokeWidth={2} />
+              <span>{data ? 'Re-analyze architecture' : 'Analyze architecture'}</span>
             </>
           )}
         </button>
+        {activeRepo && (
+          <span className="text-sm text-ash">
+            Repository <span className="font-mono text-ink-2">{activeRepo}</span>
+          </span>
+        )}
       </div>
 
+      {loading && <Dots>Reading the AST graph and module stats…</Dots>}
+
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle size={16} className="flex-shrink-0" />
-          <span>{error}</span>
+        <div className="paper-flat p-4 text-sm flex items-start gap-2">
+          <AlertCircle size={16} strokeWidth={2} className="flex-shrink-0 text-crimson mt-0.5" />
+          <div>
+            <p className="text-crimson font-semibold">{error}</p>
+            <p className="text-ink-2 mt-1">Check that the repository is indexed, then run the analysis again.</p>
+          </div>
         </div>
       )}
 
       {data && (
         <>
-          {/* Executive Architecture Pattern Card */}
+          {/* Architecture pattern */}
           {overview && (
-            <div className="glass-panel p-6 border-indigo-500/30 bg-gradient-to-br from-indigo-950/20 via-[#07090e] to-cyan-950/20 space-y-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2.5">
-                    <Boxes size={18} className="text-cyan-400" />
-                    <h4 className="text-base font-bold text-white tracking-wide">
-                      {overview.architecture_pattern}
-                    </h4>
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                      {overview.pattern_badge}
-                    </span>
+            <section className="space-y-4">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h4 className="font-cond font-bold text-ink text-xl">{overview.architecture_pattern}</h4>
+                    {overview.pattern_badge && <span className="badge">{overview.pattern_badge}</span>}
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
-                    {overview.summary}
-                  </p>
+                  <p className="text-sm text-ink-2 leading-relaxed max-w-3xl">{overview.summary}</p>
                 </div>
 
-                <div className="flex items-center gap-3 bg-white/[0.03] border border-white/[0.08] px-4 py-2.5 rounded-xl flex-shrink-0">
-                  <ShieldCheck size={20} className="text-emerald-400" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-white">
-                        {overview.modularity_score}/100
-                      </span>
-                      <span className="text-[10px] uppercase font-mono text-emerald-400 font-semibold">
-                        Modularity Health
-                      </span>
-                    </div>
-                    <div className="w-28 h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full"
-                        style={{ width: `${overview.modularity_score}%` }}
-                      />
-                    </div>
+                <div className="flex-shrink-0">
+                  <span className="strip text-ash block">Modularity</span>
+                  <span className="font-mono tabular-nums text-xl text-ink">{overview.modularity_score}/100</span>
+                  <div className="w-28 h-1.5 bg-paper-grey rounded-sm mt-1.5 overflow-hidden">
+                    <div className="h-full bg-ink" style={{ width: `${overview.modularity_score}%` }} />
                   </div>
                 </div>
               </div>
 
-              {/* Core Telemetry Metrics Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
-                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Total Files</span>
-                  <div className="text-base font-bold text-white font-mono mt-0.5">
-                    {overview.total_files || modulesList.length}
+              <div className="flex flex-wrap gap-x-10 gap-y-3 rule-t pt-4">
+                {[
+                  ['Files', overview.total_files || modulesList.length],
+                  ['Lines of code', (overview.total_loc || 0).toLocaleString()],
+                  ['Graph nodes', (data.graph_nodes || 0).toLocaleString()],
+                  ['Dependency edges', (data.graph_edges || 0).toLocaleString()],
+                  ['Edges per node', overview.coupling_density || (data.graph_edges / Math.max(data.graph_nodes, 1)).toFixed(2)],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <span className="strip text-ash block">{label}</span>
+                    <span className="font-mono tabular-nums text-xl text-ink">{value}</span>
                   </div>
-                  <span className="text-[10px] text-slate-500">Source units</span>
-                </div>
-
-                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Lines of Code</span>
-                  <div className="text-base font-bold text-emerald-400 font-mono mt-0.5">
-                    {(overview.total_loc || 0).toLocaleString()}
-                  </div>
-                  <span className="text-[10px] text-slate-500">Estimated physical LOC</span>
-                </div>
-
-                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">AST Graph Nodes</span>
-                  <div className="text-base font-bold text-indigo-400 font-mono mt-0.5">
-                    {(data.graph_nodes || 0).toLocaleString()}
-                  </div>
-                  <span className="text-[10px] text-slate-500">Classes, functions, symbols</span>
-                </div>
-
-                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Dependency Edges</span>
-                  <div className="text-base font-bold text-cyan-400 font-mono mt-0.5">
-                    {(data.graph_edges || 0).toLocaleString()}
-                  </div>
-                  <span className="text-[10px] text-slate-500">Directed calls & imports</span>
-                </div>
-
-                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] col-span-2 sm:col-span-1">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Coupling Density</span>
-                  <div className="text-base font-bold text-amber-400 font-mono mt-0.5">
-                    {overview.coupling_density || (data.graph_edges / Math.max(data.graph_nodes, 1)).toFixed(2)}
-                  </div>
-                  <span className="text-[10px] text-slate-500">Edges per entity ratio</span>
-                </div>
+                ))}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Polyglot Languages & Detected Tech Stack */}
+          {/* Languages & tech stack */}
           {techStack && (
-            <div className="glass-panel p-5 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
-                <div className="flex items-center gap-2">
-                  <Code2 size={16} className="text-indigo-400" />
-                  <h4 className="text-sm font-bold text-white">Polyglot Language & Technology Stack</h4>
-                </div>
-                <span className="text-xs font-mono text-slate-400">
-                  Primary Language: <strong className="text-indigo-300">{techStack.primary_language}</strong>
+            <section className="rule-t pt-5 space-y-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h4 className={sectionHeading}>Languages and stack</h4>
+                <span className="text-sm text-ash">
+                  Primary language <span className="font-semibold text-ink">{techStack.primary_language}</span>
                 </span>
               </div>
 
-              {/* Multi-Segment Language Bar */}
               {techStack.languages && techStack.languages.length > 0 && (
                 <div className="space-y-2">
-                  <div className="h-3 w-full rounded-full bg-white/[0.05] overflow-hidden flex shadow-inner">
+                  <div className="h-3 w-full rounded-sm bg-pulp-2 overflow-hidden flex gap-px">
                     {techStack.languages.map((lang, idx) => (
                       <div
                         key={idx}
-                        style={{
-                          width: `${lang.percentage}%`,
-                          backgroundColor: lang.color || '#6366f1'
-                        }}
+                        style={{ width: `${lang.percentage}%`, backgroundColor: LANG_TONES[idx % LANG_TONES.length] }}
                         title={`${lang.name}: ${lang.percentage}% (${lang.files} files)`}
-                        className="h-full transition-all duration-500 hover:brightness-125"
+                        className="h-full"
                       />
                     ))}
                   </div>
 
-                  {/* Language Legend Chips */}
-                  <div className="flex items-center gap-3 flex-wrap text-xs pt-1">
+                  <div className="flex items-center gap-x-5 gap-y-1 flex-wrap text-sm">
                     {techStack.languages.map((lang, idx) => (
-                      <div key={idx} className="flex items-center gap-1.5 font-mono text-slate-300 bg-white/[0.02] px-2 py-0.5 rounded border border-white/[0.05]">
-                        <span 
-                          className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: lang.color || '#6366f1' }}
+                      <div key={idx} className="flex items-center gap-1.5">
+                        <span
+                          className="h-2.5 w-2.5 rounded-sm flex-shrink-0"
+                          style={{ backgroundColor: LANG_TONES[idx % LANG_TONES.length] }}
                         />
-                        <span className="font-semibold text-white">{lang.name}</span>
-                        <span className="text-slate-400">{lang.percentage}%</span>
-                        <span className="text-slate-500 text-[10px]">({lang.files}f)</span>
+                        <span className="font-semibold text-ink">{lang.name}</span>
+                        <span className="font-mono tabular-nums text-ink-2">{lang.percentage}%</span>
+                        <span className="font-mono tabular-nums text-ash text-xs">{lang.files} files</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Detected Frameworks & Architectural Roles */}
               {allFrameworks.length > 0 && (
-                <div className="space-y-3 pt-2">
+                <div className="space-y-2 pt-2">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Zap size={14} className="text-amber-400" />
-                      <span className="text-xs font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                        Detected Frameworks & Architectural Roles ({allFrameworks.length})
-                      </span>
-                    </div>
-
-                    {/* Category Filter */}
+                    <span className="strip text-ash">
+                      Frameworks <span className="font-mono tabular-nums">({allFrameworks.length})</span>
+                    </span>
                     {frameworkCategories.length > 2 && (
-                      <div className="flex items-center gap-1 flex-wrap text-[11px] font-mono">
-                        {frameworkCategories.map((cat) => (
-                          <button
-                            key={cat}
-                            onClick={() => setFrameworkCategoryFilter(cat)}
-                            className={`px-2 py-0.5 rounded transition-all ${
-                              frameworkCategoryFilter === cat
-                                ? 'bg-indigo-600 text-white font-semibold'
-                                : 'bg-white/[0.03] text-slate-400 hover:text-white border border-white/[0.05]'
-                            }`}
-                          >
-                            {cat}
-                          </button>
+                      <Segmented
+                        label="Filter frameworks by category"
+                        options={frameworkCategories.map((c) => [c, c])}
+                        value={frameworkCategoryFilter}
+                        onChange={setFrameworkCategoryFilter}
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    {filteredFrameworks.map((fw, idx) => (
+                      <div key={idx} className="flex items-start justify-between gap-4 py-2.5 rule-b">
+                        <div className="min-w-0">
+                          <span className="text-ink font-semibold">{fw.name}</span>
+                          <p className="text-sm text-ink-2 leading-relaxed">{fw.role}</p>
+                        </div>
+                        <span className="badge flex-shrink-0">{fw.category}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Layers */}
+          {layers.length > 0 && (
+            <section className="rule-t pt-5 space-y-2">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h4 className={sectionHeading}>Layers</h4>
+                <span className="text-sm text-ash">
+                  <span className="font-mono tabular-nums">{layers.length}</span> identified
+                </span>
+              </div>
+
+              <div>
+                {layers.map((layer, idx) => (
+                  <div key={idx} className="py-3 rule-b space-y-1.5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <span className="text-ink font-semibold">{layer.name}</span>
+                        <p className="text-sm text-ink-2 leading-relaxed">{layer.description}</p>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="font-mono tabular-nums text-sm text-ash">
+                          {layer.file_count} files ({layer.percentage}%)
+                        </span>
+                        <span className="badge">{layer.category}</span>
+                      </div>
+                    </div>
+                    {layer.sample_files?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {layer.sample_files.map((sample, sIdx) => (
+                          <span key={sIdx} className="evidence-pill max-w-full truncate" title={sample}>
+                            {sample}
+                          </span>
                         ))}
                       </div>
                     )}
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {filteredFrameworks.map((fw, idx) => (
-                      <div 
-                        key={idx}
-                        className="p-3 rounded-xl bg-[#06080e] border border-white/[0.06] hover:border-indigo-500/40 transition-all flex flex-col justify-between gap-2"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                            <span 
-                              className="h-2 w-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: fw.badge_color || '#6366f1' }}
-                            />
-                            {fw.name}
-                          </span>
-                          <span 
-                            className="text-[10px] font-mono px-2 py-0.5 rounded-full border flex-shrink-0"
-                            style={{
-                              backgroundColor: `${fw.badge_color || '#6366f1'}15`,
-                              borderColor: `${fw.badge_color || '#6366f1'}40`,
-                              color: fw.badge_color || '#a5b4fc'
-                            }}
-                          >
-                            {fw.category}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">
-                          {fw.role}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Subsystem Layering & Structural Anatomy */}
-          {layers.length > 0 && (
-            <div className="glass-panel p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                <div className="flex items-center gap-2">
-                  <Layers size={16} className="text-cyan-400" />
-                  <h4 className="text-sm font-bold text-white">Subsystem Layering & Structural Anatomy</h4>
-                </div>
-                <span className="text-xs font-mono text-slate-400">
-                  {layers.length} Architectural Layers Identified
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {layers.map((layer, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-xl bg-[#07090e] border border-white/[0.07] hover:border-cyan-500/30 transition-all space-y-3 flex flex-col justify-between"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-white">
-                          {layer.name}
-                        </span>
-                        <span 
-                          className="text-[10px] font-mono px-2 py-0.5 rounded border"
-                          style={{
-                            backgroundColor: `${layer.badge_color || '#06b6d4'}15`,
-                            borderColor: `${layer.badge_color || '#06b6d4'}40`,
-                            color: layer.badge_color || '#67e8f9'
-                          }}
-                        >
-                          {layer.category}
-                        </span>
-                      </div>
-
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        {layer.description}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2 pt-2 border-t border-white/[0.05]">
-                      <div className="flex items-center justify-between text-[11px] font-mono">
-                        <span className="text-slate-400">Module Allocation</span>
-                        <span className="text-cyan-300 font-semibold">{layer.file_count} files ({layer.percentage}%)</span>
-                      </div>
-
-                      {/* Layer Sample Files */}
-                      <div className="space-y-1 pt-1">
-                        {layer.sample_files.map((sample, sIdx) => (
-                          <div 
-                            key={sIdx}
-                            className="flex items-center gap-1.5 text-[10px] font-mono text-slate-300 truncate bg-white/[0.02] px-2 py-0.5 rounded border border-white/[0.04]"
-                            title={sample}
-                          >
-                            <FileCode size={11} className="text-slate-500 flex-shrink-0" />
-                            <span className="truncate">{sample}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Interactive Subsystem & Architecture Topology Graph */}
-          {architectureDiagramMarkdown && (
-            <div className="glass-panel p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                <div className="flex items-center gap-2">
-                  <Workflow size={16} className="text-cyan-400" />
-                  <h4 className="text-sm font-bold text-white">Interactive Subsystem & Architecture Topology Graph</h4>
-                  <span className="badge badge-primary text-[10px]">Vector Mermaid</span>
-                </div>
-                <span className="text-xs font-mono text-slate-400">
-                  Target: <strong className="text-indigo-300">{activeRepo}</strong>
-                </span>
+          {/* Subsystem topology graph */}
+          {/* Hand-drawn layouts exist only for psf/requests and this repository; never show them for others */}
+          {architectureDiagramMarkdown && /requests|codebase/i.test(activeRepo || '') && (
+            <section className="rule-t pt-5 space-y-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h4 className={sectionHeading}>Subsystem topology</h4>
+                <span className="text-sm text-ash">Drag to pan, scroll to zoom, export as SVG or PNG.</span>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Full 2D interactive topological model mapping entrypoints, core domain logic, transport gateways, and persistence layers. Drag to pan, scroll to zoom, or export as SVG/PNG.
+              <p className="text-sm text-ash">
+                Drawn by hand for {activeRepo}, not generated from the index.
               </p>
-
-              <MarkdownView content={architectureDiagramMarkdown} />
-            </div>
+              <div className="paper-flat p-3">
+                <MarkdownView content={architectureDiagramMarkdown} />
+              </div>
+            </section>
           )}
 
-          {/* Canonical Application Entry Points */}
+          {/* Entry points */}
           {entryPoints.length > 0 && (
-            <div className="glass-panel p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                <div className="flex items-center gap-2">
-                  <Terminal size={16} className="text-emerald-400" />
-                  <h4 className="text-sm font-bold text-white">Canonical Application Entry Points</h4>
-                </div>
-                <span className="text-xs font-mono text-slate-400">
-                  Startup & Lifecycle Orchestration
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <section className="rule-t pt-5 space-y-2">
+              <h4 className={sectionHeading}>Entry points</h4>
+              <div>
                 {entryPoints.map((ep, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3.5 rounded-xl bg-[#06080e] border border-white/[0.06] hover:border-emerald-500/30 transition-all space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-emerald-300 truncate" title={ep.path}>
+                  <div key={idx} className="flex items-start justify-between gap-4 py-2.5 rule-b">
+                    <div className="min-w-0">
+                      <span className="block font-mono text-sm text-ink font-semibold truncate" title={ep.path}>
                         {ep.path}
                       </span>
-                      <span className="badge badge-primary text-[9px] flex-shrink-0">
-                        {ep.type}
-                      </span>
+                      <p className="text-sm text-ink-2 leading-relaxed">{ep.description}</p>
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
-                      {ep.description}
-                    </p>
+                    <span className="badge flex-shrink-0">{ep.type}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Interactive Call Flow Tracer (Standout Feature) */}
-          <div className="glass-panel p-5 border-indigo-500/30 bg-indigo-500/[0.02] space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <GitBranch size={16} className="text-cyan-400" />
-                <h4 className="text-sm font-bold text-white">Dynamic Call Flow Tracer</h4>
-                <span className="badge badge-primary text-[10px]">Graph Traversal BFS</span>
-              </div>
-              <span className="text-[11px] font-mono text-slate-400">
-                Traces "What happens when X is called?"
-              </span>
+          {/* Call flow tracer */}
+          <section className="rule-t pt-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <GitBranch size={16} strokeWidth={2} className="text-ink-2" />
+              <h4 className={sectionHeading}>Call flow tracer</h4>
             </div>
-
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Traverse the NetworkX call graph starting from any function, route, or service to trace execution across callers, callees, and database boundaries.
+            <p className="text-sm text-ink-2 leading-relaxed">
+              Name a function, route or service to trace its callers and callees through the call graph.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-2.5">
               <div className="relative flex-1 w-full">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <Search size={14} strokeWidth={2} className="absolute left-3 top-1/2 -translate-y-1/2 text-ash pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="e.g. index_repository, chat_with_agent, clone_repository, authenticate..."
+                  placeholder="e.g. index_repository, chat_with_agent, clone_repository"
                   value={tracerTarget}
                   onChange={(e) => setTracerTarget(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleTraceFlow()}
-                  className="input-field pl-10 py-2 text-xs font-mono w-full has-icon-left"
+                  className="input-field pl-9 text-sm font-mono w-full has-icon-left"
+                  aria-label="Symbol to trace"
                 />
               </div>
 
               <button
                 onClick={() => handleTraceFlow()}
                 disabled={tracingFlow || !tracerTarget.trim() || !activeRepo}
-                className="btn btn-primary text-xs px-4 gap-1.5 w-full sm:w-auto shadow-md flex-shrink-0"
+                className="btn btn-primary btn-md gap-1.5 w-full sm:w-auto flex-shrink-0"
               >
                 {tracingFlow ? (
                   <>
-                    <Activity size={13} className="animate-spin" />
-                    <span>Tracing Flow...</span>
+                    <Activity size={14} strokeWidth={2} className="animate-spin" />
+                    <span>Tracing</span>
                   </>
                 ) : (
                   <>
-                    <Play size={13} />
-                    <span>Trace Call Flow</span>
+                    <Play size={14} strokeWidth={2} />
+                    <span>Trace call flow</span>
                   </>
                 )}
               </button>
             </div>
 
-            {/* Quick Suggestion Chips */}
-            <div className="flex items-center gap-2 flex-wrap pt-1 text-[11px] font-mono text-slate-400">
-              <span>Popular Targets:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="strip text-ash">Try</span>
               {(activeRepo && activeRepo.toLowerCase().includes('talent')
                 ? ['createSession', 'joinSession', 'getInterviewQuestions', 'generateResumeFeedback', 'inngest']
                 : activeRepo && activeRepo.toLowerCase().includes('requests')
@@ -693,158 +575,125 @@ graph TD
               ).map((suggestion) => (
                 <button
                   key={suggestion}
+                  type="button"
                   onClick={() => {
                     setTracerTarget(suggestion);
                     handleTraceFlow(suggestion);
                   }}
-                  className="px-2 py-0.5 rounded bg-white/[0.04] hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-200 border border-white/[0.06] transition-all cursor-pointer"
+                  className="btn btn-sm btn-secondary font-mono normal-case tracking-normal"
                 >
                   {suggestion}()
                 </button>
               ))}
             </div>
 
-            {/* Call Flow Render Result */}
+            {tracingFlow && <Dots>Walking the call graph…</Dots>}
+
             {flowError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
-                {flowError}
+              <div className="paper-flat p-4 text-sm">
+                <p className="text-crimson font-semibold">{flowError}</p>
+                <p className="text-ink-2 mt-1">Check the symbol name and try again.</p>
               </div>
             )}
 
             {traceDisplayContent && (
-              <div className="rounded-xl border border-indigo-500/30 bg-[#05070c] p-5 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] text-xs font-mono text-slate-400">
-                  <span className="text-cyan-400 font-semibold flex items-center gap-1.5">
-                    <Workflow size={14} />
-                    <span>Visual Call Flow & Component Hierarchy</span>
+              <div className="paper-flat p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3 pb-2 rule-b text-sm">
+                  <span className="strip text-ash">Call flow</span>
+                  <span className="text-ash">
+                    Target <span className="font-mono text-ink">{tracerTarget}</span>
                   </span>
-                  <span className="text-slate-400">Target: <strong className="text-indigo-300">{tracerTarget}</strong></span>
                 </div>
-                
                 <MarkdownView content={traceDisplayContent} />
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Module Density & Centrality Hubs */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* File Complexity Overview Table */}
-            <div className="lg:col-span-7 glass-panel p-5">
-              <div className="flex items-center justify-between mb-4">
+          {/* Module density & hubs */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 rule-t pt-5">
+            <section className="lg:col-span-7 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-sm font-semibold text-white">Module Density Overview</h4>
-                  <p className="text-[11px] text-slate-400 font-mono">Ranked by code entity density</p>
+                  <h4 className={sectionHeading}>Module density</h4>
+                  <p className="text-sm text-ash">Ranked by entity count</p>
                 </div>
-
-                <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-lg border border-white/[0.06] text-xs">
-                  <button
-                    onClick={() => setSortKey('total')}
-                    className={`px-2 py-0.5 rounded transition-all ${
-                      sortKey === 'total' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setSortKey('functions')}
-                    className={`px-2 py-0.5 rounded transition-all ${
-                      sortKey === 'functions' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Funcs
-                  </button>
-                  <button
-                    onClick={() => setSortKey('classes')}
-                    className={`px-2 py-0.5 rounded transition-all ${
-                      sortKey === 'classes' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Classes
-                  </button>
-                </div>
+                <Segmented
+                  label="Sort modules"
+                  options={[['total', 'All'], ['functions', 'Funcs'], ['classes', 'Classes']]}
+                  value={sortKey}
+                  onChange={setSortKey}
+                />
               </div>
 
-              <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+              <div className="max-h-[420px] overflow-y-auto pr-1">
+                <div className="flex items-center justify-between py-1.5 rule-b strip text-ash">
+                  <span>Path</span>
+                  <span className="flex gap-3">
+                    <span className="w-8 text-right">Cls</span>
+                    <span className="w-8 text-right">Fn</span>
+                    <span className="w-8 text-right">All</span>
+                  </span>
+                </div>
                 {modulesList.map((mod, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:border-indigo-500/30 transition-all text-xs"
-                  >
-                    <div className="flex items-center gap-2.5 truncate max-w-[65%]">
-                      <FileCode size={14} className="text-indigo-400 flex-shrink-0" />
-                      <span className="font-mono text-slate-200 truncate" title={mod.path}>
-                        {mod.path}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 font-mono text-[11px]">
-                      <span className="text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded" title="Classes">
-                        {mod.classes}C
-                      </span>
-                      <span className="text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded" title="Functions">
-                        {mod.functions}F
-                      </span>
-                      <span className="text-slate-400 font-bold w-7 text-right">
-                        {mod.total}
-                      </span>
-                    </div>
+                  <div key={idx} className="flex items-center justify-between gap-3 py-2 rule-b text-sm">
+                    <span className="font-mono text-ink truncate" title={mod.path}>{mod.path}</span>
+                    <span className="flex gap-3 font-mono tabular-nums flex-shrink-0">
+                      <span className="w-8 text-right text-ash" title="Classes">{mod.classes}</span>
+                      <span className="w-8 text-right text-ash" title="Functions">{mod.functions}</span>
+                      <span className="w-8 text-right text-ink font-semibold">{mod.total}</span>
+                    </span>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
 
-            {/* Centrality Hubs / Core Dependency Layers */}
-            <div className="lg:col-span-5 glass-panel p-5 space-y-4">
+            <section className="lg:col-span-5 space-y-2">
               <div>
-                <h4 className="text-sm font-semibold text-white">Centrality & Architectural Hubs</h4>
-                <p className="text-[11px] text-slate-400 font-mono">Most coupled components in NetworkX graph</p>
+                <h4 className={sectionHeading}>Hubs</h4>
+                <p className="text-sm text-ash">Most coupled nodes in the call graph</p>
               </div>
 
-              <div className="space-y-3">
-                {(centralityHubs.length > 0 
-                  ? centralityHubs 
-                  : modulesList.slice(0, 5).map(m => ({ node: m.path, in_degree: m.classes, out_degree: m.functions, role: 'Key Module' }))
-                ).map((hub, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-xl bg-[#07090e] border border-white/[0.06] hover:border-indigo-500/30 transition-all space-y-1.5"
-                  >
+              <div>
+                {centralityHubs.length === 0 && (
+                  <p className="py-2.5 text-sm text-ink-2">The backend returned no hub data for this repository.</p>
+                )}
+                {centralityHubs.map((hub, idx) => (
+                  <div key={idx} className="py-2.5 rule-b space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 truncate">
-                        <div className="h-5 w-5 rounded bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0">
-                          #{idx + 1}
-                        </div>
-                        <span className="text-xs font-mono font-semibold text-slate-200 truncate" title={hub.node}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono tabular-nums text-sm text-ash flex-shrink-0">
+                          {String(idx + 1).padStart(2, '0')}
+                        </span>
+                        <span className="font-mono text-sm text-ink font-semibold truncate" title={hub.node}>
                           {hub.node}
                         </span>
                       </div>
-                      <span className="badge badge-primary text-[9px] flex-shrink-0">
-                        {hub.total_degree ? `${hub.total_degree} Edges` : 'Core Hub'}
+                      <span className="badge flex-shrink-0">
+                        {hub.total_degree ? `${hub.total_degree} edges` : 'Hub'}
                       </span>
                     </div>
-
-                    <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-0.5">
-                      <span className="truncate text-slate-400">{hub.role}</span>
+                    <div className="flex items-center justify-between text-sm text-ash pl-7">
+                      <span className="truncate">{hub.role}</span>
                       {hub.in_degree !== undefined && hub.out_degree !== undefined && (
-                        <span className="text-slate-500 flex-shrink-0 ml-2">
-                          In: <span className="text-cyan-400">{hub.in_degree}</span> | Out: <span className="text-amber-400">{hub.out_degree}</span>
+                        <span className="font-mono tabular-nums flex-shrink-0 ml-2">
+                          in {hub.in_degree} · out {hub.out_degree}
                         </span>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           </div>
         </>
       )}
 
-      {!data && !loading && (
-        <div className="glass-panel p-12 text-center text-slate-400 space-y-3">
-          <Network size={40} className="mx-auto text-indigo-400/50 mb-2" />
-          <h4 className="text-sm font-semibold text-slate-200">No Architecture Analysis Run Yet</h4>
-          <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-            Click <strong>"Analyze Architecture"</strong> to extract AST symbol tables, build the NetworkX directed graph, and calculate module coupling metrics for {activeRepo || 'your repository'}.
+      {!data && !loading && !error && (
+        <div className="py-12 text-center space-y-3">
+          <div className="font-matrixtype-display text-5xl text-paper-grey" aria-hidden="true">unmapped</div>
+          <p className="text-sm text-ink-2 max-w-md mx-auto leading-relaxed">
+            Run <span className="font-semibold text-ink">Analyze architecture</span> to map modules, layers and call hubs for{' '}
+            <span className="font-mono">{activeRepo || 'your repository'}</span>.
           </p>
         </div>
       )}
